@@ -3,185 +3,354 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0b4f8a">
+<meta name="theme-color" content="#0D2454">
+<meta name="description" content="Divide las rutas de SpeedX POS por código postal.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Divisor">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<title>Divisor de rutas</title>
+<meta name="apple-mobile-web-app-title" content="AFLEX Divisor">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="iconos/favicon.png">
+<link rel="apple-touch-icon" href="iconos/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<title>AFLEX Divisor de rutas</title>
 <style>
-:root{--bg:#f4f5f7;--card:#fff;--ink:#16202c;--mute:#5b6675;--line:#e1e5ea;--pri:#0b4f8a;--pri2:#0d63ad;--ok:#16794a;--okbg:#e6f4ec;--warn:#9a5b00;--warnbg:#fdf3e1;--bad:#b42318;--badbg:#fdecea;--chip:#eef2f6}
-@media (prefers-color-scheme:dark){:root{--bg:#0f141a;--card:#171e26;--ink:#e6ebf0;--mute:#9aa6b2;--line:#29323d;--pri:#5aa6e8;--pri2:#7ab8ee;--ok:#5cc58f;--okbg:#14301f;--warn:#e5b45a;--warnbg:#33270f;--bad:#f0857a;--badbg:#3a1714;--chip:#222c37}}
-*{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-header{display:flex;align-items:center;gap:12px;padding:14px 24px;padding-top:calc(14px + env(safe-area-inset-top));background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
-header h1{font-size:18px;margin:0;flex:1}
-header h1 small{font-weight:400;color:var(--mute);margin-left:8px;font-size:13px}
-main{max-width:1240px;margin:0 auto;padding:20px 24px 110px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:16px}
-.row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
-label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--mute)}
-input,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:120px}
-input[type=checkbox]{width:20px;height:20px;min-width:0;accent-color:var(--pri)}
-button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:8px 14px;cursor:pointer;min-height:40px}
-button:hover:not(:disabled){border-color:var(--pri)}
-button:disabled{opacity:.45;cursor:not-allowed}
-.pri{background:var(--pri);border-color:var(--pri);color:#fff;font-weight:600}
-.pri:hover:not(:disabled){background:var(--pri2)}
-.big{font-size:17px;padding:14px 26px;border-radius:10px}
-.plain{border:0;background:none;color:var(--pri);padding:4px 6px}
-.mute{color:var(--mute)}.small{font-size:13px}
-.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:4px 0 0}
-.tile{background:var(--bg);border-radius:10px;padding:10px 12px}
-.tile b{display:block;font-size:22px}
-.tile span{font-size:12px;color:var(--mute)}
-h2{font-size:16px;margin:0 0 10px}
-table{width:100%;border-collapse:collapse}
-th,td{text-align:left;padding:8px 8px;border-bottom:1px solid var(--line);vertical-align:top}
-th{font-size:12px;color:var(--mute);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
-td.num{text-align:right;font-variant-numeric:tabular-nums}
-.etq{font-weight:700;font-size:16px}
-.chip{display:inline-block;background:var(--chip);border-radius:20px;padding:2px 9px;margin:2px 4px 2px 0;font-size:12.5px;white-space:nowrap}
-.badge{display:inline-block;border-radius:6px;padding:1px 7px;font-size:12px;font-weight:600;background:var(--chip)}
-.b-ok{background:var(--okbg);color:var(--ok)}.b-warn{background:var(--warnbg);color:var(--warn)}.b-bad{background:var(--badbg);color:var(--bad)}
-.toolbar{display:flex;gap:10px;align-items:center;margin:0 0 10px;flex-wrap:wrap}
-.check{flex-direction:row;align-items:center;gap:8px;color:var(--ink);font-size:14px}
-.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-@media (max-width:900px){.cols{grid-template-columns:1fr}}
-ul.lista{margin:0;padding-left:18px}ul.lista li{margin:4px 0}
-.err{background:var(--badbg);color:var(--bad);border-radius:8px;padding:10px 12px;margin:10px 0}
-.nota{background:var(--warnbg);color:var(--warn);border-radius:8px;padding:6px 10px;margin:4px 0;font-size:13px}
-.log{background:#0d1117;color:#d6dee8;border-radius:10px;padding:12px 14px;font:13px/1.5 ui-monospace,Consolas,monospace;max-height:360px;overflow:auto;white-space:pre-wrap;word-break:break-word}
-.final{position:sticky;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:14px 24px calc(14px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:16px;justify-content:flex-end}
-.final .mute{flex:1}
-dialog{border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);max-width:520px;width:calc(100% - 32px);padding:22px}
-dialog::backdrop{background:#0008}
-.hidden{display:none!important}
-.tabla{overflow-x:auto}
-tr.sel td{background:color-mix(in srgb,var(--pri) 10%,transparent)}
-.guard{display:flex;gap:10px 16px;align-items:center;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--line)}
-.guard:last-child{border-bottom:0}
-.guard .quien{flex:1 1 220px;min-width:0}
-.guard .lim{flex-direction:row;align-items:center;gap:6px;color:var(--ink);font-size:13.5px}
-.guard .lim input{width:90px;min-width:0}
-@media (max-width:640px){
- header{padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top));gap:8px}header h1{font-size:16px}header h1 small{display:none}
- #who{font-size:12px}
- main{padding:12px 10px 120px}
- .card{padding:14px;border-radius:10px}
- .final{padding:10px 14px calc(10px + env(safe-area-inset-bottom));gap:10px}
- .final .mute{font-size:13px}
- .big{padding:12px 16px;font-size:16px}
- input,select{min-width:0;width:100%;font-size:16px}
- .row>label{flex:1 1 140px}
- .row>button{flex:1 1 100%}
- .tiles{grid-template-columns:repeat(3,1fr);gap:6px}.tile{padding:8px}.tile b{font-size:18px}.tile span{font-size:11px}
- table.cards thead{display:none}
- table.cards,table.cards tbody,table.cards tr,table.cards td{display:block;width:100%}
- table.cards tr{position:relative;border:1px solid var(--line);border-radius:10px;padding:10px 12px 8px 44px;margin-bottom:8px}
- table.cards td{border:0;padding:2px 0}
- table.cards td.num{text-align:left}
- table.cards td[data-l]::before{content:attr(data-l) ": ";color:var(--mute);font-size:12px}
- table.cards td.cb{position:absolute;left:12px;top:12px;width:auto;padding:0}
- table.cards td.vacio{padding:0}
+:root{
+ --fondo:#EDF1F7;--hoja:#FFFFFF;--tinta:#0F1B33;--tinta2:#55617A;--linea:#D7DEEA;
+ --azul:#1F5FD6;--noche:#0D2454;--amarillo:#FFD23F;--verde:#16855A;--verdebg:#DDF5EA;
+ --rojo:#C9372C;--rojobg:#FBE6E3;--avisobg:#FFF3C4;--sel:#FFD23F;--seltinta:#0F1B33;
+ --sombra:0 1px 2px rgba(13,36,84,.06),0 4px 14px rgba(13,36,84,.06);
+ color-scheme:light;
 }
+@media (prefers-color-scheme:dark){:root{
+ --fondo:#0B1220;--hoja:#141D2E;--tinta:#E8EDF6;--tinta2:#9AA7BD;--linea:#26324A;
+ --azul:#7FA6FF;--verde:#4FD39B;--verdebg:#123426;--rojo:#FF8A7E;--rojobg:#3A1714;--avisobg:#3A3110;
+ --sombra:0 1px 2px rgba(0,0,0,.3);color-scheme:dark;}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--fondo);color:var(--tinta);font:16px/1.45 Barlow,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--azul);outline-offset:2px}
+.hidden{display:none!important}
+
+/* barra superior */
+.barra{position:sticky;top:0;z-index:10;background:var(--noche);color:#fff;display:flex;align-items:center;gap:10px;
+ padding:calc(10px + env(safe-area-inset-top)) 16px 10px}
+.barra img{width:30px;height:30px;border-radius:8px}
+.barra .marca{flex:1;font-weight:700;font-size:18px;letter-spacing:.01em}
+.barra .marca span{font-weight:500;opacity:.75}
+.icono-btn{border:0;background:rgba(255,255,255,.12);color:#fff;width:42px;height:42px;border-radius:12px;display:grid;place-items:center;cursor:pointer}
+.icono-btn svg{width:22px;height:22px}
+
+main{max-width:760px;margin:0 auto;padding:16px 16px 140px}
+.hoja{background:var(--hoja);border:1px solid var(--linea);border-radius:18px;padding:18px;box-shadow:var(--sombra);margin-bottom:14px}
+h1,h2,h3{margin:0;line-height:1.15}
+h3{font-size:18px;font-weight:700;margin-bottom:4px}
+.sub{color:var(--tinta2);font-size:14.5px;margin:0 0 12px}
+label.campo{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600;color:var(--tinta2);margin-bottom:12px}
+input[type=text],input[type=password],input[type=url],input[type=number],input[type=date],select{
+ width:100%;background:var(--fondo);border:1.5px solid var(--linea);border-radius:12px;padding:12px 14px;font-size:16px;color:var(--tinta)}
+input:focus,select:focus{border-color:var(--azul);outline:none}
+.btn{border:0;border-radius:14px;padding:14px 18px;font-weight:700;font-size:17px;cursor:pointer;min-height:50px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-pri{background:var(--amarillo);color:#0F1B33}
+.btn-azul{background:var(--azul);color:#fff}
+.btn-suave{background:var(--fondo);color:var(--tinta);border:1.5px solid var(--linea)}
+.btn-ancho{width:100%}
+.enlace{border:0;background:none;color:var(--azul);font-weight:600;padding:8px 2px;cursor:pointer;font-size:15px}
+.err{background:var(--rojobg);color:var(--rojo);border-radius:12px;padding:12px 14px;margin:10px 0;font-weight:500}
+.check{display:flex;align-items:center;gap:10px;font-size:15px;margin:4px 0 14px}
+.check input{width:22px;height:22px;accent-color:var(--azul)}
+
+/* bienvenida */
+.bienvenida{text-align:center;padding:26px 18px}
+.bienvenida img{width:96px;height:96px;border-radius:24px;box-shadow:0 8px 24px rgba(13,36,84,.25)}
+.bienvenida h2{font-size:24px;margin:14px 0 6px}
+.bienvenida form{text-align:left;margin-top:16px}
+
+/* ciudad y fecha */
+.seg{display:grid;grid-template-columns:repeat(4,1fr);background:var(--fondo);border-radius:14px;padding:4px;gap:4px;margin-bottom:10px}
+.seg button{border:0;background:none;border-radius:10px;padding:10px 0;font-weight:700;font-size:16px;cursor:pointer;color:var(--tinta2)}
+.seg button[aria-pressed=true]{background:var(--noche);color:#fff}
+.fechas{display:flex;gap:6px;align-items:center}
+.fechas .chip{border:1.5px solid var(--linea);background:var(--hoja);border-radius:999px;padding:9px 13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.fechas .chip[aria-pressed=true],.fechas .otra[aria-pressed=true]{background:var(--noche);border-color:var(--noche);color:#fff}
+.fechas .otra{position:relative;flex:1 0 auto;min-width:0;display:flex;align-items:center;justify-content:center;gap:6px}
+.fechas .otra span{overflow:hidden;text-overflow:ellipsis}
+.fechas .otra input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;padding:0}
+.fechas .refrescar{flex:none;border:0;background:var(--fondo);border-radius:999px;width:42px;height:42px;display:grid;place-items:center;cursor:pointer;color:var(--tinta)}
+.cargando{display:flex;align-items:center;gap:10px;color:var(--tinta2);padding:14px 4px}
+.rueda{width:20px;height:20px;border-radius:50%;border:3px solid var(--linea);border-top-color:var(--azul);animation:gira .8s linear infinite}
+@keyframes gira{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.rueda{animation-duration:3s}}
+
+/* resumen */
+.resumen h2{font-size:30px;font-weight:700;font-family:"Barlow Condensed",Barlow,sans-serif;letter-spacing:.01em}
+.resumen .cifras{color:var(--tinta2);margin:4px 0 14px;font-size:16px}
+.resumen .cifras b{color:var(--tinta)}
+.pasos{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.pasos li{display:flex;gap:12px;align-items:center;font-size:16px}
+.pasos .ic{flex:none;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-weight:700;font-size:15px}
+.ic-azul{background:#E3ECFF;color:#1F4DB0}.ic-amar{background:var(--avisobg);color:#8A6400}.ic-verde{background:var(--verdebg);color:var(--verde)}.ic-rojo{background:var(--rojobg);color:var(--rojo)}
+@media (prefers-color-scheme:dark){.ic-azul{background:#1A2A4D;color:#9DB9FF}.ic-amar{color:#F1C94A}}
+.listo{display:flex;gap:10px;align-items:center;background:var(--verdebg);color:var(--verde);border-radius:12px;padding:12px 14px;font-weight:600}
+
+/* etiquetas de código postal */
+.tags{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px}
+.tag{position:relative;text-align:left;background:var(--hoja);border:2px solid var(--linea);border-radius:14px;padding:10px 12px 10px;cursor:pointer;
+ transition:background-color .15s,border-color .15s,transform .1s;user-select:none}
+.tag:active{transform:scale(.98)}
+.tag .etq{display:block;font-family:"Barlow Condensed",Barlow,sans-serif;font-weight:700;font-size:34px;line-height:1;letter-spacing:.01em}
+.tag .etq{padding-right:30px}
+.tag .etq.largo{font-size:27px}
+.tag .paq{display:block;font-weight:600;font-size:15px;margin-top:4px}
+.tag .donde{display:block;color:var(--tinta2);font-size:13.5px;margin-top:2px}
+.tag .marcas{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.pill{display:inline-block;border-radius:999px;padding:2px 9px;font-size:12.5px;font-weight:700;background:var(--fondo);color:var(--tinta2)}
+.p-verde{background:var(--verdebg);color:var(--verde)}.p-amar{background:var(--avisobg);color:#8A6400}.b-bad,.p-rojo{background:var(--rojobg);color:var(--rojo)}
+@media (prefers-color-scheme:dark){.p-amar{color:#F1C94A}}
+.tag[aria-pressed=true]{background:var(--sel);border-color:#0F1B33;color:var(--seltinta)}
+.tag[aria-pressed=true] .donde{color:#3D3A20}
+.tag[aria-pressed=true] .pill{background:rgba(15,27,51,.12);color:#0F1B33}
+.tag .visto{position:absolute;top:8px;right:8px;width:24px;height:24px;border-radius:50%;border:2px solid var(--linea);display:grid;place-items:center;font-size:14px;font-weight:700;background:var(--hoja)}
+.tag[aria-pressed=true] .visto{background:#0F1B33;border-color:#0F1B33;color:var(--amarillo)}
+.tag .separar{margin-top:6px;border:0;background:none;color:var(--azul);font-weight:700;padding:4px 0;cursor:pointer;font-size:14px}
+.tag[aria-pressed=true] .separar{color:#0F1B33}
+.tag.sinzip{cursor:default;opacity:.8}
+
+/* uniones recordadas */
+.guard{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;padding:12px 0;border-top:1px solid var(--linea)}
+.guard:first-child{border-top:0;padding-top:2px}
+.guard .nom{font-family:"Barlow Condensed",Barlow,sans-serif;font-weight:700;font-size:24px;line-height:1}
+.guard .det{grid-column:1/-1;color:var(--tinta2);font-size:14px}
+.guard .acciones{grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.guard .lim{display:flex;align-items:center;gap:6px;font-size:14.5px;flex:1 1 200px}
+.guard .lim input{width:96px;padding:8px 10px;border-radius:10px}
+.mini{border:1.5px solid var(--linea);background:var(--hoja);border-radius:10px;padding:8px 12px;font-weight:600;cursor:pointer;font-size:14.5px}
+.vacio-txt{color:var(--tinta2);margin:0}
+
+/* así quedan las rutas */
+.ruta{padding:12px 0;border-top:1px solid var(--linea)}
+.ruta:first-child{border-top:0;padding-top:2px}
+.ruta .cab{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ruta .cab b{font-size:17px}
+.subs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.sub-r{display:inline-flex;align-items:center;gap:8px;background:var(--fondo);border-radius:10px;padding:5px 10px 5px 5px}
+.sub-r .letra{width:26px;height:26px;border-radius:7px;background:var(--noche);color:#fff;display:grid;place-items:center;font-weight:700;font-size:14px}
+.sub-r .lbl{font-family:"Barlow Condensed",Barlow,sans-serif;font-weight:700;font-size:21px;line-height:1}
+.ruta .completo{color:var(--tinta2);font-size:12.5px;margin-top:6px;word-break:break-all}
+.nota{background:var(--rojobg);color:var(--rojo);border-radius:10px;padding:8px 10px;margin-top:8px;font-size:14px;font-weight:500}
+details.mas{margin-top:2px}
+details.mas summary{cursor:pointer;font-weight:700;color:var(--azul);padding:6px 0;list-style:none}
+details.mas summary::-webkit-details-marker{display:none}
+details.mas summary::before{content:"+ "}
+details.mas[open] summary::before{content:"− "}
+ul.simple{margin:8px 0 0;padding-left:18px;color:var(--tinta2)}ul.simple li{margin:5px 0}ul.simple b{color:var(--tinta)}
+
+/* barra inferior */
+.abajo{position:fixed;left:0;right:0;bottom:0;z-index:9;background:var(--hoja);border-top:1px solid var(--linea);
+ padding:12px 16px calc(12px + env(safe-area-inset-bottom));box-shadow:0 -6px 20px rgba(13,36,84,.08)}
+.abajo .dentro{max-width:760px;margin:0 auto;display:flex;gap:12px;align-items:center}
+.abajo .txt{flex:1;font-size:14.5px;color:var(--tinta2);line-height:1.3}
+.abajo .txt b{color:var(--tinta)}
+.abajo .btn{flex:none}
+.abajo .recordar{display:flex;align-items:center;gap:8px;font-size:14.5px;flex:1 1 100%}
+#modo-unir{flex-wrap:wrap;gap:10px}
+#modo-unir .btn{flex:1 1 0}
+#modo-unir #unir{flex:2 1 0}
+.abajo .recordar input{width:22px;height:22px;accent-color:var(--azul)}
+
+/* hojas (diálogos) */
+dialog{border:0;padding:0;background:transparent;max-width:none;max-height:none;width:100%;height:100%;margin:0}
+dialog::backdrop{background:rgba(8,15,30,.55)}
+dialog .panel{position:absolute;left:0;right:0;bottom:0;margin:0 auto;max-width:560px;background:var(--hoja);color:var(--tinta);border-radius:22px 22px 0 0;
+ padding:10px 20px calc(20px + env(safe-area-inset-bottom));max-height:92vh;overflow:auto}
+dialog .agarre{width:44px;height:5px;border-radius:3px;background:var(--linea);margin:0 auto 14px}
+dialog h2{font-size:22px;margin-bottom:10px}
+dialog .fila{display:flex;gap:10px;margin-top:16px}
+dialog .fila .btn{flex:1}
+@media (min-width:700px){dialog .panel{bottom:auto;top:50%;transform:translateY(-50%);border-radius:22px}}
+.seg2{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--fondo);border-radius:12px;padding:4px}
+.seg2 button{border:0;background:none;border-radius:9px;padding:10px;font-weight:700;cursor:pointer;color:var(--tinta2)}
+.seg2 button[aria-pressed=true]{background:var(--noche);color:#fff}
+.bloque{padding:14px 0;border-top:1px solid var(--linea)}
+.bloque:first-of-type{border-top:0}
+.bloque h3{font-size:15px;color:var(--tinta2);font-weight:600;margin-bottom:8px}
+
+/* progreso */
+.progreso{position:fixed;inset:0;z-index:20;background:var(--noche);color:#fff;display:flex;flex-direction:column;justify-content:center;padding:24px 22px calc(24px + env(safe-area-inset-bottom))}
+.progreso .caja{max-width:520px;width:100%;margin:0 auto}
+.progreso h2{font-size:28px;font-family:"Barlow Condensed",Barlow,sans-serif}
+.progreso .paso{opacity:.85;margin:10px 0 18px;min-height:3em}
+.barra-p{height:12px;border-radius:999px;background:rgba(255,255,255,.15);overflow:hidden}
+.barra-p i{display:block;height:100%;width:0;background:var(--amarillo);border-radius:999px;transition:width .4s}
+.progreso.listo-ok .barra-p i{background:#4FD39B}
+.progreso.con-error .barra-p i{background:#FF8A7E}
+.progreso details{margin-top:18px}
+.progreso summary{cursor:pointer;opacity:.8;font-weight:600}
+.log{background:rgba(0,0,0,.25);border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.5;max-height:40vh;overflow:auto;white-space:pre-wrap;word-break:break-word;margin-top:8px}
+.progreso .btn{margin-top:18px}
+.aviso{font-size:14px;opacity:.75;margin-top:14px}
+
+/* instalar */
+.instalar{display:flex;gap:12px;align-items:center;background:var(--hoja);border:1.5px dashed var(--azul);border-radius:16px;padding:12px 14px;margin-bottom:14px}
+.instalar img{width:44px;height:44px;border-radius:11px}
+.instalar .t{flex:1;font-size:14.5px;line-height:1.3}
+.instalar .t b{display:block;font-size:16px}
+.instalar .x{border:0;background:none;color:var(--tinta2);font-size:22px;cursor:pointer;padding:4px 8px}
 </style>
 </head>
 <body>
-<header>
- <h1>Divisor de rutas <small>por código postal · SpeedX POS</small></h1>
- <span id="who" class="mute"></span>
- <button id="logout" class="plain hidden">Salir</button>
+<header class="barra">
+ <img src="iconos/icono-192.png" alt="">
+ <div class="marca">AFLEX <span>Divisor de rutas</span></div>
+ <button id="abrir-ajustes" class="icono-btn hidden" aria-label="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
 </header>
+
 <main>
- <section id="config" class="card hidden">
-  <h2>Conectar con tu Supabase</h2>
-  <p class="mute" style="margin-top:0">Solo la primera vez en este teléfono. Lo tienes en la guía (paso 5).</p>
-  <form id="config-form" class="row">
-   <label style="flex:1 1 100%">Dirección de la función<input id="cfg-url" type="url" inputmode="url" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="https://xxxx.supabase.co/functions/v1/divisor-rutas" required></label>
-   <label style="flex:1 1 200px">Clave de acceso<input id="cfg-clave" type="password" autocomplete="off" required></label>
-   <button class="pri" type="submit">Guardar</button>
+ <!-- Conexión (solo la primera vez) -->
+ <section id="config" class="hoja bienvenida hidden">
+  <img src="iconos/icono-192.png" alt="">
+  <h2>Conecta tu Supabase</h2>
+  <p class="sub">Solo se hace una vez en este teléfono. Los datos están en la guía, paso 5.</p>
+  <form id="config-form">
+   <label class="campo">Dirección de la función<input id="cfg-url" type="url" inputmode="url" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="https://xxxx.supabase.co/functions/v1/divisor-rutas" required></label>
+   <label class="campo">Clave de acceso<input id="cfg-clave" type="password" autocomplete="off" required></label>
+   <button class="btn btn-azul btn-ancho" type="submit">Conectar</button>
   </form>
   <div id="config-err" class="err hidden"></div>
  </section>
 
- <section id="login" class="card hidden">
-  <h2>Iniciar sesión en SpeedX POS</h2>
-  <p class="mute" style="margin-top:0">El mismo usuario y contraseña con los que entras a pos.speedx.io. La contraseña no se guarda.</p>
-  <form id="login-form" class="row">
-   <label>Usuario<input id="usuario" autocomplete="username" autocapitalize="none" autocorrect="off" required></label>
-   <label>Contraseña<input id="clave" type="password" autocomplete="current-password" required></label>
-   <label class="check"><input id="recordar" type="checkbox" checked> Mantener la sesión en este teléfono</label>
-   <button class="pri" type="submit">Entrar</button>
+ <!-- Entrar a SpeedX -->
+ <section id="login" class="hoja bienvenida hidden">
+  <img src="iconos/icono-192.png" alt="">
+  <h2>Entra con SpeedX POS</h2>
+  <p class="sub">Tu usuario y contraseña de pos.speedx.io. La contraseña no se guarda.</p>
+  <form id="login-form">
+   <label class="campo">Usuario<input id="usuario" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" required></label>
+   <label class="campo">Contraseña<input id="clave" type="password" autocomplete="current-password" required></label>
+   <label class="check"><input id="recordar" type="checkbox" checked> No pedirme entrar cada vez</label>
+   <button class="btn btn-azul btn-ancho" type="submit">Entrar</button>
   </form>
   <div id="login-err" class="err hidden"></div>
-  <p class="small"><button class="plain" id="cambiar-config" type="button">Cambiar dirección o clave de acceso</button></p>
+  <button class="enlace" id="cambiar-config" type="button">Cambiar la conexión con Supabase</button>
  </section>
 
+ <!-- App -->
  <section id="app" class="hidden">
-  <div class="card">
-   <div class="row">
-    <label>Ciudad<select id="ciudad"><option>HSV</option><option>BHM</option><option>MEM</option><option>TCL</option></select></label>
-    <label>Fecha de las rutas<input id="fecha" type="date"></label>
-    <label>Dígitos en el nombre<select id="digitos"><option value="2">2 (ej. 56)</option><option value="3">3 (ej. 756)</option></select></label>
-    <button id="cargar" class="pri">Cargar rutas</button>
-    <span id="cargando" class="mute hidden"></span>
+  <div id="instalar" class="instalar hidden">
+   <img src="iconos/icono-192.png" alt="">
+   <div class="t"><b>Instala la app</b><span id="instalar-txt">Ábrela desde tu pantalla de inicio, como cualquier app.</span></div>
+   <button id="instalar-btn" class="mini hidden">Instalar</button>
+   <button id="instalar-x" class="x" aria-label="Cerrar">×</button>
+  </div>
+
+  <div class="hoja">
+   <div class="seg" id="ciudades" role="group" aria-label="Ciudad">
+    <button data-ciudad="HSV">HSV</button><button data-ciudad="BHM">BHM</button><button data-ciudad="MEM">MEM</button><button data-ciudad="TCL">TCL</button>
    </div>
+   <div class="fechas" role="group" aria-label="Fecha">
+    <button class="chip" data-dia="0">Hoy</button>
+    <button class="chip" data-dia="1">Mañana</button>
+    <label class="chip otra" id="otra-chip"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span id="otra-txt">Otra fecha</span><input id="fecha" type="date" aria-label="Otra fecha"></label>
+    <button id="cargar" class="refrescar" aria-label="Volver a leer las rutas"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg></button>
+   </div>
+   <div id="cargando" class="cargando hidden"><span class="rueda"></span><span id="cargando-txt">Leyendo rutas de SpeedX…</span></div>
    <div id="err" class="err hidden"></div>
-   <div id="tiles" class="tiles" style="margin-top:14px"></div>
   </div>
 
   <div id="plan" class="hidden">
-   <div class="card">
-    <h2>Códigos postales</h2>
-    <p class="mute" style="margin-top:0">El mismo código postal que esté en varias rutas se junta solo. Para juntar códigos distintos (ej. 71 con 13), márcalos y pulsa <b>Unir seleccionados</b>. Si dos códigos terminan igual (611 y 811) se nombran con 3 dígitos.</p>
-    <div class="toolbar">
-     <button id="unir" disabled>Unir seleccionados</button>
-     <label class="check"><input id="recordar-union" type="checkbox" checked> Recordar para otros días</label>
-     <button id="limpiar" class="plain">Quitar las uniones de hoy</button>
-     <span id="selinfo" class="mute"></span>
-    </div>
-    <div class="tabla"><table class="cards">
-     <thead><tr><th style="width:34px"></th><th>Nombre</th><th>Código(s) postal(es)</th><th class="num">Paquetes</th><th>Ahora está en</th><th>Queda en</th><th></th></tr></thead>
-     <tbody id="zips"></tbody>
-    </table></div>
+   <div class="hoja resumen">
+    <h2 id="titulo"></h2>
+    <p class="cifras" id="cifras"></p>
+    <ul class="pasos" id="pasos"></ul>
    </div>
 
-   <div class="card">
-    <h2>Uniones recordadas</h2>
-    <p class="mute small" style="margin-top:0">Se aplican solas cada día que <b>juntos</b> tengan hasta el límite de paquetes. Deja el límite vacío para unirlos siempre.</p>
+   <div class="hoja">
+    <h3>Códigos postales</h3>
+    <p class="sub">El mismo código en varias rutas se junta solo. Para juntar códigos distintos, toca dos o más.</p>
+    <div class="tags" id="zips"></div>
+   </div>
+
+   <div class="hoja" id="guard-sec">
+    <h3>Uniones recordadas</h3>
+    <p class="sub">Se unen solas cada día que juntos no pasen del límite de paquetes. Sin límite, se unen siempre.</p>
     <div id="guardadas"></div>
    </div>
 
-   <div class="cols">
-    <div class="card"><h2>1 · Juntar paquetes entre rutas</h2><div id="mover"></div></div>
-    <div class="card"><h2>2 · Dividir y nombrar</h2><p class="mute small" style="margin-top:0">Ninguna ruta se borra. Si una queda en 0, se queda como batch vacío para que la borres tú.</p><div id="rutas"></div></div>
+   <div class="hoja">
+    <h3>Así quedan las rutas</h3>
+    <div id="rutas"></div>
+    <details class="mas"><summary>Ver qué paquetes se mueven</summary><div id="mover"></div></details>
+    <details class="mas" id="otras-card"><summary id="otras-tit">Rutas que no se tocan</summary><p class="sub" style="margin:6px 0 0">Ya tienen driver o ya salieron.</p><div id="otras"></div></details>
    </div>
-   <div class="card" id="otras-card"><h2>Rutas que no se tocan</h2><p class="mute" style="margin-top:0">Ya tienen driver o ya salieron.</p><div id="otras"></div></div>
-  </div>
-
-  <div id="progreso" class="card hidden">
-   <h2 id="prog-titulo">Trabajando en SpeedX…</h2>
-   <div id="log" class="log"></div>
   </div>
  </section>
 </main>
-<div id="final" class="final hidden">
- <span id="final-txt" class="mute"></span>
- <button id="hacer" class="pri big">▶ Hacer todo</button>
+
+<!-- barra inferior: Hacer todo / Unir -->
+<div id="final" class="abajo hidden">
+ <div class="dentro" id="modo-hacer">
+  <div class="txt" id="final-txt"></div>
+  <button id="hacer" class="btn btn-pri">Hacer todo</button>
+ </div>
+ <div class="dentro hidden" id="modo-unir">
+  <label class="recordar"><input id="recordar-union" type="checkbox" checked> Recordar para otros días</label>
+  <button id="cancelar-sel" class="btn btn-suave">Cancelar</button>
+  <button id="unir" class="btn btn-pri">Unir</button>
+ </div>
 </div>
 
 <dialog id="confirmar">
- <h2>¿Hacer todo en SpeedX?</h2>
- <div id="conf-txt"></div>
- <p class="mute">Dividir rutas en SpeedX no se deshace con un botón. Revisa el plan antes de seguir. Ninguna ruta se borra: las que queden en 0 las borras tú.</p>
- <p class="small"><b>Deja esta página abierta y la pantalla encendida</b> hasta que diga «Terminado».</p>
- <div class="row" style="justify-content:flex-end">
-  <button id="conf-no">Cancelar</button>
-  <button id="conf-si" class="pri">Sí, hacerlo</button>
+ <div class="panel">
+  <div class="agarre"></div>
+  <h2>¿Hacer todo en SpeedX?</h2>
+  <div id="conf-txt"></div>
+  <p class="sub" style="margin-top:12px">Dividir rutas no se puede deshacer con un botón. Ninguna ruta se borra. Deja la app abierta hasta que termine.</p>
+  <div class="fila"><button id="conf-no" class="btn btn-suave">Cancelar</button><button id="conf-si" class="btn btn-pri">Sí, hacerlo</button></div>
  </div>
 </dialog>
+
+<dialog id="ajustes">
+ <div class="panel">
+  <div class="agarre"></div>
+  <h2>Ajustes</h2>
+  <div class="bloque">
+   <h3>Números en el nombre de la ruta</h3>
+   <div class="seg2" id="dig-seg"><button data-dig="2">2 números (56)</button><button data-dig="3">3 números (756)</button></div>
+   <select id="digitos" class="hidden" aria-hidden="true"><option value="2">2</option><option value="3">3</option></select>
+   <p class="sub" style="margin:8px 0 0">Si dos códigos terminan igual (611 y 811), esos usan 3 números.</p>
+  </div>
+  <div class="bloque" id="aj-instalar">
+   <h3>App en el teléfono</h3>
+   <button id="instalar-btn2" class="btn btn-azul btn-ancho">Instalar la app</button>
+   <p class="sub hidden" id="instalar-ios" style="margin:8px 0 0">En iPhone: toca Compartir y luego Agregar a inicio.</p>
+  </div>
+  <div class="bloque">
+   <h3>Cuenta de SpeedX</h3>
+   <p style="margin:0 0 10px">Entraste como <b id="aj-usuario"></b></p>
+   <button id="logout" class="btn btn-suave btn-ancho">Salir</button>
+  </div>
+  <div class="bloque">
+   <h3>Conexión</h3>
+   <button id="aj-config" class="btn btn-suave btn-ancho">Cambiar la conexión con Supabase</button>
+  </div>
+  <div class="fila"><button id="aj-cerrar" class="btn btn-azul">Listo</button></div>
+ </div>
+</dialog>
+
+<div id="progreso" class="progreso hidden" role="status" aria-live="polite">
+ <div class="caja">
+  <h2 id="prog-titulo">Trabajando en SpeedX…</h2>
+  <p class="paso" id="prog-paso"></p>
+  <div class="barra-p"><i id="prog-barra"></i></div>
+  <p class="aviso" id="prog-aviso">Deja la app abierta y la pantalla encendida.</p>
+  <details><summary>Ver detalle</summary><div id="log" class="log"></div></details>
+  <button id="prog-cerrar" class="btn btn-pri btn-ancho hidden">Ver cómo quedaron</button>
+ </div>
+</div>
 
 <script>
 /* Divisor de rutas — lógica (igual a la versión de escritorio divisor_rutas.py).
@@ -509,12 +678,14 @@ if (typeof module !== "undefined") module.exports = Logica;
 <script>
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num=n=>Number(n||0).toLocaleString('es-MX');
 const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}},del(k){try{localStorage.removeItem(k);}catch(e){}}};
-// Se puede configurar con un enlace: index.html#f=<dirección>&c=<clave>
 (function(){const h=new URLSearchParams(location.hash.slice(1));if(h.get('f'))store.set('funcion',h.get('f'));if(h.get('c'))store.set('acceso',h.get('c'));if(h.get('f')||h.get('c'))history.replaceState(null,'',location.pathname);})();
+if('serviceWorker' in navigator&&(location.protocol==='https:'||['localhost','127.0.0.1'].includes(location.hostname)))navigator.serviceWorker.register('sw.js').catch(()=>{});
 
 let token=store.get('token',''),usuario=store.get('usuario','');
-let rutas=[],detalles={},cargado=null,estado={guardadas:[],dias:{}},estadoCiudad=null,plan=null,sel=new Set(),trabajando=false;
+let ciudad=store.get('ciudad','HSV');
+let rutas=[],detalles={},cargado=null,estado={guardadas:[],dias:{}},estadoCiudad=null,plan=null,sel=new Set(),trabajando=false,pedido=0;
 
 class Err extends Error{constructor(m,x){super(m);Object.assign(this,x||{});}}
 async function fn(body){
@@ -522,10 +693,10 @@ async function fn(body){
  if(!url||!clave){mostrarConfig();throw new Err('Falta conectar con tu Supabase.',{config:true});}
  let r;
  try{r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','x-divisor-clave':clave},body:JSON.stringify(body)});}
- catch(e){throw new Err('Sin conexión con el servidor. Revisa el internet del teléfono.');}
- const j=await r.json().catch(()=>({error:'Respuesta no válida del servidor (HTTP '+r.status+'). ¿Desactivaste «Verify JWT» en la función?'}));
- if(r.status===403&&j.clave){mostrarConfig('Clave de acceso incorrecta.');throw new Err(j.error,{config:true});}
- if(r.status===401&&j.sesion){token='';store.del('token');mostrarLogin(j.error);throw new Err(j.error,{sesion:true});}
+ catch(e){throw new Err('Sin conexión. Revisa el internet del teléfono y vuelve a intentar.');}
+ const j=await r.json().catch(()=>({error:'El servidor respondió algo que no se entiende (HTTP '+r.status+'). Revisa que «Verify JWT» esté apagado en la función.'}));
+ if(r.status===403&&j.clave){mostrarConfig('La clave de acceso no es correcta.');throw new Err(j.error,{config:true});}
+ if(r.status===401&&j.sesion){token='';store.del('token');mostrarLogin('Tu sesión de SpeedX venció. Vuelve a entrar.');throw new Err(j.error,{sesion:true});}
  if(!r.ok||j.error)throw new Err(j.error||('HTTP '+r.status));
  return j;
 }
@@ -545,9 +716,10 @@ const SX={
 
 function show(id,on){$(id).classList.toggle('hidden',!on);}
 function err(id,msg){$(id).textContent=msg||'';show(id,!!msg);}
-function mostrarConfig(msg){show('config',true);show('login',false);show('app',false);show('final',false);show('logout',false);$('cfg-url').value=store.get('funcion','');err('config-err',msg||'');}
-function mostrarLogin(msg){show('config',false);show('login',true);show('app',false);show('final',false);show('logout',false);$('who').textContent='';$('usuario').value=usuario;err('login-err',msg||'');}
-function mostrarApp(){show('config',false);show('login',false);show('app',true);show('logout',true);$('who').textContent=usuario;}
+function pantalla(cual){for(const s of ['config','login','app'])show(s,s===cual);show('abrir-ajustes',cual==='app');if(cual!=='app')show('final',false);}
+function mostrarConfig(msg){pantalla('config');$('cfg-url').value=store.get('funcion','');err('config-err',msg||'');try{$('ajustes').close();}catch(e){}}
+function mostrarLogin(msg){pantalla('login');$('usuario').value=usuario;err('login-err',msg||'');}
+function mostrarApp(){pantalla('app');$('aj-usuario').textContent=usuario;revisarInstalar();}
 
 $('config-form').onsubmit=async e=>{
  e.preventDefault();err('config-err','');
@@ -555,48 +727,92 @@ $('config-form').onsubmit=async e=>{
  try{await fn({accion:'hola'});$('cfg-clave').value='';inicio();}catch(x){if(!x.config)err('config-err',x.message);}
 };
 $('cambiar-config').onclick=()=>mostrarConfig();
+$('aj-config').onclick=()=>mostrarConfig();
 $('login-form').onsubmit=async e=>{
  e.preventDefault();err('login-err','');
- const b=e.submitter||$('login-form').querySelector('button');b.disabled=true;
+ const b=$('login-form').querySelector('button');b.disabled=true;b.textContent='Entrando…';
  try{token='';token=await SX.login($('usuario').value,$('clave').value);usuario=$('usuario').value.trim();store.set('usuario',usuario);
   if($('recordar').checked)store.set('token',token);else store.del('token');
   $('clave').value='';mostrarApp();cargar(true);}
  catch(x){if(!x.config)err('login-err',x.message);}
- finally{b.disabled=false;}
+ finally{b.disabled=false;b.textContent='Entrar';}
 };
-$('logout').onclick=()=>{token='';store.del('token');plan=null;show('plan',false);mostrarLogin();};
+$('logout').onclick=()=>{token='';store.del('token');plan=null;show('plan',false);$('ajustes').close();mostrarLogin();};
 
-const hoy=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
+// ---------- ajustes
+$('abrir-ajustes').onclick=()=>{pintarDig();$('ajustes').showModal();};
+$('aj-cerrar').onclick=()=>$('ajustes').close();
+$('ajustes').addEventListener('click',e=>{if(e.target===$('ajustes'))$('ajustes').close();});
+$('confirmar').addEventListener('click',e=>{if(e.target===$('confirmar'))$('confirmar').close();});
+function pintarDig(){const d=$('digitos').value;document.querySelectorAll('[data-dig]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.dig===d)));}
+document.querySelectorAll('[data-dig]').forEach(b=>b.onclick=()=>{$('digitos').value=b.dataset.dig;pintarDig();store.set('digitos',+b.dataset.dig);if(cargado)replanear();});
+$('digitos').onchange=()=>{store.set('digitos',+$('digitos').value);pintarDig();if(cargado)replanear();};
+
+// ---------- instalar
+let avisoInstalar=null;
+const esIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+const instalada=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();avisoInstalar=e;revisarInstalar();});
+window.addEventListener('appinstalled',()=>{avisoInstalar=null;revisarInstalar();});
+function revisarInstalar(){
+ const puede=!instalada()&&(avisoInstalar||esIOS);
+ show('aj-instalar',puede);show('instalar-btn2',!!avisoInstalar);show('instalar-ios',esIOS&&!avisoInstalar);
+ show('instalar',puede&&!store.get('instalar_cerrado',false));show('instalar-btn',!!avisoInstalar);
+ $('instalar-txt').textContent=avisoInstalar?'Ábrela desde tu pantalla de inicio, como cualquier app.':'Toca Compartir y luego «Agregar a inicio».';
+}
+async function instalar(){if(!avisoInstalar)return;avisoInstalar.prompt();await avisoInstalar.userChoice.catch(()=>{});avisoInstalar=null;revisarInstalar();}
+$('instalar-btn').onclick=instalar;$('instalar-btn2').onclick=instalar;
+$('instalar-x').onclick=()=>{store.set('instalar_cerrado',true);show('instalar',false);};
+
+// ---------- ciudad y fecha
+const isoLocal=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const diaMas=n=>{const d=new Date();d.setDate(d.getDate()+n);return isoLocal(d);};
+function pintarFiltros(){
+ document.querySelectorAll('[data-ciudad]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.ciudad===ciudad)));
+ const f=$('fecha').value,esDia=[0,1].some(n=>f===diaMas(n));
+ document.querySelectorAll('[data-dia]').forEach(b=>b.setAttribute('aria-pressed',String(f===diaMas(+b.dataset.dia))));
+ $('otra-chip').setAttribute('aria-pressed',String(!esDia&&!!f));
+ $('otra-txt').textContent=!esDia&&f?new Date(f+'T12:00:00').toLocaleDateString('es-MX',{day:'numeric',month:'short'}):'Otra fecha';
+}
+document.querySelectorAll('[data-ciudad]').forEach(b=>b.onclick=()=>{if(trabajando)return;ciudad=b.dataset.ciudad;store.set('ciudad',ciudad);pintarFiltros();cargar(true);});
+document.querySelectorAll('[data-dia]').forEach(b=>b.onclick=()=>{if(trabajando)return;$('fecha').value=diaMas(+b.dataset.dia);pintarFiltros();cargar(true);});
+$('fecha').onchange=()=>{pintarFiltros();cargar(true);};
+$('cargar').onclick=()=>cargar(true);
+function nombreFecha(f){
+ if(f===diaMas(0))return 'hoy';if(f===diaMas(1))return 'mañana';if(f===diaMas(-1))return 'ayer';
+ const d=new Date(f+'T12:00:00');return 'el '+d.toLocaleDateString('es-MX',{day:'numeric',month:'long'});
+}
+
 function inicio(){
- $('ciudad').value=store.get('ciudad','HSV');$('digitos').value=String(store.get('digitos',2));
- if(!$('fecha').value)$('fecha').value=hoy();
+ $('digitos').value=String(store.get('digitos',2));pintarDig();
+ if(!$('fecha').value)$('fecha').value=diaMas(0);
+ pintarFiltros();
  if(!store.get('funcion','')||!store.get('acceso',''))return mostrarConfig();
  if(!token)return mostrarLogin();
  mostrarApp();cargar(true);
 }
 
-async function leerEstado(ciudad){const j=await fn({accion:'estado_leer',ciudad});estado=j.datos||{guardadas:[],dias:{}};estadoCiudad=ciudad;}
+async function leerEstado(c){const j=await fn({accion:'estado_leer',ciudad:c});estado=j.datos||{guardadas:[],dias:{}};estadoCiudad=c;}
 async function guardarEstado(){await fn({accion:'estado_guardar',ciudad:estadoCiudad,datos:estado});}
 
 async function cargar(recargar){
  if(trabajando)return;
- err('err','');show('cargando',true);$('cargar').disabled=true;
- const ciudad=$('ciudad').value,fecha=$('fecha').value;
- store.set('ciudad',ciudad);store.set('digitos',+$('digitos').value);
+ const mio=++pedido,c=ciudad,fecha=$('fecha').value;
+ err('err','');show('cargando',true);$('cargando-txt').textContent='Leyendo rutas de SpeedX…';
  try{
-  if(estadoCiudad!==ciudad)await leerEstado(ciudad);
-  if(recargar||!cargado||cargado.ciudad!==ciudad||cargado.fecha!==fecha){
-   $('cargando').textContent='Leyendo rutas de SpeedX…';
-   const rs=await SX.rutas(fecha,ciudad);
+  if(estadoCiudad!==c)await leerEstado(c);
+  if(recargar||!cargado||cargado.ciudad!==c||cargado.fecha!==fecha){
+   const rs=await SX.rutas(fecha,c);
    const pend=rs.filter(r=>Logica.esEditable(r)&&(r.total||r.parcelCount||0)>0);
-   const det={};let hechos=0;
-   const trabajo=async()=>{while(pend.length){const r=pend.shift();det[r.id]=await SX.detalle(r.id);hechos++;$('cargando').textContent=`Leyendo rutas… ${hechos} de ${hechos+pend.length}`;}};
+   const total=pend.length,det={};let hechos=0;
+   const trabajo=async()=>{while(pend.length){const r=pend.shift();det[r.id]=await SX.detalle(r.id);hechos++;if(mio===pedido)$('cargando-txt').textContent=`Leyendo rutas… ${hechos} de ${total}`;}};
    await Promise.all([trabajo(),trabajo(),trabajo(),trabajo()]);
-   rutas=rs;detalles=det;cargado={ciudad,fecha};
+   if(mio!==pedido)return;
+   rutas=rs;detalles=det;cargado={ciudad:c,fecha};
   }
   replanear();
- }catch(x){if(!x.config&&!x.sesion){err('err',x.message);show('plan',false);show('final',false);}}
- finally{show('cargando',false);$('cargar').disabled=false;}
+ }catch(x){if(mio===pedido&&!x.config&&!x.sesion){err('err',x.message);show('plan',false);show('final',false);}}
+ finally{if(mio===pedido)show('cargando',false);}
 }
 function replanear(){
  const conteo=Logica.conteoZips(rutas,detalles);
@@ -614,79 +830,115 @@ async function uniones(c){
  try{const conteo=Logica.conteoZips(rutas,detalles);Logica.cambiarUniones(estado,cargado.fecha,c,conteo);replanear();await guardarEstado();}
  catch(x){if(!x.config)err('err','No se pudo guardar la unión: '+x.message);}
 }
-$('cargar').onclick=()=>cargar(true);
-$('digitos').onchange=()=>{store.set('digitos',+$('digitos').value);if(cargado)replanear();};
-$('ciudad').onchange=()=>cargar(true);
-$('fecha').onchange=()=>cargar(true);
 
-const estados={aplica:['b-ok','Se unen hoy'],mucho:['b-warn','Hoy no: son muchos'],quitada:['','Hoy no (la quitaste)'],no_hay:['','No vienen hoy']};
+// ---------- pintar
+const corto=n=>{const m=String(n||'').match(/[A-Z]{3}\d{3}/);return m?m[0]:String(n||'');};
+function partes(nombre){const m=String(nombre).match(/:([A-Z]{1,2}) (.+)$/);if(m)return{letra:m[1],lbl:m[2]};const b=Logica.baseNombre(nombre);return{letra:'',lbl:String(nombre).slice(b.length).trim()};}
+const estados={aplica:['p-verde','Se unen hoy'],mucho:['p-amar','Hoy no: son muchos'],quitada:['','Hoy no'],no_hay:['','No vienen hoy']};
 function pintar(){
  const r=plan.resumen;
- $('tiles').innerHTML=[['Rutas',r.rutas],['Paquetes',r.paquetes],['Códigos',plan.grupos.length],['A juntar',r.paquetes_movidos],['A dividir',r.divisiones],['Quedan en 0',r.vacias]]
-  .map(([t,v])=>`<div class="tile"><b>${v}</b><span>${t}</span></div>`).join('');
  show('plan',true);
+ $('titulo').textContent=`${cargado.ciudad}, ${nombreFecha(cargado.fecha)}`;
+ $('cifras').innerHTML=r.rutas?`<b>${num(r.rutas)}</b> rutas, <b>${num(r.paquetes)}</b> paquetes y <b>${num(plan.grupos.length)}</b> códigos postales.`:'No hay rutas que se puedan dividir en esta fecha. Prueba con otra fecha o ciudad.';
+ const pasos=[];
+ if(r.paquetes_movidos)pasos.push(['ic-azul','⇄',`Junta <b>${num(r.paquetes_movidos)}</b> paquetes del mismo código que están en otras rutas`]);
+ if(r.divisiones)pasos.push(['ic-amar','✂',`Divide <b>${num(r.divisiones)}</b> ${r.divisiones===1?'ruta':'rutas'} por código postal`]);
+ if(r.nombres)pasos.push(['ic-verde','✎',`Pone <b>${num(r.nombres)}</b> ${r.nombres===1?'nombre':'nombres'} con los números del código`]);
+ if(r.vacias)pasos.push(['ic-rojo','0',`<b>${num(r.vacias)}</b> ${r.vacias===1?'ruta queda':'rutas quedan'} en 0. No se borran: las borras tú`]);
+ const hay=r.movimientos+r.divisiones+r.nombres>0;
+ $('pasos').innerHTML=hay?pasos.map(([c,i,t])=>`<li><span class="ic ${c}">${i}</span><span>${t}</span></li>`).join(''):(r.rutas?'<li class="listo">✓ Todo está dividido y con nombre.</li>':'');
+ // etiquetas
  $('zips').innerHTML=plan.grupos.map(g=>{
-  const unido=g.zips.length>1,varias=Object.keys(g.por_ruta).length>1;
-  return `<tr class="${sel.has(g.clave)?'sel':''}"><td class="cb"><input type="checkbox" aria-label="Seleccionar ${esc(g.etiqueta)}" data-g="${esc(g.clave)}" ${sel.has(g.clave)?'checked':''} ${g.clave==='SIN-ZIP'?'disabled':''}></td>
-  <td><span class="etq">${esc(g.etiqueta)}</span> ${unido?'<span class="badge b-warn">unidos</span>':''}${varias?' <span class="badge b-ok">se juntan</span>':''}</td>
-  <td data-l="ZIP">${g.zips.map(esc).join(', ')||'—'}</td><td class="num" data-l="Paquetes">${g.paquetes}</td>
-  <td data-l="Ahora">${Object.entries(g.por_ruta).map(([n,c])=>`<span class="chip">${esc(n)} · ${c}</span>`).join('')}</td>
-  <td data-l="Queda en">${esc(g.destino)}</td>
-  <td class="${unido?'':'vacio'}">${unido?`<button class="plain" data-sep="${esc(g.clave)}">Separar</button>`:''}</td></tr>`;}).join('')||'<tr><td colspan="7" class="mute">No hay rutas para dividir en esa fecha.</td></tr>';
- document.querySelectorAll('[data-g]').forEach(c=>c.onchange=()=>{c.checked?sel.add(c.dataset.g):sel.delete(c.dataset.g);c.closest('tr').classList.toggle('sel',c.checked);selinfo();});
- document.querySelectorAll('[data-sep]').forEach(b=>b.onclick=()=>{const g=plan.grupos.find(x=>x.clave===b.dataset.sep);uniones({accion:'separar',zips:g.zips});});
- selinfo();
+  const unido=g.zips.length>1,nr=Object.keys(g.por_ruta).length,on=sel.has(g.clave),sin=g.clave==='SIN-ZIP';
+  return `<div class="tag${sin?' sinzip':''}" ${sin?'':`role="button" tabindex="0" aria-pressed="${on}" data-g="${esc(g.clave)}"`} aria-label="Código ${esc(g.etiqueta)}, ${g.paquetes} paquetes">
+   ${sin?'':'<span class="visto" aria-hidden="true">'+(on?'✓':'')+'</span>'}
+   <span class="etq${g.etiqueta.length>5?' largo':''}">${esc(g.etiqueta)}</span>
+   <span class="paq">${num(g.paquetes)} paquetes</span>
+   <span class="donde">Queda en ${esc(corto(g.destino))}</span>
+   ${unido||nr>1?`<span class="marcas">${unido?'<span class="pill p-amar">unidos</span>':''}${nr>1?`<span class="pill p-verde">de ${nr} rutas</span>`:''}</span>`:''}
+   ${unido?`<button class="separar" data-sep="${esc(g.clave)}">Separar</button>`:''}
+  </div>`;}).join('')||'<p class="vacio-txt">Sin códigos postales.</p>';
+ document.querySelectorAll('.tag[data-g]').forEach(t=>{
+  const tog=()=>{const k=t.dataset.g;sel.has(k)?sel.delete(k):sel.add(k);const on=sel.has(k);t.setAttribute('aria-pressed',String(on));t.querySelector('.visto').textContent=on?'✓':'';barra();};
+  t.onclick=e=>{if(e.target.closest('.separar'))return;tog();};
+  t.onkeydown=e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();tog();}};
+ });
+ document.querySelectorAll('[data-sep]').forEach(b=>b.onclick=e=>{e.stopPropagation();const g=plan.grupos.find(x=>x.clave===b.dataset.sep);uniones({accion:'separar',zips:g.zips});});
+ // uniones recordadas
  const gs=plan.guardadas||[];
  $('guardadas').innerHTML=gs.length?gs.map(g=>{const [cl,tx]=estados[g.estado]||['',g.estado];
-  return `<div class="guard"><div class="quien"><span class="etq">${esc(g.etiqueta)}</span> <span class="badge ${cl}">${tx}</span>
-   <div class="mute small">${g.zips.map(esc).join(' + ')} · hoy juntos: <b>${g.total}</b> paquete(s)${g.veces?` · usada ${g.veces} día(s)${g.ultima?', última '+esc(g.ultima):''}`:''}</div></div>
-   <label class="lim">Hasta <input type="number" min="1" inputmode="numeric" placeholder="siempre" value="${g.limite||''}" data-lim="${esc(g.id)}"> paquetes</label>
-   ${g.estado==='aplica'?`<button data-nohoy="${esc(g.id)}">No unir hoy</button>`:g.estado==='no_hay'?'':`<button data-hoy="${esc(g.id)}">Unir hoy</button>`}
-   <button class="plain" data-olv="${esc(g.id)}">Olvidar</button></div>`;}).join(''):'<p class="mute">Todavía no hay uniones recordadas. Cuando unas códigos con «Recordar para otros días» marcado, aparecen aquí.</p>';
+  return `<div class="guard"><span class="nom">${esc(g.etiqueta)}</span><span class="pill ${cl}">${tx}</span>
+   <div class="det">Hoy juntos: <b>${num(g.total)}</b> paquetes${g.veces?`. Usada ${g.veces} ${g.veces===1?'día':'días'}`:''}.</div>
+   <div class="acciones"><label class="lim">Hasta <input type="number" min="1" inputmode="numeric" placeholder="siempre" value="${g.limite||''}" data-lim="${esc(g.id)}"> paquetes</label>
+   ${g.estado==='aplica'?`<button class="mini" data-nohoy="${esc(g.id)}">No unir hoy</button>`:g.estado==='no_hay'?'':`<button class="mini" data-hoy="${esc(g.id)}">Unir hoy</button>`}
+   <button class="enlace" data-olv="${esc(g.id)}">Olvidar</button></div></div>`;}).join(''):'<p class="vacio-txt">Todavía no hay. Cuando unas códigos con «Recordar para otros días», aparecen aquí.</p>';
  document.querySelectorAll('[data-lim]').forEach(i=>i.onchange=()=>uniones({accion:'limite',id:i.dataset.lim,limite:i.value}));
  document.querySelectorAll('[data-hoy]').forEach(b=>b.onclick=()=>uniones({accion:'aplicar_hoy',id:b.dataset.hoy}));
  document.querySelectorAll('[data-nohoy]').forEach(b=>b.onclick=()=>uniones({accion:'no_hoy',id:b.dataset.nohoy}));
  document.querySelectorAll('[data-olv]').forEach(b=>b.onclick=()=>{if(confirm('¿Olvidar esta unión para los próximos días?'))uniones({accion:'olvidar',id:b.dataset.olv});});
- $('mover').innerHTML=plan.mover.length?`<ul class="lista">${plan.mover.map(m=>`<li><b>${m.item_ids.length}</b> paquete(s) de <b>${esc(m.etiqueta)}</b>: ${esc(m.origen)} → <b>${esc(m.destino)}</b></li>`).join('')}</ul>`:'<p class="mute">No hay paquetes repetidos entre rutas.</p>';
- const acc={dividir:'<span class="badge b-warn">dividir</span>',nombrar:'<span class="badge b-ok">nombrar</span>',igual:'<span class="badge">ya está bien</span>',vacia:'<span class="badge b-bad">queda en 0</span>'};
- $('rutas').innerHTML=plan.rutas.length?`<ul class="lista">${plan.rutas.map(p=>`<li>${acc[p.accion]||''} <b>${esc(p.nombre)}</b>${p.nota?`<div class="nota">${esc(p.nota)}</div>`:''}<ul>${p.nombres.map(n=>`<li>${esc(n)}</li>`).join('')}</ul></li>`).join('')}</ul>`:'<p class="mute">Nada que hacer.</p>';
+ // así quedan
+ const acc={dividir:'<span class="pill p-amar">se divide</span>',nombrar:'<span class="pill p-verde">nombre nuevo</span>',igual:'<span class="pill">ya está bien</span>',vacia:'<span class="pill b-bad">queda en 0</span>'};
+ $('rutas').innerHTML=plan.rutas.length?plan.rutas.map(p=>`<div class="ruta"><div class="cab"><b>${esc(corto(p.nombre))}</b>${acc[p.accion]||''}</div>
+  ${p.nombres.length?`<div class="subs">${p.nombres.map(n=>{const x=partes(n);return `<span class="sub-r">${x.letra?`<span class="letra">${esc(x.letra)}</span>`:''}<span class="lbl">${esc(x.lbl||'—')}</span></span>`;}).join('')}</div>
+  <div class="completo">${p.nombres.map(esc).join('<br>')}</div>`:''}
+  ${p.nota?`<div class="nota">${esc(p.nota)}</div>`:''}</div>`).join(''):'<p class="vacio-txt">Nada que hacer.</p>';
+ $('mover').innerHTML=plan.mover.length?`<ul class="simple">${plan.mover.map(m=>`<li><b>${num(m.item_ids.length)}</b> de <b>${esc(m.etiqueta)}</b>: de ${esc(corto(m.origen))} a <b>${esc(corto(m.destino))}</b></li>`).join('')}</ul>`:'<p class="sub" style="margin:6px 0 0">No hay paquetes repartidos entre rutas.</p>';
  show('otras-card',plan.no_editables.length>0);
- $('otras').innerHTML=plan.no_editables.map(o=>`<span class="chip">${esc(o.nombre)} · ${o.paquetes}${o.driver?' · '+esc(o.driver):''}</span>`).join('');
- const hay=r.movimientos+r.divisiones+r.nombres>0;
- show('final',true);$('hacer').disabled=!hay||trabajando;
- $('final-txt').textContent=hay?`Juntar ${r.paquetes_movidos} paquete(s), dividir ${r.divisiones} ruta(s) y poner ${r.nombres} nombre(s).`:'Todo está dividido y con nombre.';
+ $('otras-tit').textContent=`Rutas que no se tocan (${plan.no_editables.length})`;
+ $('otras').innerHTML=`<ul class="simple">${plan.no_editables.map(o=>`<li><b>${esc(corto(o.nombre))}</b>: ${num(o.paquetes)} paquetes${o.driver?', '+esc(o.driver):''}</li>`).join('')}</ul>`;
+ show('final',true);barra();
 }
-function selinfo(){$('unir').disabled=sel.size<2;$('selinfo').textContent=sel.size?`${sel.size} seleccionado(s)`:'';}
+function barra(){
+ const r=plan.resumen,hay=r.movimientos+r.divisiones+r.nombres>0,uniendo=sel.size>0;
+ show('modo-unir',uniendo);show('modo-hacer',!uniendo);
+ $('unir').disabled=sel.size<2;
+ $('unir').textContent=sel.size<2?'Toca otro código':`Unir ${sel.size} códigos`;
+ $('hacer').disabled=!hay||trabajando;
+ $('final-txt').innerHTML=hay?`<b>${num(r.divisiones)}</b> ${r.divisiones===1?'ruta':'rutas'} para dividir y <b>${num(r.nombres)}</b> ${r.nombres===1?'nombre':'nombres'}.`:'Todo está dividido y con nombre.';
+}
 $('unir').onclick=()=>{const zs=plan.grupos.filter(g=>sel.has(g.clave)).flatMap(g=>g.zips);uniones({accion:'unir',zips:zs,recordar:$('recordar-union').checked});};
-$('limpiar').onclick=()=>uniones({accion:'limpiar'});
+$('cancelar-sel').onclick=()=>{sel.clear();pintar();};
 
+// ---------- hacer todo
 $('hacer').onclick=()=>{
- const r=plan.resumen;
- $('conf-txt').innerHTML=`<p><b>${esc(cargado.ciudad)}</b> · rutas del <b>${esc(cargado.fecha)}</b></p><ul class="lista"><li>Juntar ${r.paquetes_movidos} paquete(s) en ${r.movimientos} movimiento(s)</li><li>Dividir ${r.divisiones} ruta(s)</li><li>Poner ${r.nombres} nombre(s)</li>${r.vacias?`<li>${r.vacias} ruta(s) quedan en 0 (no se borran)</li>`:''}${plan.uniones.length?`<li>Uniones: ${plan.grupos.filter(g=>g.zips.length>1).map(g=>esc(g.etiqueta)).join(' · ')}</li>`:''}</ul>`;
+ const r=plan.resumen,uni=plan.grupos.filter(g=>g.zips.length>1).map(g=>esc(g.etiqueta));
+ $('conf-txt').innerHTML=`<p style="margin:0 0 10px;font-size:17px"><b>${esc(cargado.ciudad)}</b>, rutas de <b>${esc(nombreFecha(cargado.fecha))}</b></p><ul class="pasos">
+  <li><span class="ic ic-azul">⇄</span><span>Juntar ${num(r.paquetes_movidos)} paquetes</span></li>
+  <li><span class="ic ic-amar">✂</span><span>Dividir ${num(r.divisiones)} ${r.divisiones===1?'ruta':'rutas'}</span></li>
+  <li><span class="ic ic-verde">✎</span><span>Poner ${num(r.nombres)} ${r.nombres===1?'nombre':'nombres'}</span></li>
+  ${r.vacias?`<li><span class="ic ic-rojo">0</span><span>${num(r.vacias)} ${r.vacias===1?'queda':'quedan'} en 0 (no se borran)</span></li>`:''}
+  ${uni.length?`<li><span class="ic ic-amar">＋</span><span>Uniones: ${uni.join(', ')}</span></li>`:''}</ul>`;
  $('confirmar').showModal();
 };
 $('conf-no').onclick=()=>$('confirmar').close();
 $('conf-si').onclick=async()=>{
  $('confirmar').close();
- const {ciudad,fecha}=cargado,dig=+$('digitos').value,usar=plan.uniones;
- trabajando=true;$('hacer').disabled=true;$('cargar').disabled=true;
- const lineas=[];const log=t=>{lineas.push(t);$('log').textContent=lineas.join('\n');$('log').scrollTop=$('log').scrollHeight;};
- show('progreso',true);$('prog-titulo').textContent='Trabajando en SpeedX… deja esta página abierta';$('progreso').scrollIntoView({behavior:'smooth'});
+ const {ciudad:c,fecha}=cargado,dig=+$('digitos').value,usar=plan.uniones;
+ const pasosTot=Math.max(1,plan.mover.length+plan.rutas.reduce((s,p)=>s+(p.accion==='dividir'?p.nombres.length+1:1),0)+1);
+ let hechos=0;
+ trabajando=true;
+ const P=$('progreso');P.className='progreso';$('prog-titulo').textContent='Trabajando en SpeedX…';$('prog-aviso').classList.remove('hidden');
+ show('prog-cerrar',false);$('prog-barra').style.width='3%';
+ const lineas=[];const log=t=>{lineas.push(t);$('log').textContent=lineas.join('\n');$('log').scrollTop=$('log').scrollHeight;$('prog-paso').textContent=t.trim();
+  hechos++;$('prog-barra').style.width=Math.min(96,Math.round(hechos/pasosTot*100))+'%';};
  let lock=null;try{lock=await navigator.wakeLock?.request('screen');}catch(e){}
  const salir=e=>{e.preventDefault();e.returnValue='';};window.addEventListener('beforeunload',salir);
  let error='';
  try{
-  log(`Leyendo las rutas de ${ciudad} del ${fecha}…`);
-  const rs=await SX.rutas(fecha,ciudad);const det={};
+  log(`Leyendo las rutas de ${c}…`);
+  const rs=await SX.rutas(fecha,c);const det={};
   for(const r of rs)if(Logica.esEditable(r)&&(r.total||r.parcelCount||0)>0)det[r.id]=await SX.detalle(r.id);
   await Logica.ejecutar(SX,rs,det,usar,dig,log);
   try{Logica.contarUso(estado,fecha,usar);await guardarEstado();}catch(e){log('(No se pudo guardar el uso de las uniones: '+e.message+')');}
  }catch(x){error=x.message;log('ERROR: '+error);}
  finally{trabajando=false;window.removeEventListener('beforeunload',salir);try{lock&&lock.release();}catch(e){}}
- $('prog-titulo').textContent=error?'Se detuvo con un error':'Terminado ✔';
- if(error)err('err',error+' Lo que ya se hizo quedó hecho; pulsa Cargar rutas para ver cómo quedó y vuelve a intentarlo.');
+ $('prog-barra').style.width='100%';$('prog-aviso').classList.add('hidden');
+ if(error){P.classList.add('con-error');$('prog-titulo').textContent='Se detuvo con un error';$('prog-paso').textContent=error+' Lo que ya se hizo quedó hecho. Vuelve a pulsar Hacer todo y solo hará lo que falta.';}
+ else{P.classList.add('listo-ok');$('prog-titulo').textContent='Terminado ✔';$('prog-paso').textContent='Las rutas ya están divididas y con nombre en SpeedX.';}
+ show('prog-cerrar',true);
  cargar(true);
 };
+$('prog-cerrar').onclick=()=>show('progreso',false);
 inicio();
 </script>
 </body>
