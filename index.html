@@ -1,0 +1,693 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b4f8a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Divisor">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Divisor de rutas</title>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--ink:#16202c;--mute:#5b6675;--line:#e1e5ea;--pri:#0b4f8a;--pri2:#0d63ad;--ok:#16794a;--okbg:#e6f4ec;--warn:#9a5b00;--warnbg:#fdf3e1;--bad:#b42318;--badbg:#fdecea;--chip:#eef2f6}
+@media (prefers-color-scheme:dark){:root{--bg:#0f141a;--card:#171e26;--ink:#e6ebf0;--mute:#9aa6b2;--line:#29323d;--pri:#5aa6e8;--pri2:#7ab8ee;--ok:#5cc58f;--okbg:#14301f;--warn:#e5b45a;--warnbg:#33270f;--bad:#f0857a;--badbg:#3a1714;--chip:#222c37}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{display:flex;align-items:center;gap:12px;padding:14px 24px;padding-top:calc(14px + env(safe-area-inset-top));background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+header h1{font-size:18px;margin:0;flex:1}
+header h1 small{font-weight:400;color:var(--mute);margin-left:8px;font-size:13px}
+main{max-width:1240px;margin:0 auto;padding:20px 24px 110px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:16px}
+.row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--mute)}
+input,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:120px}
+input[type=checkbox]{width:20px;height:20px;min-width:0;accent-color:var(--pri)}
+button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:8px 14px;cursor:pointer;min-height:40px}
+button:hover:not(:disabled){border-color:var(--pri)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.pri{background:var(--pri);border-color:var(--pri);color:#fff;font-weight:600}
+.pri:hover:not(:disabled){background:var(--pri2)}
+.big{font-size:17px;padding:14px 26px;border-radius:10px}
+.plain{border:0;background:none;color:var(--pri);padding:4px 6px}
+.mute{color:var(--mute)}.small{font-size:13px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:4px 0 0}
+.tile{background:var(--bg);border-radius:10px;padding:10px 12px}
+.tile b{display:block;font-size:22px}
+.tile span{font-size:12px;color:var(--mute)}
+h2{font-size:16px;margin:0 0 10px}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:8px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;color:var(--mute);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+.etq{font-weight:700;font-size:16px}
+.chip{display:inline-block;background:var(--chip);border-radius:20px;padding:2px 9px;margin:2px 4px 2px 0;font-size:12.5px;white-space:nowrap}
+.badge{display:inline-block;border-radius:6px;padding:1px 7px;font-size:12px;font-weight:600;background:var(--chip)}
+.b-ok{background:var(--okbg);color:var(--ok)}.b-warn{background:var(--warnbg);color:var(--warn)}.b-bad{background:var(--badbg);color:var(--bad)}
+.toolbar{display:flex;gap:10px;align-items:center;margin:0 0 10px;flex-wrap:wrap}
+.check{flex-direction:row;align-items:center;gap:8px;color:var(--ink);font-size:14px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:900px){.cols{grid-template-columns:1fr}}
+ul.lista{margin:0;padding-left:18px}ul.lista li{margin:4px 0}
+.err{background:var(--badbg);color:var(--bad);border-radius:8px;padding:10px 12px;margin:10px 0}
+.nota{background:var(--warnbg);color:var(--warn);border-radius:8px;padding:6px 10px;margin:4px 0;font-size:13px}
+.log{background:#0d1117;color:#d6dee8;border-radius:10px;padding:12px 14px;font:13px/1.5 ui-monospace,Consolas,monospace;max-height:360px;overflow:auto;white-space:pre-wrap;word-break:break-word}
+.final{position:sticky;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:14px 24px calc(14px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:16px;justify-content:flex-end}
+.final .mute{flex:1}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);max-width:520px;width:calc(100% - 32px);padding:22px}
+dialog::backdrop{background:#0008}
+.hidden{display:none!important}
+.tabla{overflow-x:auto}
+tr.sel td{background:color-mix(in srgb,var(--pri) 10%,transparent)}
+.guard{display:flex;gap:10px 16px;align-items:center;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--line)}
+.guard:last-child{border-bottom:0}
+.guard .quien{flex:1 1 220px;min-width:0}
+.guard .lim{flex-direction:row;align-items:center;gap:6px;color:var(--ink);font-size:13.5px}
+.guard .lim input{width:90px;min-width:0}
+@media (max-width:640px){
+ header{padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top));gap:8px}header h1{font-size:16px}header h1 small{display:none}
+ #who{font-size:12px}
+ main{padding:12px 10px 120px}
+ .card{padding:14px;border-radius:10px}
+ .final{padding:10px 14px calc(10px + env(safe-area-inset-bottom));gap:10px}
+ .final .mute{font-size:13px}
+ .big{padding:12px 16px;font-size:16px}
+ input,select{min-width:0;width:100%;font-size:16px}
+ .row>label{flex:1 1 140px}
+ .row>button{flex:1 1 100%}
+ .tiles{grid-template-columns:repeat(3,1fr);gap:6px}.tile{padding:8px}.tile b{font-size:18px}.tile span{font-size:11px}
+ table.cards thead{display:none}
+ table.cards,table.cards tbody,table.cards tr,table.cards td{display:block;width:100%}
+ table.cards tr{position:relative;border:1px solid var(--line);border-radius:10px;padding:10px 12px 8px 44px;margin-bottom:8px}
+ table.cards td{border:0;padding:2px 0}
+ table.cards td.num{text-align:left}
+ table.cards td[data-l]::before{content:attr(data-l) ": ";color:var(--mute);font-size:12px}
+ table.cards td.cb{position:absolute;left:12px;top:12px;width:auto;padding:0}
+ table.cards td.vacio{padding:0}
+}
+</style>
+</head>
+<body>
+<header>
+ <h1>Divisor de rutas <small>por código postal · SpeedX POS</small></h1>
+ <span id="who" class="mute"></span>
+ <button id="logout" class="plain hidden">Salir</button>
+</header>
+<main>
+ <section id="config" class="card hidden">
+  <h2>Conectar con tu Supabase</h2>
+  <p class="mute" style="margin-top:0">Solo la primera vez en este teléfono. Lo tienes en la guía (paso 5).</p>
+  <form id="config-form" class="row">
+   <label style="flex:1 1 100%">Dirección de la función<input id="cfg-url" type="url" inputmode="url" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="https://xxxx.supabase.co/functions/v1/divisor-rutas" required></label>
+   <label style="flex:1 1 200px">Clave de acceso<input id="cfg-clave" type="password" autocomplete="off" required></label>
+   <button class="pri" type="submit">Guardar</button>
+  </form>
+  <div id="config-err" class="err hidden"></div>
+ </section>
+
+ <section id="login" class="card hidden">
+  <h2>Iniciar sesión en SpeedX POS</h2>
+  <p class="mute" style="margin-top:0">El mismo usuario y contraseña con los que entras a pos.speedx.io. La contraseña no se guarda.</p>
+  <form id="login-form" class="row">
+   <label>Usuario<input id="usuario" autocomplete="username" autocapitalize="none" autocorrect="off" required></label>
+   <label>Contraseña<input id="clave" type="password" autocomplete="current-password" required></label>
+   <label class="check"><input id="recordar" type="checkbox" checked> Mantener la sesión en este teléfono</label>
+   <button class="pri" type="submit">Entrar</button>
+  </form>
+  <div id="login-err" class="err hidden"></div>
+  <p class="small"><button class="plain" id="cambiar-config" type="button">Cambiar dirección o clave de acceso</button></p>
+ </section>
+
+ <section id="app" class="hidden">
+  <div class="card">
+   <div class="row">
+    <label>Ciudad<select id="ciudad"><option>HSV</option><option>BHM</option><option>MEM</option><option>TCL</option></select></label>
+    <label>Fecha de las rutas<input id="fecha" type="date"></label>
+    <label>Dígitos en el nombre<select id="digitos"><option value="2">2 (ej. 56)</option><option value="3">3 (ej. 756)</option></select></label>
+    <button id="cargar" class="pri">Cargar rutas</button>
+    <span id="cargando" class="mute hidden"></span>
+   </div>
+   <div id="err" class="err hidden"></div>
+   <div id="tiles" class="tiles" style="margin-top:14px"></div>
+  </div>
+
+  <div id="plan" class="hidden">
+   <div class="card">
+    <h2>Códigos postales</h2>
+    <p class="mute" style="margin-top:0">El mismo código postal que esté en varias rutas se junta solo. Para juntar códigos distintos (ej. 71 con 13), márcalos y pulsa <b>Unir seleccionados</b>. Si dos códigos terminan igual (611 y 811) se nombran con 3 dígitos.</p>
+    <div class="toolbar">
+     <button id="unir" disabled>Unir seleccionados</button>
+     <label class="check"><input id="recordar-union" type="checkbox" checked> Recordar para otros días</label>
+     <button id="limpiar" class="plain">Quitar las uniones de hoy</button>
+     <span id="selinfo" class="mute"></span>
+    </div>
+    <div class="tabla"><table class="cards">
+     <thead><tr><th style="width:34px"></th><th>Nombre</th><th>Código(s) postal(es)</th><th class="num">Paquetes</th><th>Ahora está en</th><th>Queda en</th><th></th></tr></thead>
+     <tbody id="zips"></tbody>
+    </table></div>
+   </div>
+
+   <div class="card">
+    <h2>Uniones recordadas</h2>
+    <p class="mute small" style="margin-top:0">Se aplican solas cada día que <b>juntos</b> tengan hasta el límite de paquetes. Deja el límite vacío para unirlos siempre.</p>
+    <div id="guardadas"></div>
+   </div>
+
+   <div class="cols">
+    <div class="card"><h2>1 · Juntar paquetes entre rutas</h2><div id="mover"></div></div>
+    <div class="card"><h2>2 · Dividir y nombrar</h2><p class="mute small" style="margin-top:0">Ninguna ruta se borra. Si una queda en 0, se queda como batch vacío para que la borres tú.</p><div id="rutas"></div></div>
+   </div>
+   <div class="card" id="otras-card"><h2>Rutas que no se tocan</h2><p class="mute" style="margin-top:0">Ya tienen driver o ya salieron.</p><div id="otras"></div></div>
+  </div>
+
+  <div id="progreso" class="card hidden">
+   <h2 id="prog-titulo">Trabajando en SpeedX…</h2>
+   <div id="log" class="log"></div>
+  </div>
+ </section>
+</main>
+<div id="final" class="final hidden">
+ <span id="final-txt" class="mute"></span>
+ <button id="hacer" class="pri big">▶ Hacer todo</button>
+</div>
+
+<dialog id="confirmar">
+ <h2>¿Hacer todo en SpeedX?</h2>
+ <div id="conf-txt"></div>
+ <p class="mute">Dividir rutas en SpeedX no se deshace con un botón. Revisa el plan antes de seguir. Ninguna ruta se borra: las que queden en 0 las borras tú.</p>
+ <p class="small"><b>Deja esta página abierta y la pantalla encendida</b> hasta que diga «Terminado».</p>
+ <div class="row" style="justify-content:flex-end">
+  <button id="conf-no">Cancelar</button>
+  <button id="conf-si" class="pri">Sí, hacerlo</button>
+ </div>
+</dialog>
+
+<script>
+/* Divisor de rutas — lógica (igual a la versión de escritorio divisor_rutas.py).
+   Este archivo se copia dentro de index.html al armar; también lo usan las pruebas. */
+const Logica = (() => {
+  const zip5 = (v) => { const m = String(v ?? "").match(/\d{5}/); return m ? m[0] : ""; };
+  const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+  const cmpTupla = (a, b) => { for (let i = 0; i < a.length; i++) { const c = cmp(a[i], b[i]); if (c) return c; } return 0; };
+  const ordenGrupo = (a, b) => cmpTupla([a === "SIN-ZIP" ? 1 : 0, a], [b === "SIN-ZIP" ? 1 : 0, b]);
+
+  /** Últimos dígitos de cada ZIP sin choques: 35611 y 35811 con 2 dígitos -> '611' y '811'. */
+  function sufijos(zips, digitos = 2) {
+    const zs = [...new Set([...zips].filter(Boolean))].sort(cmp);
+    const out = {};
+    for (const z of zs) {
+      let n = digitos;
+      while (n < 5 && zs.some((o) => o !== z && o.slice(-n) === z.slice(-n))) n++;
+      out[z] = z.slice(-n);
+    }
+    return out;
+  }
+
+  function etiqueta(zips, digitos = 2, suf = null) {
+    suf = suf || {};
+    const partes = [];
+    for (const z of [...new Set([...zips].filter(Boolean))].sort(cmp)) {
+      const p = suf[z] || z.slice(-digitos);
+      if (!partes.includes(p)) partes.push(p);
+    }
+    if (partes.length <= 1) return partes.join("");
+    return partes.slice(0, -1).join(", ") + " y " + partes[partes.length - 1];
+  }
+
+  function baseNombre(nombre) {
+    const n = String(nombre || "").trim();
+    const m = n.match(/^(.*?(?::[A-Z]{1,2}|-batch\d+))(?:\s.*)?$/s);
+    return m ? m[1] : n;
+  }
+
+  function mapaGrupos(zips, uniones) {
+    const padre = {};
+    for (const z of zips) padre[z] = z;
+    const raiz = (z) => { while (padre[z] !== z) { padre[z] = padre[padre[z]]; z = padre[z]; } return z; };
+    for (const u0 of uniones || []) {
+      const u = u0.filter((z) => z in padre);
+      for (const z of u.slice(1)) {
+        const a = raiz(u[0]), b = raiz(z);
+        if (a !== b) { if (a > b) padre[a] = b; else padre[b] = a; }
+      }
+    }
+    const out = {};
+    for (const z of zips) out[z] = raiz(z);
+    return out;
+  }
+
+  function esEditable(r) {
+    return !r.driverId && [null, undefined, "", "NO_START"].includes(r.statStatus) &&
+      !["DISPATCHED", "IN_PROGRESS", "COMPLETED", "CANCELED", "CANCELLED"].includes(r.status);
+  }
+
+  const zipDe = (i) => zip5(i.zipCode) || zip5(i.address);
+
+  function conteoZips(rutas, detalles) {
+    const c = {};
+    for (const r of rutas) {
+      if (!esEditable(r) || !(r.id in detalles)) continue;
+      for (const i of detalles[r.id].items || []) {
+        const z = zipDe(i);
+        if (z && i.trackingNo) c[z] = (c[z] || 0) + 1;
+      }
+    }
+    return c;
+  }
+
+  /** Plan completo. Nunca borra rutas: si una se queda en 0, queda como batch vacío. */
+  function planear(rutas, detalles, uniones = [], digitos = 2) {
+    const conts = rutas.filter((r) => esEditable(r) && r.id in detalles);
+    const itemsPor = new Map();
+    const todos = new Set();
+    for (const r of conts) {
+      const its = (detalles[r.id].items || []).filter((i) => i.trackingNo).map((i) => ({ id: i.id, trackingNo: i.trackingNo, _zip: zipDe(i) }));
+      for (const i of its) if (i._zip) todos.add(i._zip);
+      itemsPor.set(r.id, its);
+    }
+    const suf = sufijos(todos, digitos);
+    const gDe = mapaGrupos([...todos].sort(cmp), uniones);
+    for (const its of itemsPor.values()) {
+      const cuenta = {};
+      for (const i of its) if (i._zip) cuenta[gDe[i._zip]] = (cuenta[gDe[i._zip]] || 0) + 1;
+      const ks = Object.keys(cuenta);
+      const mayor = ks.length ? ks.reduce((a, b) => (cmpTupla([cuenta[b], b], [cuenta[a], a]) > 0 ? b : a)) : "SIN-ZIP";
+      for (const i of its) i._g = i._zip ? gDe[i._zip] : mayor;
+    }
+    const nombre = {}, total = {};
+    for (const r of conts) { nombre[r.id] = r.name || String(r.id); total[r.id] = itemsPor.get(r.id).length; }
+    const cnt = {};
+    for (const [rid, its] of itemsPor) for (const i of its) {
+      cnt[i._g] = cnt[i._g] || new Map();
+      cnt[i._g].set(rid, (cnt[i._g].get(rid) || 0) + 1);
+    }
+    const destino = {};
+    for (const [g, por] of Object.entries(cnt)) {
+      let mejor = null;
+      for (const [rid, n] of por) {
+        if (mejor === null || cmpTupla([n, total[rid], -rid], [por.get(mejor), total[mejor], -mejor]) > 0) mejor = rid;
+      }
+      destino[g] = mejor;
+    }
+    const zipsDe = {};
+    for (const [z, g] of Object.entries(gDe)) (zipsDe[g] = zipsDe[g] || []).push(z);
+    const etq = (g) => etiqueta(zipsDe[g] || [], digitos, suf) || "sin ZIP";
+    const grupos = Object.keys(cnt).sort(ordenGrupo).map((g) => {
+      const por = [...cnt[g].entries()].sort((a, b) => b[1] - a[1]);
+      return {
+        clave: g, zips: [...(zipsDe[g] || [])].sort(cmp), etiqueta: etq(g),
+        paquetes: por.reduce((s, x) => s + x[1], 0),
+        por_ruta: Object.fromEntries(por.map(([rid, n]) => [nombre[rid], n])),
+        destino_id: destino[g], destino: nombre[destino[g]],
+      };
+    });
+    const mover = [];
+    for (const rid of [...itemsPor.keys()].sort((a, b) => a - b)) {
+      const porDest = new Map();
+      for (const i of itemsPor.get(rid)) {
+        const d = destino[i._g];
+        if (d !== rid) {
+          const k = JSON.stringify([d, i._g]);
+          if (!porDest.has(k)) porDest.set(k, []);
+          porDest.get(k).push(i);
+        }
+      }
+      const claves = [...porDest.keys()].sort((a, b) => { const x = JSON.parse(a), y = JSON.parse(b); return cmpTupla(x, y); });
+      for (const k of claves) {
+        const [d, g] = JSON.parse(k), its = porDest.get(k);
+        mover.push({ origen_id: rid, origen: nombre[rid], destino_id: d, destino: nombre[d],
+          item_ids: its.map((i) => i.id), trackings: its.map((i) => i.trackingNo), etiqueta: etq(g) });
+      }
+    }
+    const planRutas = [];
+    for (const r of [...conts].sort((a, b) => cmp(nombre[a.id], nombre[b.id]))) {
+      const rid = r.id;
+      const gs = Object.keys(destino).filter((g) => destino[g] === rid).sort(ordenGrupo);
+      const b = baseNombre(nombre[rid]);
+      if (!gs.length) {
+        planRutas.push({ id: rid, nombre: nombre[rid], grupos: [], accion: "vacia", nombres: [],
+          nota: "Queda en 0 (batch vacío). No se borra: la borras tú en SpeedX." });
+        continue;
+      }
+      if (gs.length === 1) {
+        const e = etiqueta(zipsDe[gs[0]] || [], digitos, suf);
+        const nuevo = e ? `${b} ${e}` : nombre[rid];
+        planRutas.push({ id: rid, nombre: nombre[rid], grupos: gs, nota: "", accion: nuevo === nombre[rid] ? "igual" : "nombrar", nombres: [nuevo] });
+      } else {
+        const nombres = gs.map((g, k) => (!b.includes(":") ? `${b}:${String.fromCharCode(65 + k)} ${etq(g)}` : `nueva sub-ruta de ${b} · ${etq(g)}`));
+        planRutas.push({ id: rid, nombre: nombre[rid], grupos: gs, accion: "dividir", nombres, nota: "" });
+      }
+    }
+    return {
+      grupos, mover, rutas: planRutas, g_de: gDe, suf,
+      resumen: {
+        rutas: conts.length, paquetes: Object.values(total).reduce((s, x) => s + x, 0), movimientos: mover.length,
+        paquetes_movidos: mover.reduce((s, m) => s + m.item_ids.length, 0),
+        divisiones: planRutas.filter((p) => p.accion === "dividir").length,
+        nombres: planRutas.filter((p) => p.accion === "nombrar" || p.accion === "dividir").length,
+        vacias: planRutas.filter((p) => p.accion === "vacia").length,
+      },
+    };
+  }
+
+  /** Hace todo en SpeedX. sx = {detalle(id), mover(o,d,ids), dividir(id, grupos), renombrar(id, nombre)}. */
+  async function ejecutar(sx, rutas, detalles, uniones, digitos, log, dormir = (ms) => new Promise((ok) => setTimeout(ok, ms))) {
+    const plan = planear(rutas, detalles, uniones, digitos);
+    const gDe = plan.g_de, suf = plan.suf;
+    const etqDe = Object.fromEntries(plan.grupos.map((g) => [g.clave, g.etiqueta]));
+    for (const m of plan.mover) {
+      log(`Moviendo ${m.item_ids.length} paquete(s) de ${m.etiqueta} (${m.origen}) → ${m.destino}`);
+      await sx.mover(m.origen_id, m.destino_id, m.item_ids);
+      await dormir(500);
+    }
+    for (const p of plan.rutas) {
+      if (p.accion === "vacia") { log(`${p.nombre} quedó en 0 (batch vacío). No se borra: bórrala tú en SpeedX si quieres.`); continue; }
+      if (p.accion === "igual") { log(`${p.nombre} ya tiene el nombre correcto.`); continue; }
+      if (p.accion === "nombrar") {
+        await sx.renombrar(p.id, p.nombres[0]);
+        log(`Nombre: ${p.nombre} → ${p.nombres[0]}`);
+        await dormir(300);
+        continue;
+      }
+      const d = await sx.detalle(p.id);
+      const porG = new Map();
+      for (const i of d.items || []) {
+        const z = zipDe(i);
+        const g = z ? (gDe[z] || "SIN-ZIP") : "SIN-ZIP";
+        if (!porG.has(g)) porG.set(g, []);
+        porG.get(g).push(i.trackingNo);
+      }
+      if (porG.has("SIN-ZIP") && porG.size > 1) {
+        const sin = porG.get("SIN-ZIP"); porG.delete("SIN-ZIP");
+        let mayor = null; for (const v of porG.values()) if (!mayor || v.length > mayor.length) mayor = v;
+        mayor.push(...sin);
+      }
+      const claves = [...porG.keys()].sort(ordenGrupo);
+      if (claves.length <= 1) {
+        const nuevo = (claves.length ? `${baseNombre(p.nombre)} ${etqDe[claves[0]] || ""}` : p.nombre).trim();
+        await sx.renombrar(p.id, nuevo);
+        log(`Nombre: ${p.nombre} → ${nuevo}`);
+        continue;
+      }
+      log(`Dividiendo ${p.nombre} en ${claves.length} sub-rutas (${claves.map((k) => etqDe[k] || k).join(", ")})`);
+      const subs = (await sx.dividir(p.id, claves.map((k) => porG.get(k)))) || [];
+      await dormir(1000);
+      for (const s of subs) {
+        const dd = await sx.detalle(s.id);
+        const zs = [...new Set((dd.items || []).map((i) => zip5(i.zipCode)).filter(Boolean))].sort(cmp);
+        const nuevo = `${baseNombre(s.name || p.nombre)} ${etiqueta(zs, digitos, suf)}`.trim();
+        await sx.renombrar(s.id, nuevo);
+        log(`  ${s.name} → ${nuevo} (${(dd.items || []).length} paquetes)`);
+        await dormir(300);
+      }
+    }
+    log("LISTO. No se borró ninguna ruta.");
+    return plan;
+  }
+
+  // ------------------------------------------------ uniones recordadas
+  // estado = {guardadas: [{id, zips, limite, veces, ultima}], dias: {"2026-10-23": {manuales: [[zips]], quitadas: [ids]}}}
+  const uid = (zips) => [...new Set(zips)].sort(cmp).join("-");
+
+  function unionesDelDia(estado, fecha, conteo) {
+    const dia = (estado.dias || {})[fecha] || { manuales: [], quitadas: [] };
+    const usar = (dia.manuales || []).map((u) => [...u]);
+    const info = [];
+    for (const g of estado.guardadas || []) {
+      const hay = g.zips.filter((z) => conteo[z]);
+      const tot = g.zips.reduce((s, z) => s + (conteo[z] || 0), 0);
+      let est;
+      if (hay.length < 2) est = "no_hay";
+      else if ((dia.quitadas || []).includes(g.id)) est = "quitada";
+      else if (usar.some((u) => uid(u) === uid(g.zips))) est = "aplica";
+      else if (g.limite && tot > g.limite) est = "mucho";
+      else { est = "aplica"; usar.push([...g.zips]); }
+      info.push({ ...g, total: tot, estado: est, hay });
+    }
+    return [usar, info];
+  }
+
+  function _dia(estado, fecha) {
+    estado.dias = estado.dias || {};
+    const lim = new Date(fecha + "T12:00:00Z"); lim.setUTCDate(lim.getUTCDate() - 15);
+    const limS = lim.toISOString().slice(0, 10);
+    for (const k of Object.keys(estado.dias)) if (k < limS) delete estado.dias[k];
+    estado.dias[fecha] = estado.dias[fecha] || { manuales: [], quitadas: [] };
+    return estado.dias[fecha];
+  }
+
+  /** Cambia el estado (sin red). Devuelve el mismo objeto modificado. */
+  function cambiarUniones(estado, fecha, c, conteo) {
+    estado.guardadas = estado.guardadas || [];
+    const dia = _dia(estado, fecha);
+    const guard = estado.guardadas;
+    const zs = [...new Set((c.zips || []).map(zip5).filter(Boolean))].sort(cmp);
+    const sub = (a, b) => a.every((z) => b.includes(z));
+    const toca = (a, b) => a.some((z) => b.includes(z));
+    const buscar = () => guard.find((g) => g.id === c.id);
+    switch (c.accion) {
+      case "unir": {
+        if (zs.length < 2) break;
+        dia.manuales = dia.manuales.filter((u) => !toca(u, zs)).concat([zs]);
+        if (c.recordar !== false) {
+          const tot = zs.reduce((s, z) => s + (conteo[z] || 0), 0);
+          const lim = /^\d+$/.test(String(c.limite ?? "")) && +c.limite > 0 ? +c.limite : (Math.ceil(tot / 10) * 10 || null);
+          const viejas = guard.filter((g) => sub(g.zips, zs));
+          estado.guardadas = guard.filter((g) => !sub(g.zips, zs));
+          estado.guardadas.push({ id: uid(zs), zips: zs, limite: lim,
+            veces: Math.max(0, ...viejas.map((g) => g.veces || 0)),
+            ultima: viejas.map((g) => g.ultima || "").sort().pop() || null });
+          dia.quitadas = dia.quitadas.filter((q) => q !== uid(zs));
+        }
+        break;
+      }
+      case "separar":
+        dia.manuales = dia.manuales.filter((u) => !toca(u, zs));
+        for (const g of guard) if (toca(g.zips, zs) && !dia.quitadas.includes(g.id)) dia.quitadas.push(g.id);
+        break;
+      case "limpiar":
+        dia.manuales = []; dia.quitadas = guard.map((g) => g.id);
+        break;
+      case "aplicar_hoy": {
+        const g = buscar();
+        if (g) { dia.quitadas = dia.quitadas.filter((q) => q !== g.id); dia.manuales = dia.manuales.filter((u) => !toca(u, g.zips)).concat([[...g.zips]]); }
+        break;
+      }
+      case "no_hoy": {
+        const g = buscar();
+        if (g) { dia.manuales = dia.manuales.filter((u) => uid(u) !== g.id); if (!dia.quitadas.includes(g.id)) dia.quitadas.push(g.id); }
+        break;
+      }
+      case "limite": {
+        const g = buscar();
+        if (g) { const v = String(c.limite ?? "").trim(); g.limite = /^\d+$/.test(v) && +v > 0 ? +v : null; }
+        break;
+      }
+      case "olvidar":
+        estado.guardadas = guard.filter((g) => g.id !== c.id);
+        dia.quitadas = dia.quitadas.filter((q) => q !== c.id);
+        break;
+      default:
+        throw new Error("Acción no válida.");
+    }
+    return estado;
+  }
+
+  function contarUso(estado, fecha, usadas) {
+    const ids = new Set(usadas.map(uid));
+    for (const g of estado.guardadas || []) if (ids.has(g.id) && g.ultima !== fecha) { g.veces = (g.veces || 0) + 1; g.ultima = fecha; }
+    return estado;
+  }
+
+  return { zip5, sufijos, etiqueta, baseNombre, mapaGrupos, esEditable, conteoZips, planear, ejecutar,
+    unionesDelDia, cambiarUniones, contarUso, uid };
+})();
+if (typeof module !== "undefined") module.exports = Logica;
+
+</script>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}},del(k){try{localStorage.removeItem(k);}catch(e){}}};
+// Se puede configurar con un enlace: index.html#f=<dirección>&c=<clave>
+(function(){const h=new URLSearchParams(location.hash.slice(1));if(h.get('f'))store.set('funcion',h.get('f'));if(h.get('c'))store.set('acceso',h.get('c'));if(h.get('f')||h.get('c'))history.replaceState(null,'',location.pathname);})();
+
+let token=store.get('token',''),usuario=store.get('usuario','');
+let rutas=[],detalles={},cargado=null,estado={guardadas:[],dias:{}},estadoCiudad=null,plan=null,sel=new Set(),trabajando=false;
+
+class Err extends Error{constructor(m,x){super(m);Object.assign(this,x||{});}}
+async function fn(body){
+ const url=store.get('funcion',''),clave=store.get('acceso','');
+ if(!url||!clave){mostrarConfig();throw new Err('Falta conectar con tu Supabase.',{config:true});}
+ let r;
+ try{r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','x-divisor-clave':clave},body:JSON.stringify(body)});}
+ catch(e){throw new Err('Sin conexión con el servidor. Revisa el internet del teléfono.');}
+ const j=await r.json().catch(()=>({error:'Respuesta no válida del servidor (HTTP '+r.status+'). ¿Desactivaste «Verify JWT» en la función?'}));
+ if(r.status===403&&j.clave){mostrarConfig('Clave de acceso incorrecta.');throw new Err(j.error,{config:true});}
+ if(r.status===401&&j.sesion){token='';store.del('token');mostrarLogin(j.error);throw new Err(j.error,{sesion:true});}
+ if(!r.ok||j.error)throw new Err(j.error||('HTTP '+r.status));
+ return j;
+}
+const sxReq=async(metodo,ruta,params,cuerpo)=>(await fn({accion:'speedx',metodo,ruta,params,cuerpo,token})).datos;
+const SX={
+ async login(u,c){const d=await sxReq('POST','/pos-exchange-api/login/login',null,{loginName:u.trim(),passwd:c,autoLogin:true,facilityCode:'LAX',verifyCode:'8888'});if(!d||!d.authToken)throw new Err('SpeedX no aceptó el usuario o la contraseña.');return d.authToken;},
+ async rutas(fecha,fac){
+  const f=new Date(fecha+'T12:00:00Z');f.setUTCDate(f.getUTCDate()+1);const fin=f.toISOString().slice(0,10);
+  let out=[];for(let page=1;page<=20;page++){const d=await sxReq('GET','/dms-api/route/list',{startTime:fecha,endTime:fin,sidx:'id',order:'desc',facilityCode:fac,size:'100',page:String(page)});const c=(d&&d.content)||[];out=out.concat(c);if(c.length<100)break;}
+  return out.filter(r=>(r.deliverDate||fecha)===fecha);
+ },
+ detalle:id=>sxReq('GET','/dms-api/route/detail',{routeId:String(id),plaintext:'false'}),
+ async mover(o,d,ids){for(let k=0;k<ids.length;k+=200)await sxReq('POST','/dms-api/route/batch-allocation',null,{targetRouteId:d,sourceRouteId:o,itemIds:ids.slice(k,k+200)});},
+ dividir:async(id,grupos)=>(await sxReq('POST',`/dms-api/route/${id}/split`,{autoOptimize:'true'},grupos))||[],
+ renombrar:(id,nombre)=>sxReq('PUT',`/dms-api/route/${id}/name`,null,{name:nombre}),
+};
+
+function show(id,on){$(id).classList.toggle('hidden',!on);}
+function err(id,msg){$(id).textContent=msg||'';show(id,!!msg);}
+function mostrarConfig(msg){show('config',true);show('login',false);show('app',false);show('final',false);show('logout',false);$('cfg-url').value=store.get('funcion','');err('config-err',msg||'');}
+function mostrarLogin(msg){show('config',false);show('login',true);show('app',false);show('final',false);show('logout',false);$('who').textContent='';$('usuario').value=usuario;err('login-err',msg||'');}
+function mostrarApp(){show('config',false);show('login',false);show('app',true);show('logout',true);$('who').textContent=usuario;}
+
+$('config-form').onsubmit=async e=>{
+ e.preventDefault();err('config-err','');
+ store.set('funcion',$('cfg-url').value.trim());store.set('acceso',$('cfg-clave').value.trim());
+ try{await fn({accion:'hola'});$('cfg-clave').value='';inicio();}catch(x){if(!x.config)err('config-err',x.message);}
+};
+$('cambiar-config').onclick=()=>mostrarConfig();
+$('login-form').onsubmit=async e=>{
+ e.preventDefault();err('login-err','');
+ const b=e.submitter||$('login-form').querySelector('button');b.disabled=true;
+ try{token='';token=await SX.login($('usuario').value,$('clave').value);usuario=$('usuario').value.trim();store.set('usuario',usuario);
+  if($('recordar').checked)store.set('token',token);else store.del('token');
+  $('clave').value='';mostrarApp();cargar(true);}
+ catch(x){if(!x.config)err('login-err',x.message);}
+ finally{b.disabled=false;}
+};
+$('logout').onclick=()=>{token='';store.del('token');plan=null;show('plan',false);mostrarLogin();};
+
+const hoy=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
+function inicio(){
+ $('ciudad').value=store.get('ciudad','HSV');$('digitos').value=String(store.get('digitos',2));
+ if(!$('fecha').value)$('fecha').value=hoy();
+ if(!store.get('funcion','')||!store.get('acceso',''))return mostrarConfig();
+ if(!token)return mostrarLogin();
+ mostrarApp();cargar(true);
+}
+
+async function leerEstado(ciudad){const j=await fn({accion:'estado_leer',ciudad});estado=j.datos||{guardadas:[],dias:{}};estadoCiudad=ciudad;}
+async function guardarEstado(){await fn({accion:'estado_guardar',ciudad:estadoCiudad,datos:estado});}
+
+async function cargar(recargar){
+ if(trabajando)return;
+ err('err','');show('cargando',true);$('cargar').disabled=true;
+ const ciudad=$('ciudad').value,fecha=$('fecha').value;
+ store.set('ciudad',ciudad);store.set('digitos',+$('digitos').value);
+ try{
+  if(estadoCiudad!==ciudad)await leerEstado(ciudad);
+  if(recargar||!cargado||cargado.ciudad!==ciudad||cargado.fecha!==fecha){
+   $('cargando').textContent='Leyendo rutas de SpeedX…';
+   const rs=await SX.rutas(fecha,ciudad);
+   const pend=rs.filter(r=>Logica.esEditable(r)&&(r.total||r.parcelCount||0)>0);
+   const det={};let hechos=0;
+   const trabajo=async()=>{while(pend.length){const r=pend.shift();det[r.id]=await SX.detalle(r.id);hechos++;$('cargando').textContent=`Leyendo rutas… ${hechos} de ${hechos+pend.length}`;}};
+   await Promise.all([trabajo(),trabajo(),trabajo(),trabajo()]);
+   rutas=rs;detalles=det;cargado={ciudad,fecha};
+  }
+  replanear();
+ }catch(x){if(!x.config&&!x.sesion){err('err',x.message);show('plan',false);show('final',false);}}
+ finally{show('cargando',false);$('cargar').disabled=false;}
+}
+function replanear(){
+ const conteo=Logica.conteoZips(rutas,detalles);
+ const [usar,info]=Logica.unionesDelDia(estado,cargado.fecha,conteo);
+ const dig=+$('digitos').value;
+ plan=Logica.planear(rutas,detalles,usar,dig);
+ const suf=Logica.sufijos(new Set([...Object.keys(conteo),...info.flatMap(g=>g.zips)]),dig);
+ plan.uniones=usar;plan.guardadas=info.map(g=>Object.assign(g,{etiqueta:Logica.etiqueta(g.zips,dig,suf)}));
+ plan.no_editables=rutas.filter(r=>!Logica.esEditable(r)).map(r=>({nombre:r.name,paquetes:r.total,driver:r.driver||''}));
+ sel.clear();pintar();
+}
+async function uniones(c){
+ if(!cargado)return;
+ err('err','');
+ try{const conteo=Logica.conteoZips(rutas,detalles);Logica.cambiarUniones(estado,cargado.fecha,c,conteo);replanear();await guardarEstado();}
+ catch(x){if(!x.config)err('err','No se pudo guardar la unión: '+x.message);}
+}
+$('cargar').onclick=()=>cargar(true);
+$('digitos').onchange=()=>{store.set('digitos',+$('digitos').value);if(cargado)replanear();};
+$('ciudad').onchange=()=>cargar(true);
+$('fecha').onchange=()=>cargar(true);
+
+const estados={aplica:['b-ok','Se unen hoy'],mucho:['b-warn','Hoy no: son muchos'],quitada:['','Hoy no (la quitaste)'],no_hay:['','No vienen hoy']};
+function pintar(){
+ const r=plan.resumen;
+ $('tiles').innerHTML=[['Rutas',r.rutas],['Paquetes',r.paquetes],['Códigos',plan.grupos.length],['A juntar',r.paquetes_movidos],['A dividir',r.divisiones],['Quedan en 0',r.vacias]]
+  .map(([t,v])=>`<div class="tile"><b>${v}</b><span>${t}</span></div>`).join('');
+ show('plan',true);
+ $('zips').innerHTML=plan.grupos.map(g=>{
+  const unido=g.zips.length>1,varias=Object.keys(g.por_ruta).length>1;
+  return `<tr class="${sel.has(g.clave)?'sel':''}"><td class="cb"><input type="checkbox" aria-label="Seleccionar ${esc(g.etiqueta)}" data-g="${esc(g.clave)}" ${sel.has(g.clave)?'checked':''} ${g.clave==='SIN-ZIP'?'disabled':''}></td>
+  <td><span class="etq">${esc(g.etiqueta)}</span> ${unido?'<span class="badge b-warn">unidos</span>':''}${varias?' <span class="badge b-ok">se juntan</span>':''}</td>
+  <td data-l="ZIP">${g.zips.map(esc).join(', ')||'—'}</td><td class="num" data-l="Paquetes">${g.paquetes}</td>
+  <td data-l="Ahora">${Object.entries(g.por_ruta).map(([n,c])=>`<span class="chip">${esc(n)} · ${c}</span>`).join('')}</td>
+  <td data-l="Queda en">${esc(g.destino)}</td>
+  <td class="${unido?'':'vacio'}">${unido?`<button class="plain" data-sep="${esc(g.clave)}">Separar</button>`:''}</td></tr>`;}).join('')||'<tr><td colspan="7" class="mute">No hay rutas para dividir en esa fecha.</td></tr>';
+ document.querySelectorAll('[data-g]').forEach(c=>c.onchange=()=>{c.checked?sel.add(c.dataset.g):sel.delete(c.dataset.g);c.closest('tr').classList.toggle('sel',c.checked);selinfo();});
+ document.querySelectorAll('[data-sep]').forEach(b=>b.onclick=()=>{const g=plan.grupos.find(x=>x.clave===b.dataset.sep);uniones({accion:'separar',zips:g.zips});});
+ selinfo();
+ const gs=plan.guardadas||[];
+ $('guardadas').innerHTML=gs.length?gs.map(g=>{const [cl,tx]=estados[g.estado]||['',g.estado];
+  return `<div class="guard"><div class="quien"><span class="etq">${esc(g.etiqueta)}</span> <span class="badge ${cl}">${tx}</span>
+   <div class="mute small">${g.zips.map(esc).join(' + ')} · hoy juntos: <b>${g.total}</b> paquete(s)${g.veces?` · usada ${g.veces} día(s)${g.ultima?', última '+esc(g.ultima):''}`:''}</div></div>
+   <label class="lim">Hasta <input type="number" min="1" inputmode="numeric" placeholder="siempre" value="${g.limite||''}" data-lim="${esc(g.id)}"> paquetes</label>
+   ${g.estado==='aplica'?`<button data-nohoy="${esc(g.id)}">No unir hoy</button>`:g.estado==='no_hay'?'':`<button data-hoy="${esc(g.id)}">Unir hoy</button>`}
+   <button class="plain" data-olv="${esc(g.id)}">Olvidar</button></div>`;}).join(''):'<p class="mute">Todavía no hay uniones recordadas. Cuando unas códigos con «Recordar para otros días» marcado, aparecen aquí.</p>';
+ document.querySelectorAll('[data-lim]').forEach(i=>i.onchange=()=>uniones({accion:'limite',id:i.dataset.lim,limite:i.value}));
+ document.querySelectorAll('[data-hoy]').forEach(b=>b.onclick=()=>uniones({accion:'aplicar_hoy',id:b.dataset.hoy}));
+ document.querySelectorAll('[data-nohoy]').forEach(b=>b.onclick=()=>uniones({accion:'no_hoy',id:b.dataset.nohoy}));
+ document.querySelectorAll('[data-olv]').forEach(b=>b.onclick=()=>{if(confirm('¿Olvidar esta unión para los próximos días?'))uniones({accion:'olvidar',id:b.dataset.olv});});
+ $('mover').innerHTML=plan.mover.length?`<ul class="lista">${plan.mover.map(m=>`<li><b>${m.item_ids.length}</b> paquete(s) de <b>${esc(m.etiqueta)}</b>: ${esc(m.origen)} → <b>${esc(m.destino)}</b></li>`).join('')}</ul>`:'<p class="mute">No hay paquetes repetidos entre rutas.</p>';
+ const acc={dividir:'<span class="badge b-warn">dividir</span>',nombrar:'<span class="badge b-ok">nombrar</span>',igual:'<span class="badge">ya está bien</span>',vacia:'<span class="badge b-bad">queda en 0</span>'};
+ $('rutas').innerHTML=plan.rutas.length?`<ul class="lista">${plan.rutas.map(p=>`<li>${acc[p.accion]||''} <b>${esc(p.nombre)}</b>${p.nota?`<div class="nota">${esc(p.nota)}</div>`:''}<ul>${p.nombres.map(n=>`<li>${esc(n)}</li>`).join('')}</ul></li>`).join('')}</ul>`:'<p class="mute">Nada que hacer.</p>';
+ show('otras-card',plan.no_editables.length>0);
+ $('otras').innerHTML=plan.no_editables.map(o=>`<span class="chip">${esc(o.nombre)} · ${o.paquetes}${o.driver?' · '+esc(o.driver):''}</span>`).join('');
+ const hay=r.movimientos+r.divisiones+r.nombres>0;
+ show('final',true);$('hacer').disabled=!hay||trabajando;
+ $('final-txt').textContent=hay?`Juntar ${r.paquetes_movidos} paquete(s), dividir ${r.divisiones} ruta(s) y poner ${r.nombres} nombre(s).`:'Todo está dividido y con nombre.';
+}
+function selinfo(){$('unir').disabled=sel.size<2;$('selinfo').textContent=sel.size?`${sel.size} seleccionado(s)`:'';}
+$('unir').onclick=()=>{const zs=plan.grupos.filter(g=>sel.has(g.clave)).flatMap(g=>g.zips);uniones({accion:'unir',zips:zs,recordar:$('recordar-union').checked});};
+$('limpiar').onclick=()=>uniones({accion:'limpiar'});
+
+$('hacer').onclick=()=>{
+ const r=plan.resumen;
+ $('conf-txt').innerHTML=`<p><b>${esc(cargado.ciudad)}</b> · rutas del <b>${esc(cargado.fecha)}</b></p><ul class="lista"><li>Juntar ${r.paquetes_movidos} paquete(s) en ${r.movimientos} movimiento(s)</li><li>Dividir ${r.divisiones} ruta(s)</li><li>Poner ${r.nombres} nombre(s)</li>${r.vacias?`<li>${r.vacias} ruta(s) quedan en 0 (no se borran)</li>`:''}${plan.uniones.length?`<li>Uniones: ${plan.grupos.filter(g=>g.zips.length>1).map(g=>esc(g.etiqueta)).join(' · ')}</li>`:''}</ul>`;
+ $('confirmar').showModal();
+};
+$('conf-no').onclick=()=>$('confirmar').close();
+$('conf-si').onclick=async()=>{
+ $('confirmar').close();
+ const {ciudad,fecha}=cargado,dig=+$('digitos').value,usar=plan.uniones;
+ trabajando=true;$('hacer').disabled=true;$('cargar').disabled=true;
+ const lineas=[];const log=t=>{lineas.push(t);$('log').textContent=lineas.join('\n');$('log').scrollTop=$('log').scrollHeight;};
+ show('progreso',true);$('prog-titulo').textContent='Trabajando en SpeedX… deja esta página abierta';$('progreso').scrollIntoView({behavior:'smooth'});
+ let lock=null;try{lock=await navigator.wakeLock?.request('screen');}catch(e){}
+ const salir=e=>{e.preventDefault();e.returnValue='';};window.addEventListener('beforeunload',salir);
+ let error='';
+ try{
+  log(`Leyendo las rutas de ${ciudad} del ${fecha}…`);
+  const rs=await SX.rutas(fecha,ciudad);const det={};
+  for(const r of rs)if(Logica.esEditable(r)&&(r.total||r.parcelCount||0)>0)det[r.id]=await SX.detalle(r.id);
+  await Logica.ejecutar(SX,rs,det,usar,dig,log);
+  try{Logica.contarUso(estado,fecha,usar);await guardarEstado();}catch(e){log('(No se pudo guardar el uso de las uniones: '+e.message+')');}
+ }catch(x){error=x.message;log('ERROR: '+error);}
+ finally{trabajando=false;window.removeEventListener('beforeunload',salir);try{lock&&lock.release();}catch(e){}}
+ $('prog-titulo').textContent=error?'Se detuvo con un error':'Terminado ✔';
+ if(error)err('err',error+' Lo que ya se hizo quedó hecho; pulsa Cargar rutas para ver cómo quedó y vuelve a intentarlo.');
+ cargar(true);
+};
+inicio();
+</script>
+</body>
+</html>
