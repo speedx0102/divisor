@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0D2454">
-<meta name="description" content="Divide las rutas de SpeedX POS por código postal.">
+<meta name="description" content="Divide las rutas de SpeedX POS por código postal y las reparte entre drivers por mapa.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="AFLEX Divisor">
@@ -200,6 +200,40 @@ dialog .fila .btn{flex:1}
 .instalar .t{flex:1;font-size:14.5px;line-height:1.3}
 .instalar .t b{display:block;font-size:16px}
 .instalar .x{border:0;background:none;color:var(--tinta2);font-size:22px;cursor:pointer;padding:4px 8px}
+
+/* repartir entre drivers */
+.rep-ruta{display:flex;align-items:center;gap:10px;padding:12px 0;border-top:1px solid var(--linea)}
+.rep-ruta:first-child{border-top:0;padding-top:2px}
+.rep-ruta .q{flex:1;min-width:0}
+.rep-ruta .q b{display:block;font-family:"Barlow Condensed",Barlow,sans-serif;font-size:24px;line-height:1.05}
+.rep-ruta .q span{color:var(--tinta2);font-size:14px}
+.rep-ruta .btn{min-height:44px;padding:10px 14px;font-size:15.5px}
+#repartir .panel{max-width:640px;max-height:96vh;padding-top:8px}
+@media (min-width:700px){#repartir .panel{max-height:94vh}}
+.paso-rep{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:6px 0 12px}
+.contador{display:flex;align-items:center;gap:6px}
+.contador button{width:46px;height:46px;border-radius:12px;border:1.5px solid var(--linea);background:var(--fondo);font-size:24px;font-weight:700;cursor:pointer;color:var(--tinta)}
+.contador output{min-width:44px;text-align:center;font-family:"Barlow Condensed",Barlow,sans-serif;font-weight:700;font-size:32px}
+.rep-ops{display:grid;gap:8px;margin-bottom:10px}
+#mapa{height:300px;border-radius:14px;border:1px solid var(--linea);background:var(--fondo);overflow:hidden;z-index:0}
+@media (min-height:800px){#mapa{height:360px}}
+.mapa-nota{color:var(--tinta2);font-size:13px;margin:6px 0 0}
+.parte{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;align-items:center;padding:12px 0;border-top:1px solid var(--linea)}
+.parte:first-child{border-top:0}
+.parte .color{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;color:#fff;font-weight:700;font-size:17px}
+.parte .info b{font-family:"Barlow Condensed",Barlow,sans-serif;font-size:23px;line-height:1}
+.parte .info span{display:block;color:var(--tinta2);font-size:14px}
+.parte .elegir{grid-column:1/-1;display:flex;gap:8px}
+.parte .elegir input[type=text]{flex:1;min-width:0}
+.parte .elegir input[type=number]{width:92px;flex:none;text-align:center}
+.parte .nombre-final{grid-column:1/-1;color:var(--tinta2);font-size:12.5px;overflow-wrap:anywhere}
+.drv{display:flex;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--linea)}
+.drv:first-child{border-top:0}
+.drv span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.drv small{color:var(--tinta2)}
+.fila-add{display:flex;gap:8px;margin-top:10px}
+.fila-add input{flex:1;min-width:0}
+.fila-add .btn{min-height:46px;padding:10px 14px;font-size:15.5px}
 </style>
 </head>
 <body>
@@ -286,6 +320,12 @@ dialog .fila .btn{flex:1}
     <details class="mas"><summary>Ver qué paquetes se mueven</summary><div id="mover"></div></details>
     <details class="mas" id="otras-card"><summary id="otras-tit">Rutas que no se tocan</summary><p class="sub" style="margin:6px 0 0">Ya tienen driver o ya salieron.</p><div id="otras"></div></details>
    </div>
+
+   <div class="hoja" id="rep-sec">
+    <h3>Repartir entre drivers</h3>
+    <p class="sub">Parte una ruta en áreas pegadas por mapa, una por driver, y se la asigna con su nombre.</p>
+    <div id="rep-lista"></div>
+   </div>
   </div>
  </section>
 </main>
@@ -313,6 +353,52 @@ dialog .fila .btn{flex:1}
  </div>
 </dialog>
 
+<dialog id="repartir">
+ <div class="panel">
+  <div class="agarre"></div>
+  <h2 id="rep-titulo">Repartir</h2>
+  <p class="sub" id="rep-sub"></p>
+  <div class="paso-rep"><b>¿Cuántos drivers?</b>
+   <div class="contador"><button id="rep-menos" aria-label="Menos drivers">−</button><output id="rep-n">2</output><button id="rep-mas" aria-label="Más drivers">+</button></div></div>
+  <div class="rep-ops">
+   <div class="seg2" id="rep-cant"><button data-cant="parejo">Parejo</button><button data-cant="elijo">Yo elijo cuántos</button></div>
+   <div class="seg2" id="rep-forma"><button data-forma="ruta">Siguiendo la ruta</button><button data-forma="zonas">Por zonas</button></div>
+  </div>
+  <div id="mapa" role="img" aria-label="Mapa con las áreas de cada driver"></div>
+  <p class="mapa-nota" id="mapa-nota"></p>
+  <div id="rep-err" class="err hidden"></div>
+  <div id="rep-partes"></div>
+  <div class="fila"><button id="rep-no" class="btn btn-suave">Cancelar</button><button id="rep-si" class="btn btn-pri">Hacer en SpeedX</button></div>
+ </div>
+</dialog>
+
+<dialog id="drivers">
+ <div class="panel">
+  <div class="agarre"></div>
+  <h2>Drivers de <span id="drv-ciudad"></span></h2>
+  <p class="sub">La lista para elegir al repartir. Se guarda por ciudad y la ven todos tus teléfonos.</p>
+  <div class="bloque">
+   <div id="drv-lista"></div>
+   <div class="fila-add"><input id="drv-nuevo" type="text" placeholder="Nombre del driver" autocomplete="off" autocapitalize="words"><button id="drv-agregar" class="btn btn-azul">Agregar</button></div>
+  </div>
+  <div class="bloque">
+   <h3>Traer nombres</h3>
+   <button id="drv-speedx" class="btn btn-suave btn-ancho">Traer de SpeedX</button>
+   <details class="mas" style="margin-top:8px"><summary>Traer de la app AFLEX</summary>
+    <p class="sub" style="margin:6px 0 10px">Entra con tu cuenta de administrador de la app AFLEX de esta ciudad. La contraseña no se guarda.</p>
+    <label class="campo">Project URL de Supabase<input id="af-url" type="url" inputmode="url" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="https://xxxx.supabase.co"></label>
+    <label class="campo">Publishable key<input id="af-key" type="text" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="sb_publishable_…"></label>
+    <label class="campo">Correo<input id="af-correo" type="text" inputmode="email" autocapitalize="none" autocorrect="off"></label>
+    <label class="campo">Contraseña<input id="af-clave" type="password" autocomplete="off"></label>
+    <button id="drv-aflex" class="btn btn-suave btn-ancho">Traer de AFLEX</button>
+   </details>
+   <div id="drv-msg" class="sub" style="margin:10px 0 0"></div>
+   <div id="drv-err" class="err hidden"></div>
+  </div>
+  <div class="fila"><button id="drv-cerrar" class="btn btn-azul">Listo</button></div>
+ </div>
+</dialog>
+
 <dialog id="ajustes">
  <div class="panel">
   <div class="agarre"></div>
@@ -322,6 +408,10 @@ dialog .fila .btn{flex:1}
    <div class="seg2" id="dig-seg"><button data-dig="2">2 números (56)</button><button data-dig="3">3 números (756)</button></div>
    <select id="digitos" class="hidden" aria-hidden="true"><option value="2">2</option><option value="3">3</option></select>
    <p class="sub" style="margin:8px 0 0">Si dos códigos terminan igual (611 y 811), esos usan 3 números.</p>
+  </div>
+  <div class="bloque">
+   <h3>Drivers</h3>
+   <button id="aj-drivers" class="btn btn-suave btn-ancho">Lista de drivers de esta ciudad</button>
   </div>
   <div class="bloque" id="aj-instalar">
    <h3>App en el teléfono</h3>
@@ -669,8 +759,208 @@ const Logica = (() => {
     return estado;
   }
 
+
+  // ------------------------------------------------ repartir una ruta entre drivers (por mapa)
+  // Cada paquete trae lat/lng y el orden de entrega que SpeedX optimizó siguiendo las calles (sequence).
+  // 1) Se parte ese recorrido en tramos seguidos con las cantidades pedidas, eligiendo los cortes que dejan
+  //    cada área más compacta (programación dinámica). Si no hay orden de SpeedX, se parte por zonas del mapa.
+  // 2) Se pulen los bordes: un paquete pasa a la área vecina solo si queda mucho más cerca de ella y está
+  //    pegado a ella (por el recorrido o entre sus vecinos más cercanos), sin romper las cantidades.
+  const KM_LAT = 110.57;
+
+  function proyectar(items) {
+    const ok = items.filter((i) => Number.isFinite(+i.lat) && Number.isFinite(+i.lng) && +i.lat !== 0);
+    const lat0 = ok.length ? ok.reduce((s, i) => s + +i.lat, 0) / ok.length : 0;
+    const lng0 = ok.length ? ok.reduce((s, i) => s + +i.lng, 0) / ok.length : 0;
+    const kx = 111.32 * Math.cos((lat0 * Math.PI) / 180);
+    return items.map((i) => {
+      const bien = Number.isFinite(+i.lat) && Number.isFinite(+i.lng) && +i.lat !== 0;
+      return { x: bien ? (+i.lng - lng0) * kx : 0, y: bien ? (+i.lat - lat0) * KM_LAT : 0, bien };
+    });
+  }
+
+  /** Cantidades por parte. cantidades = [n1, n2…] (las que tú eliges) o null = parejo. */
+  function metas(total, partes, cantidades) {
+    if (Array.isArray(cantidades) && cantidades.length === partes) {
+      const c = cantidades.map((v) => Math.max(0, Math.round(+v || 0)));
+      const suma = c.reduce((s, v) => s + v, 0);
+      if (suma !== total) throw new Error(`Las cantidades suman ${suma} y la ruta tiene ${total} paquetes.`);
+      if (c.some((v) => v < 1)) throw new Error("Cada driver necesita al menos 1 paquete.");
+      return { metas: c, holgura: c.map(() => 0) };
+    }
+    const base = Math.floor(total / partes), extra = total % partes;
+    const m = Array.from({ length: partes }, (_, k) => base + (k < extra ? 1 : 0));
+    // «parejo»: se permite ±6 % (mínimo 1) para poder cortar en un mejor lugar
+    return { metas: m, holgura: m.map((v) => Math.max(1, Math.round(v * 0.06))) };
+  }
+
+  function costoGrupo(pts, idx) {
+    if (!idx.length) return 0;
+    let sx = 0, sy = 0;
+    for (const k of idx) { sx += pts[k].x; sy += pts[k].y; }
+    const cx = sx / idx.length, cy = sy / idx.length;
+    let c = 0;
+    for (const k of idx) c += (pts[k].x - cx) ** 2 + (pts[k].y - cy) ** 2;
+    return c;
+  }
+
+  /** Corta la lista ordenada en tramos seguidos con tamaño dentro de [meta-holgura, meta+holgura]. */
+  function cortarTramos(orden, pts, M, H) {
+    const n = orden.length, P = M.length;
+    const sx = [0], sy = [0], sq = [0];
+    for (let i = 0; i < n; i++) {
+      const p = pts[orden[i]];
+      sx.push(sx[i] + p.x); sy.push(sy[i] + p.y); sq.push(sq[i] + p.x * p.x + p.y * p.y);
+    }
+    const sse = (a, b) => { const m = b - a; if (m <= 0) return 0; const X = sx[b] - sx[a], Y = sy[b] - sy[a]; return sq[b] - sq[a] - (X * X + Y * Y) / m; };
+    const INF = Infinity;
+    let f = new Float64Array(n + 1).fill(INF); f[0] = 0;
+    const de = [];
+    for (let k = 0; k < P; k++) {
+      const g = new Float64Array(n + 1).fill(INF), d = new Int32Array(n + 1).fill(-1);
+      const lo = Math.max(1, M[k] - H[k]), hi = M[k] + H[k];
+      for (let j = 1; j <= n; j++) {
+        for (let s = lo; s <= hi && s <= j; s++) {
+          const a = j - s; if (f[a] === INF) continue;
+          const v = f[a] + sse(a, j);
+          if (v < g[j]) { g[j] = v; d[j] = a; }
+        }
+      }
+      de.push(d); f = g;
+    }
+    if (f[n] === INF) return null;
+    const cortes = []; let j = n;
+    for (let k = P - 1; k >= 0; k--) { const a = de[k][j]; cortes.unshift([a, j]); j = a; }
+    return cortes.map(([a, b]) => orden.slice(a, b));
+  }
+
+  /** Por zonas: corta por el eje más largo en proporción a las cantidades, una y otra vez. */
+  function biseccion(idx, pts, M) {
+    if (M.length === 1) return [idx];
+    const mx = idx.reduce((s, k) => s + pts[k].x, 0) / idx.length, my = idx.reduce((s, k) => s + pts[k].y, 0) / idx.length;
+    let xx = 0, yy = 0, xy = 0;
+    for (const k of idx) { const dx = pts[k].x - mx, dy = pts[k].y - my; xx += dx * dx; yy += dy * dy; xy += dx * dy; }
+    const ang = 0.5 * Math.atan2(2 * xy, xx - yy), ux = Math.cos(ang), uy = Math.sin(ang);
+    const ord = [...idx].sort((a, b) => (pts[a].x * ux + pts[a].y * uy) - (pts[b].x * ux + pts[b].y * uy) || a - b);
+    const izq = Math.ceil(M.length / 2), nIzq = M.slice(0, izq).reduce((s, v) => s + v, 0);
+    return [...biseccion(ord.slice(0, nIzq), pts, M.slice(0, izq)), ...biseccion(ord.slice(nIzq), pts, M.slice(izq))];
+  }
+
+  function vecinosCercanos(pts, k = 6) {
+    const n = pts.length, out = [];
+    for (let i = 0; i < n; i++) {
+      const d = [];
+      for (let j = 0; j < n; j++) if (j !== i) d.push([(pts[i].x - pts[j].x) ** 2 + (pts[i].y - pts[j].y) ** 2, j]);
+      d.sort((a, b) => a[0] - b[0]);
+      out.push(d.slice(0, k).map((x) => x[1]));
+    }
+    return out;
+  }
+
+  /** Pule los bordes sin romper las cantidades (±holgura) ni dejar paquetes sueltos lejos de su área. */
+  function pulir(grupos, pts, M, H, vecinos, vueltas = 40) {
+    const de = new Int32Array(pts.length);
+    grupos.forEach((g, p) => g.forEach((k) => (de[k] = p)));
+    const tam = grupos.map((g) => g.length);
+    const d2 = (k, c) => (pts[k].x - c.x) ** 2 + (pts[k].y - c.y) ** 2;
+    for (let v = 0; v < vueltas; v++) {
+      const cen = grupos.map(() => ({ x: 0, y: 0, n: 0 }));
+      for (let k = 0; k < pts.length; k++) { const c = cen[de[k]]; c.x += pts[k].x; c.y += pts[k].y; c.n++; }
+      for (const c of cen) if (c.n) { c.x /= c.n; c.y /= c.n; }
+      const props = [];
+      for (let k = 0; k < pts.length; k++) {
+        const a = de[k], da = d2(k, cen[a]);
+        const toca = new Set(vecinos[k].map((j) => de[j]));
+        for (const b of toca) {
+          if (b === a) continue;
+          const db = d2(k, cen[b]);
+          if (db < da * 0.8) props.push({ k, a, b, gan: da - db });
+        }
+      }
+      if (!props.length) break;
+      props.sort((x, y) => y.gan - x.gan);
+      let cambios = 0;
+      const usados = new Set();
+      for (const p of props) {
+        if (usados.has(p.k) || de[p.k] !== p.a) continue;
+        const cabe = tam[p.b] + 1 <= M[p.b] + H[p.b] && tam[p.a] - 1 >= Math.max(1, M[p.a] - H[p.a]);
+        if (cabe) { de[p.k] = p.b; tam[p.a]--; tam[p.b]++; usados.add(p.k); cambios++; continue; }
+        // intercambio: alguien de b que quiera pasar a a
+        const q = props.find((o) => !usados.has(o.k) && o.a === p.b && o.b === p.a && de[o.k] === o.a);
+        if (q) { de[p.k] = p.b; de[q.k] = p.a; usados.add(p.k); usados.add(q.k); cambios++; }
+      }
+      if (!cambios) break;
+    }
+    const out = grupos.map(() => []);
+    for (let k = 0; k < pts.length; k++) out[de[k]].push(k);
+    return out;
+  }
+
+  /**
+   * items: [{trackingNo, lat, lng, sequence, zipCode}] de UNA ruta.
+   * opciones: {partes, cantidades (o null = parejo), forma: "ruta" | "zonas", digitos}
+   * Devuelve {forma, partes:[{indices, trackings, n, zips, etiqueta, centro:{lat,lng}}], costo}
+   */
+  function repartir(items, opciones = {}) {
+    const n = items.length, P = Math.max(1, Math.min(+opciones.partes || 1, n));
+    const { metas: M, holgura: H } = metas(n, P, opciones.cantidades);
+    const pts = proyectar(items);
+    const conOrden = items.filter((i) => Number.isFinite(+i.sequence) && i.sequence !== null).length;
+    let forma = opciones.forma === "zonas" || conOrden < n * 0.9 ? "zonas" : "ruta";
+    const todos = items.map((_, k) => k);
+    let grupos = null, orden = null;
+    if (P === 1) grupos = [todos];
+    else if (forma === "ruta") {
+      orden = [...todos].sort((a, b) => (+items[a].sequence) - (+items[b].sequence) || a - b);
+      grupos = cortarTramos(orden, pts, M, H);
+      if (!grupos) forma = "zonas";
+    }
+    if (!grupos) grupos = biseccion(todos, pts, M);
+    if (P > 1) {
+      const vec = vecinosCercanos(pts, 6);
+      if (orden) orden.forEach((k, i) => { for (const j of [orden[i - 1], orden[i + 1]]) if (j !== undefined && !vec[k].includes(j)) vec[k].push(j); });
+      grupos = pulir(grupos, pts, M, H, vec);
+    }
+    // orden de las partes: la que empieza más temprano en el recorrido (o de oeste a este)
+    const clave = (g) => (orden ? Math.min(...g.map((k) => orden.indexOf(k))) : Math.min(...g.map((k) => pts[k].x)));
+    if (!Array.isArray(opciones.cantidades)) grupos.sort((a, b) => clave(a) - clave(b));   // con cantidades elegidas se respeta su orden
+    const suf = sufijos(new Set(items.map((i) => zip5(i.zipCode))), opciones.digitos || 2);
+    const partes = grupos.map((g) => {
+      const its = [...g].sort((a, b) => (+items[a].sequence || 0) - (+items[b].sequence || 0) || a - b).map((k) => items[k]);
+      const zs = [...new Set(its.map((i) => zip5(i.zipCode)).filter(Boolean))].sort(cmp);
+      const bien = its.filter((i) => Number.isFinite(+i.lat) && +i.lat !== 0);
+      return {
+        indices: g, trackings: its.map((i) => i.trackingNo), n: its.length, zips: zs,
+        etiqueta: etiqueta(zs, opciones.digitos || 2, suf),
+        centro: bien.length ? { lat: bien.reduce((s, i) => s + +i.lat, 0) / bien.length, lng: bien.reduce((s, i) => s + +i.lng, 0) / bien.length } : null,
+      };
+    });
+    return { forma, partes, costo: grupos.reduce((s, g) => s + costoGrupo(pts, g), 0) };
+  }
+
+  /** Nombre final: «1026-001-batch9308:C 05 Juan Perez» (base + números del ZIP + driver). */
+  function nombreConDriver(nombre, etq, driver) {
+    return [baseNombre(nombre), etq, String(driver || "").trim()].filter(Boolean).join(" ").replace(/\s+/g, " ");
+  }
+
+  /** Empareja las sub-rutas que devuelve SpeedX con las partes, por sus trackings. */
+  function emparejar(partes, subsConItems) {
+    const usado = new Set();
+    return partes.map((p) => {
+      const set = new Set(p.trackings);
+      let mejor = null, mejorN = -1;
+      for (const s of subsConItems) {
+        if (usado.has(s.id)) continue;
+        const n = (s.trackings || []).filter((t) => set.has(t)).length;
+        if (n > mejorN) { mejor = s; mejorN = n; }
+      }
+      if (mejor) usado.add(mejor.id);
+      return mejor;
+    });
+  }
+
   return { zip5, sufijos, etiqueta, baseNombre, mapaGrupos, esEditable, conteoZips, planear, ejecutar,
-    unionesDelDia, cambiarUniones, contarUso, uid };
+    unionesDelDia, cambiarUniones, contarUso, uid, repartir, metas, proyectar, nombreConDriver, emparejar, costoGrupo };
 })();
 if (typeof module !== "undefined") module.exports = Logica;
 
@@ -712,7 +1002,42 @@ const SX={
  async mover(o,d,ids){for(let k=0;k<ids.length;k+=200)await sxReq('POST','/dms-api/route/batch-allocation',null,{targetRouteId:d,sourceRouteId:o,itemIds:ids.slice(k,k+200)});},
  dividir:async(id,grupos)=>(await sxReq('POST',`/dms-api/route/${id}/split`,{autoOptimize:'true'},grupos))||[],
  renombrar:(id,nombre)=>sxReq('PUT',`/dms-api/route/${id}/name`,null,{name:nombre}),
+ // Lista de drivers como en SpeedX: DSP de la ciudad → sus fleets → drivers activos de cada fleet.
+ async drivers(c){
+  const dsps=await sxReq('GET','/dms-api/dsp-list');
+  const dsp=(dsps||[]).find(d=>String(d.name||'').trim().toUpperCase()===c);
+  if(!dsp)throw new Err(`No encontré el DSP ${c} en SpeedX.`);
+  const out=[];
+  for(const f of (await sxReq('GET','/dms-api/fleets',{dspId:String(dsp.id)}))||[]){
+   if(f.status&&f.status!=='ACTIVE')continue;
+   for(const d of (await sxReq('GET','/dms-api/admin/drivers',{fleetId:String(f.id)}))||[])
+    if(d.status==='ACTIVE')out.push({nombre:String(d.name||'').trim().replace(/\s+/g,' '),id:d.id,fleetId:f.id,dspId:dsp.id,fleet:f.name});
+  }
+  return out;
+ },
+ // Asigna como «Dispatch» de SpeedX. Si SpeedX pide confirmar (driver con otra ruta ese día) confirma y devuelve el aviso.
+ async asignar(routeId,dv,nombre){
+  let d=dv&&dv.speedx_id&&dv.fleetId?{id:dv.speedx_id,fleetId:dv.fleetId,dspId:dv.dspId}:null;
+  if(!d){
+   if(!spx||spx.ciudad!==ciudad)spx={ciudad,lista:await SX.drivers(ciudad)};
+   d=buscarDriver(spx.lista,nombre);
+   if(!d)throw new Err(`«${nombre}» no está entre los drivers activos de SpeedX.`);
+  }
+  const cuerpo={planDeliverDate:cargado.fecha,dspId:d.dspId,fleetId:d.fleetId,driverId:d.id,routeId,suppressWarnings:false};
+  const j=await fn({accion:'speedx',metodo:'POST',ruta:'/dms-api/route/dispatch',cuerpo,token});
+  if(j.aviso){await fn({accion:'speedx',metodo:'POST',ruta:'/dms-api/route/dispatch',cuerpo:{...cuerpo,suppressWarnings:true},token});return j.aviso;}
+  return '';
+ },
 };
+let spx=null;
+const normal=t=>String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
+// «reginaldo» encuentra a «Reginaldo Sequec» si es el único con ese nombre; el nombre completo siempre gana.
+function buscarDriver(lista,nombre){
+ const n=normal(nombre);if(!n)return null;
+ const exacto=lista.filter(d=>normal(d.nombre)===n);if(exacto.length===1)return exacto[0];
+ const inicio=lista.filter(d=>normal(d.nombre).split(' ')[0]===n||normal(d.nombre).startsWith(n+' '));
+ return inicio.length===1?inicio[0]:null;
+}
 
 function show(id,on){$(id).classList.toggle('hidden',!on);}
 function err(id,msg){$(id).textContent=msg||'';show(id,!!msg);}
@@ -887,6 +1212,7 @@ function pintar(){
  $('otras-tit').textContent=`Rutas que no se tocan (${plan.no_editables.length})`;
  $('otras').innerHTML=`<ul class="simple">${plan.no_editables.map(o=>`<li><b>${esc(corto(o.nombre))}</b>: ${num(o.paquetes)} paquetes${o.driver?', '+esc(o.driver):''}</li>`).join('')}</ul>`;
  show('final',true);barra();
+ pintarRepartir();
 }
 function barra(){
  const r=plan.resumen,hay=r.movimientos+r.divisiones+r.nombres>0,uniendo=sel.size>0;
@@ -939,6 +1265,234 @@ $('conf-si').onclick=async()=>{
  cargar(true);
 };
 $('prog-cerrar').onclick=()=>show('progreso',false);
+
+// ================================================= repartir entre drivers (por mapa)
+const COLORES=['#1F5FD6','#C9372C','#16855A','#D98A00','#7B3FC4','#0E8C9C','#C2387F','#5C6B00'];
+const MAXP=8;
+let R=null,mapa=null,capas=null;
+const listaDrivers=()=>((estado&&estado.drivers)||[]).slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+
+function pintarRepartir(){
+ const pid=Object.fromEntries((plan.rutas||[]).map(p=>[p.id,p]));
+ const rs=rutas.filter(r=>Logica.esEditable(r)&&detalles[r.id]&&(detalles[r.id].items||[]).length>0)
+  .sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+ show('rep-sec',rs.length>0);
+ $('rep-lista').innerHTML=rs.map(r=>{
+  const p=pid[r.id],pend=p&&p.accion!=='igual',x=partes(r.name),n=(detalles[r.id].items||[]).filter(i=>i.trackingNo).length;
+  return `<div class="rep-ruta"><div class="q"><b>${esc(x.lbl||corto(r.name))}</b><span>${esc(Logica.baseNombre(r.name))} · ${num(n)} paquetes</span></div>
+   ${pend?'<span class="pill p-amar">Primero «Hacer todo»</span>':`<button class="btn btn-azul" data-rep="${r.id}">Repartir</button>`}</div>`;}).join('');
+ document.querySelectorAll('[data-rep]').forEach(b=>b.onclick=()=>abrirRepartir(+b.dataset.rep));
+}
+
+let leaflet=null;
+function cargarLeaflet(){
+ if(window.L&&window.L.map)return Promise.resolve(window.L);
+ if(leaflet)return leaflet;
+ leaflet=new Promise((ok,mal)=>{
+  const css=document.createElement('link');css.rel='stylesheet';css.href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';document.head.appendChild(css);
+  const js=document.createElement('script');js.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+  js.onload=()=>ok(window.L);js.onerror=()=>{leaflet=null;mal(new Error('sin mapa'));};document.head.appendChild(js);
+ });
+ return leaflet;
+}
+
+function abrirRepartir(rid){
+ const r=rutas.find(x=>x.id===rid);if(!r)return;
+ const items=(detalles[rid].items||[]).filter(i=>i.trackingNo);
+ R={rid,ruta:r,items,n:Math.min(2,items.length),cant:'parejo',forma:'ruta',cantidades:null,drivers:[],res:null,confirmar:false};
+ const x=partes(r.name);
+ $('rep-titulo').textContent=`Repartir ${x.lbl||corto(r.name)}`;
+ $('rep-sub').textContent=`${r.name} · ${num(items.length)} paquetes`;
+ err('rep-err','');$('repartir').showModal();
+ calcular();
+ cargarLeaflet().then(()=>pintarMapa()).catch(()=>{$('mapa-nota').textContent='No se pudo cargar el mapa (revisa el internet). Igual puedes repartir.';});
+}
+function pintarOpciones(){
+ $('rep-n').textContent=R.n;
+ $('rep-menos').disabled=R.n<=1;$('rep-mas').disabled=R.n>=Math.min(MAXP,R.items.length);
+ document.querySelectorAll('[data-cant]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.cant===R.cant)));
+ document.querySelectorAll('[data-forma]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.forma===R.forma)));
+}
+function calcular(){
+ R.confirmar=false;
+ if(R.cant==='elijo'&&(!R.cantidades||R.cantidades.length!==R.n))R.cantidades=Logica.metas(R.items.length,R.n,null).metas;
+ R.drivers=Array.from({length:R.n},(_,k)=>R.drivers[k]||'');
+ err('rep-err','');
+ try{R.res=Logica.repartir(R.items,{partes:R.n,cantidades:R.cant==='elijo'?R.cantidades:null,forma:R.forma,digitos:+$('digitos').value});}
+ catch(e){R.res=null;err('rep-err',e.message);}
+ pintarOpciones();pintarPartes();pintarMapa();
+}
+$('rep-menos').onclick=()=>{if(R.n>1){R.n--;R.cantidades=null;calcular();}};
+$('rep-mas').onclick=()=>{if(R.n<Math.min(MAXP,R.items.length)){R.n++;R.cantidades=null;calcular();}};
+document.querySelectorAll('[data-cant]').forEach(b=>b.onclick=()=>{R.cant=b.dataset.cant;R.cantidades=R.cant==='elijo'&&R.res?R.res.partes.map(p=>p.n):null;calcular();});
+document.querySelectorAll('[data-forma]').forEach(b=>b.onclick=()=>{R.forma=b.dataset.forma;calcular();});
+
+function pintarPartes(){
+ const res=R.res,lista=listaDrivers();
+ const dl=`<datalist id="dl-drivers">${lista.map(d=>`<option value="${esc(d.nombre)}"></option>`).join('')}</datalist>`;
+ if(!res){$('rep-partes').innerHTML='';botonRep();return;}
+ $('mapa-nota').textContent=res.forma==='ruta'?'Áreas cortadas siguiendo el orden de entrega de SpeedX (por las calles).':(R.forma==='ruta'?'Esta ruta no tiene orden de SpeedX: se partió por zonas.':'Áreas por zonas del mapa.');
+ $('rep-partes').innerHTML=dl+res.partes.map((p,k)=>`<div class="parte">
+  <span class="color" style="background:${COLORES[k%COLORES.length]}">${String.fromCharCode(65+k)}</span>
+  <div class="info"><b>${num(p.n)} paquetes</b><span>Código ${esc(p.etiqueta||'—')}</span></div>
+  <div class="elegir">
+   <input type="text" list="dl-drivers" data-drv="${k}" value="${esc(R.drivers[k]||'')}" placeholder="Driver (elige o escribe)" autocomplete="off" aria-label="Driver del área ${String.fromCharCode(65+k)}">
+   ${R.cant==='elijo'?`<input type="number" min="1" inputmode="numeric" data-cnt="${k}" value="${R.cantidades[k]}" aria-label="Paquetes del área ${String.fromCharCode(65+k)}">`:''}
+  </div>
+  <div class="nombre-final" id="nf-${k}"></div></div>`).join('');
+ document.querySelectorAll('[data-drv]').forEach(i=>i.oninput=()=>{R.drivers[+i.dataset.drv]=i.value;R.confirmar=false;nombresFinales();botonRep();});
+ document.querySelectorAll('[data-cnt]').forEach(i=>i.onchange=()=>{
+  const k=+i.dataset.cnt,v=Math.max(1,Math.round(+i.value||1)),c=R.cantidades.slice();c[k]=v;
+  const ult=k===c.length-1?c.length-2:c.length-1;
+  c[ult]=R.items.length-c.reduce((s,x,j)=>j===ult?s:s+x,0);
+  if(c[ult]<1){err('rep-err',`No alcanza: la ruta tiene ${R.items.length} paquetes.`);i.value=R.cantidades[k];return;}
+  R.cantidades=c;calcular();});
+ nombresFinales();botonRep();
+}
+function nombresFinales(){
+ if(!R.res)return;
+ const b=Logica.baseNombre(R.ruta.name),raiz=b.replace(/:[A-Z]{1,2}$/,'');
+ R.res.partes.forEach((p,k)=>{const el=$('nf-'+k);if(el)el.textContent='Nombre: '+[k?raiz+':(letra nueva)':b,p.etiqueta,String(R.drivers[k]||'').trim()].filter(Boolean).join(' ');});
+}
+function botonRep(){
+ const b=$('rep-si'),dup=R.drivers.map(d=>d.trim().toLowerCase()).filter(Boolean);
+ const repetido=dup.length!==new Set(dup).size;
+ b.disabled=!R.res||repetido;
+ if(repetido)err('rep-err','Elegiste el mismo driver en dos áreas.');else if(R.res)err('rep-err','');
+ b.textContent=R.confirmar?'Toca otra vez para confirmar':(R.n>1?`Dividir en ${R.n} y asignar`:'Poner nombre y asignar');
+}
+
+function envoltura(pts){ // contorno (convex hull) de un área para dibujarla
+ const p=pts.slice().sort((a,b)=>a[0]-b[0]||a[1]-b[1]);if(p.length<3)return p;
+ const cr=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);const lo=[],up=[];
+ for(const q of p){while(lo.length>=2&&cr(lo[lo.length-2],lo[lo.length-1],q)<=0)lo.pop();lo.push(q);}
+ for(const q of p.slice().reverse()){while(up.length>=2&&cr(up[up.length-2],up[up.length-1],q)<=0)up.pop();up.push(q);}
+ return lo.slice(0,-1).concat(up.slice(0,-1));
+}
+function pintarMapa(){
+ const L=window.L;if(!L||!L.map||!R||!$('repartir').open)return;
+ if(!mapa){mapa=L.map('mapa',{zoomControl:true,attributionControl:true});
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(mapa);}
+ setTimeout(()=>mapa.invalidateSize(),50);
+ if(capas)capas.remove();capas=L.layerGroup().addTo(mapa);
+ if(!R.res)return;
+ const todos=[];
+ R.res.partes.forEach((p,k)=>{
+  const c=COLORES[k%COLORES.length];
+  const pts=p.indices.map(i=>R.items[i]).filter(i=>Number.isFinite(+i.lat)&&+i.lat!==0).map(i=>[+i.lat,+i.lng]);
+  todos.push(...pts);
+  const h=envoltura(pts);if(h.length>=3)L.polygon(h,{color:c,weight:2,fillOpacity:.12}).addTo(capas);
+  for(const q of pts)L.circleMarker(q,{radius:4,color:'#fff',weight:1,fillColor:c,fillOpacity:1}).addTo(capas);
+  if(p.centro)L.marker([p.centro.lat,p.centro.lng],{icon:L.divIcon({className:'',html:`<span style="display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:${c};color:#fff;font-weight:700;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)">${String.fromCharCode(65+k)}</span>`,iconSize:[28,28],iconAnchor:[14,14]})}).addTo(capas);
+ });
+ if(todos.length)mapa.fitBounds(todos,{padding:[18,18]});
+}
+$('rep-no').onclick=()=>$('repartir').close();
+$('repartir').addEventListener('click',e=>{if(e.target===$('repartir'))$('repartir').close();});
+
+$('rep-si').onclick=async()=>{
+ if(!R||!R.res)return;
+ if(!R.confirmar){R.confirmar=true;botonRep();return;}
+ const A={...R,partes:R.res.partes.map((p,k)=>({...p,driver:(R.drivers[k]||'').trim()}))};
+ $('repartir').close();
+ trabajando=true;
+ const P=$('progreso');P.className='progreso';$('prog-titulo').textContent='Repartiendo en SpeedX…';$('prog-aviso').classList.remove('hidden');
+ show('prog-cerrar',false);show('progreso',true);$('prog-barra').style.width='3%';
+ const tot=2+A.partes.length*2;let hechos=0;const lineas=[];
+ const log=t=>{lineas.push(t);$('log').textContent=lineas.join('\n');$('prog-paso').textContent=t.trim();hechos++;$('prog-barra').style.width=Math.min(96,Math.round(hechos/tot*100))+'%';};
+ let lock=null;try{lock=await navigator.wakeLock?.request('screen');}catch(e){}
+ const salir=e=>{e.preventDefault();e.returnValue='';};window.addEventListener('beforeunload',salir);
+ let error='',avisos=[];
+ try{
+  log('Revisando la ruta en SpeedX…');
+  const d=await SX.detalle(A.rid);
+  const ahora=new Set((d.items||[]).map(i=>i.trackingNo).filter(Boolean)),antes=new Set(A.items.map(i=>i.trackingNo));
+  if(ahora.size!==antes.size||[...antes].some(t=>!ahora.has(t)))throw new Error('La ruta cambió desde que la abriste. Vuelve a leer las rutas y repártela otra vez.');
+  let subs;
+  if(A.partes.length>1){
+   log(`Dividiendo en ${A.partes.length} áreas…`);
+   const r=await SX.dividir(A.rid,A.partes.map(p=>p.trackings));
+   await new Promise(ok=>setTimeout(ok,1000));
+   const conItems=[];
+   for(const s of r){const dd=await SX.detalle(s.id);conItems.push({...s,name:s.name||dd.routeName,trackings:(dd.items||[]).map(i=>i.trackingNo)});}
+   subs=Logica.emparejar(A.partes,conItems);
+  }else subs=[{id:A.rid,name:A.ruta.name}];
+  const ds=listaDrivers();
+  for(let k=0;k<A.partes.length;k++){
+   const p=A.partes[k],s=subs[k];
+   if(!s){avisos.push(`No encontré la sub-ruta del área ${String.fromCharCode(65+k)}.`);continue;}
+   const nuevo=Logica.nombreConDriver(s.name,p.etiqueta,p.driver);
+   await SX.renombrar(s.id,nuevo);log(`${String.fromCharCode(65+k)}: ${nuevo} (${p.n} paquetes)`);
+   if(p.driver){
+    const dv=ds.find(x=>x.nombre.toLowerCase()===p.driver.toLowerCase());
+    try{const av=await SX.asignar(s.id,dv,p.driver);log(`   asignada a ${p.driver}`);if(av)avisos.push(`${p.driver}: SpeedX avisó «${av}» y se confirmó.`);}
+    catch(x){avisos.push(`No se pudo asignar a ${p.driver}: ${x.message}`);}
+   }
+  }
+  // drivers nuevos escritos a mano: se guardan en la lista
+  const nuevos=A.partes.map(p=>p.driver).filter(n=>n&&!ds.some(x=>x.nombre.toLowerCase()===n.toLowerCase()));
+  if(nuevos.length){estado.drivers=(estado.drivers||[]).concat(nuevos.map(n=>({nombre:n,fuente:'manual'})));try{await guardarEstado();}catch(e){}}
+ }catch(x){error=x.message;log('ERROR: '+error);}
+ finally{trabajando=false;window.removeEventListener('beforeunload',salir);try{lock&&lock.release();}catch(e){}}
+ $('prog-barra').style.width='100%';$('prog-aviso').classList.add('hidden');
+ for(const a of avisos)log('Aviso: '+a);
+ if(error){P.classList.add('con-error');$('prog-titulo').textContent='Se detuvo con un error';$('prog-paso').textContent=error;}
+ else{P.classList.add('listo-ok');$('prog-titulo').textContent='Terminado ✔';$('prog-paso').textContent=avisos.length?avisos.join(' '):'La ruta quedó repartida y con nombre en SpeedX.';}
+ show('prog-cerrar',true);
+ cargar(true);
+};
+
+// ================================================= lista de drivers
+function abrirDrivers(){
+ $('drv-ciudad').textContent=ciudad;
+ const af=store.get('aflex_'+ciudad,{});$('af-url').value=af.url||'';$('af-key').value=af.key||'';$('af-correo').value=af.correo||'';
+ show('drv-speedx',!!SX.drivers);
+ err('drv-err','');$('drv-msg').textContent='';pintarDrivers();$('drivers').showModal();
+}
+function pintarDrivers(){
+ const l=listaDrivers();
+ $('drv-lista').innerHTML=l.length?l.map(d=>`<div class="drv"><span>${esc(d.nombre)} <small>${d.fuente==='speedx'?'· SpeedX':d.fuente==='aflex'?'· AFLEX':''}</small></span><button class="mini" data-quitar="${esc(d.nombre)}">Quitar</button></div>`).join(''):'<p class="vacio-txt">Todavía no hay drivers. Agrégalos o tráelos.</p>';
+ document.querySelectorAll('[data-quitar]').forEach(b=>b.onclick=async()=>{estado.drivers=(estado.drivers||[]).filter(d=>d.nombre!==b.dataset.quitar);pintarDrivers();await guardarDrivers();});
+}
+async function guardarDrivers(){try{await guardarEstado();}catch(x){if(!x.config)err('drv-err','No se pudo guardar: '+x.message);}if(R&&$('repartir').open)pintarPartes();}
+function juntar(nombres,fuente,extra){
+ estado.drivers=estado.drivers||[];let n=0;
+ for(const nom of nombres){const t=String(nom||'').trim().replace(/\s+/g,' ');if(!t)continue;
+  const ya=estado.drivers.find(d=>d.nombre.toLowerCase()===t.toLowerCase());
+  if(ya){if(extra&&extra[t])Object.assign(ya,extra[t]);continue;}
+  estado.drivers.push(Object.assign({nombre:t,fuente},extra&&extra[t]||{}));n++;}
+ return n;
+}
+$('aj-drivers').onclick=()=>{$('ajustes').close();if(estadoCiudad!==ciudad){leerEstado(ciudad).then(abrirDrivers).catch(x=>err('err',x.message));}else abrirDrivers();};
+$('drv-cerrar').onclick=()=>$('drivers').close();
+$('drivers').addEventListener('click',e=>{if(e.target===$('drivers'))$('drivers').close();});
+$('drv-agregar').onclick=async()=>{const v=$('drv-nuevo').value;if(!v.trim())return;const n=juntar([v],'manual');$('drv-nuevo').value='';$('drv-msg').textContent=n?'Agregado.':'Ya estaba en la lista.';pintarDrivers();await guardarDrivers();};
+$('drv-nuevo').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();$('drv-agregar').click();}};
+$('drv-speedx').onclick=async()=>{
+ err('drv-err','');$('drv-msg').textContent='Leyendo drivers de SpeedX…';
+ try{const l=await SX.drivers(ciudad);spx={ciudad,lista:l};const extra=Object.fromEntries(l.map(d=>[d.nombre,{speedx_id:d.id,fleetId:d.fleetId,dspId:d.dspId}]));
+  const n=juntar(l.map(d=>d.nombre),'speedx',extra);$('drv-msg').textContent=`${l.length} en SpeedX, ${n} nuevos en la lista.`;pintarDrivers();await guardarDrivers();}
+ catch(x){$('drv-msg').textContent='';if(!x.config&&!x.sesion)err('drv-err',x.message);}
+};
+$('drv-aflex').onclick=async()=>{
+ err('drv-err','');
+ const url=$('af-url').value.trim().replace(/\/+$/,''),key=$('af-key').value.trim(),correo=$('af-correo').value.trim(),clave=$('af-clave').value;
+ if(!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url))return err('drv-err','Escribe el Project URL tal como sale en Supabase (https://….supabase.co).');
+ if(!key||!correo||!clave)return err('drv-err','Faltan la key, el correo o la contraseña.');
+ store.set('aflex_'+ciudad,{url,key,correo});
+ $('drv-msg').textContent='Entrando a AFLEX…';
+ try{
+  const t=await fetch(url+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:key,'Content-Type':'application/json'},body:JSON.stringify({email:correo,password:clave})});
+  const tj=await t.json().catch(()=>({}));
+  if(!t.ok||!tj.access_token)throw new Error('AFLEX no aceptó el correo o la contraseña.');
+  const r=await fetch(url+'/rest/v1/rpc/return_driver_names',{method:'POST',headers:{apikey:key,Authorization:'Bearer '+tj.access_token,'Content-Type':'application/json'},body:'{}'});
+  const l=await r.json().catch(()=>null);
+  if(!r.ok||!Array.isArray(l))throw new Error('AFLEX no dio la lista ('+((l&&l.message)||('HTTP '+r.status))+'). Usa una cuenta de administrador.');
+  const nombres=l.map(x=>typeof x==='string'?x:(x&&(x.return_driver_names||Object.values(x)[0]))).filter(Boolean);
+  const n=juntar(nombres,'aflex');$('af-clave').value='';$('drv-msg').textContent=`${nombres.length} en AFLEX, ${n} nuevos en la lista.`;pintarDrivers();await guardarDrivers();
+ }catch(x){$('drv-msg').textContent='';err('drv-err',x.message.startsWith('AFLEX')?x.message:'No se pudo conectar con AFLEX: '+x.message);}
+};
+
 inicio();
 </script>
 </body>
