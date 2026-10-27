@@ -1,7 +1,7 @@
 // Permite instalar la app y abrirla aunque la señal esté mala.
 // La página siempre busca primero la versión nueva (así las actualizaciones llegan solas).
-const CACHE = "divisor-v3";
-const BASE = ["./", "./index.html", "./manifest.webmanifest", "./iconos/icono-192.png", "./iconos/icono-512.png"];
+const CACHE = "divisor-v4";
+const BASE = ["./", "./index.html", "./paquetes.html", "./manifest.webmanifest", "./iconos/icono-192.png", "./iconos/icono-512.png"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(BASE)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
