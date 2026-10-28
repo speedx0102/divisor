@@ -74,6 +74,8 @@ input:focus,select:focus{border-color:var(--azul);outline:none}
 .seg{display:grid;grid-template-columns:repeat(4,1fr);background:var(--fondo);border-radius:14px;padding:4px;gap:4px;margin-bottom:10px}
 .seg button{border:0;background:none;border-radius:10px;padding:10px 0;font-weight:700;font-size:16px;cursor:pointer;color:var(--tinta2)}
 .seg button[aria-pressed=true]{background:var(--noche);color:#fff}
+#ciudades{grid-template-columns:repeat(5,1fr)}
+#ciudades .ciudad-larga{font-size:14px;letter-spacing:-.2px}
 .fechas{display:flex;gap:6px;align-items:center}
 .fechas .chip{border:1.5px solid var(--linea);background:var(--hoja);border-radius:999px;padding:9px 13px;font-weight:600;cursor:pointer;white-space:nowrap}
 .fechas .chip[aria-pressed=true],.fechas .otra[aria-pressed=true]{background:var(--noche);border-color:var(--noche);color:#fff}
@@ -284,7 +286,7 @@ dialog .fila .btn{flex:1}
 
   <div class="hoja">
    <div class="seg" id="ciudades" role="group" aria-label="Ciudad">
-    <button data-ciudad="HSV">HSV</button><button data-ciudad="BHM">BHM</button><button data-ciudad="MEM">MEM</button><button data-ciudad="TCL">TCL</button>
+    <button data-ciudad="HSV">HSV</button><button data-ciudad="BHM">BHM</button><button data-ciudad="MEM">MEM</button><button data-ciudad="TCL">TCL</button><button data-ciudad="BNA03A" title="Columbia, Tennessee (área BNA03A del centro BNA)" class="ciudad-larga">BNA03A</button>
    </div>
    <div class="fechas" role="group" aria-label="Fecha">
     <button class="chip" data-dia="0">Hoy</button>
@@ -975,6 +977,7 @@ const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v)
 if('serviceWorker' in navigator&&(location.protocol==='https:'||['localhost','127.0.0.1'].includes(location.hostname)))navigator.serviceWorker.register('sw.js').catch(()=>{});
 
 let token=store.get('token',''),usuario=store.get('usuario','');
+const AREAS={BNA03A:{fac:'BNA',area:'BNA03A'}};   // ciudad que es un área dentro de otro centro de SpeedX
 let ciudad=store.get('ciudad','HSV');
 let rutas=[],detalles={},cargado=null,estado={guardadas:[],dias:{}},estadoCiudad=null,plan=null,sel=new Set(),trabajando=false,pedido=0;
 
@@ -994,10 +997,14 @@ async function fn(body){
 const sxReq=async(metodo,ruta,params,cuerpo)=>(await fn({accion:'speedx',metodo,ruta,params,cuerpo,token})).datos;
 const SX={
  async login(u,c){const d=await sxReq('POST','/pos-exchange-api/login/login',null,{loginName:u.trim(),passwd:c,autoLogin:true,facilityCode:'LAX',verifyCode:'8888'});if(!d||!d.authToken)throw new Err('SpeedX no aceptó el usuario o la contraseña.');return d.authToken;},
- async rutas(fecha,fac){
+ async rutas(fecha,c){
+  // Áreas dentro de un centro: Columbia, TN es el área BNA03A del centro BNA (Nashville).
+  const m=AREAS[c]||{fac:c},fac=m.fac;
   const f=new Date(fecha+'T12:00:00Z');f.setUTCDate(f.getUTCDate()+1);const fin=f.toISOString().slice(0,10);
   let out=[];for(let page=1;page<=20;page++){const d=await sxReq('GET','/dms-api/route/list',{startTime:fecha,endTime:fin,sidx:'id',order:'desc',facilityCode:fac,size:'100',page:String(page)});const c=(d&&d.content)||[];out=out.concat(c);if(c.length<100)break;}
-  return out.filter(r=>(r.deliverDate||fecha)===fecha);
+  out=out.filter(r=>(r.deliverDate||fecha)===fecha);
+  if(m.area){const re=new RegExp('(^|[^A-Z0-9])'+m.area+'([^A-Z0-9]|$)','i');out=out.filter(r=>re.test(String(r.name||'')));}
+  return out;
  },
  detalle:id=>sxReq('GET','/dms-api/route/detail',{routeId:String(id),plaintext:'false'}),
  async mover(o,d,ids){for(let k=0;k<ids.length;k+=200)await sxReq('POST','/dms-api/route/batch-allocation',null,{targetRouteId:d,sourceRouteId:o,itemIds:ids.slice(k,k+200)});},
@@ -1006,7 +1013,8 @@ const SX={
  // Lista de drivers como en SpeedX: DSP de la ciudad → sus fleets → drivers activos de cada fleet.
  async drivers(c){
   const dsps=await sxReq('GET','/dms-api/dsp-list');
-  const dsp=(dsps||[]).find(d=>String(d.name||'').trim().toUpperCase()===c);
+  c=(AREAS[c]||{fac:c}).fac;
+  const nm=d=>String(d.name||'').trim().toUpperCase(),dsp=(dsps||[]).find(d=>nm(d)===c)||(dsps||[]).find(d=>nm(d).startsWith(c+' ')||nm(d).startsWith(c+'-'));
   if(!dsp)throw new Err(`No encontré el DSP ${c} en SpeedX.`);
   const out=[];
   for(const f of (await sxReq('GET','/dms-api/fleets',{dspId:String(dsp.id)}))||[]){
