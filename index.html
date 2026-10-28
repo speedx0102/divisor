@@ -771,13 +771,28 @@ const Logica = (() => {
   //    pegado a ella (por el recorrido o entre sus vecinos más cercanos), sin romper las cantidades.
   const KM_LAT = 110.57;
 
+  // Ubicación buena: número válido, no 0,0 y a menos de LEJOS_KM del centro (mediana) de la ruta.
+  // SpeedX a veces pone una ubicación por defecto muy lejos (ej. Los Ángeles) cuando no encuentra la dirección:
+  // esos paquetes no cuentan para el mapa ni para formar las áreas (siguen su orden de entrega).
+  const LEJOS_KM = 120;
+  function ubicadas(items) {
+    const valida = (i) => Number.isFinite(+i.lat) && Number.isFinite(+i.lng) && +i.lat !== 0 && +i.lng !== 0;
+    const v = items.filter(valida);
+    if (!v.length) return items.map(() => false);
+    const med = (a) => { const s = [...a].sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
+    const la = med(v.map((i) => +i.lat)), ln = med(v.map((i) => +i.lng));
+    const kx = 111.32 * Math.cos((la * Math.PI) / 180);
+    return items.map((i) => valida(i) && Math.hypot((+i.lat - la) * KM_LAT, (+i.lng - ln) * kx) <= LEJOS_KM);
+  }
+
   function proyectar(items) {
-    const ok = items.filter((i) => Number.isFinite(+i.lat) && Number.isFinite(+i.lng) && +i.lat !== 0);
+    const buena = ubicadas(items);
+    const ok = items.filter((_, k) => buena[k]);
     const lat0 = ok.length ? ok.reduce((s, i) => s + +i.lat, 0) / ok.length : 0;
     const lng0 = ok.length ? ok.reduce((s, i) => s + +i.lng, 0) / ok.length : 0;
     const kx = 111.32 * Math.cos((lat0 * Math.PI) / 180);
-    return items.map((i) => {
-      const bien = Number.isFinite(+i.lat) && Number.isFinite(+i.lng) && +i.lat !== 0;
+    return items.map((i, k) => {
+      const bien = buena[k];
       return { x: bien ? (+i.lng - lng0) * kx : 0, y: bien ? (+i.lat - lat0) * KM_LAT : 0, bien };
     });
   }
@@ -928,17 +943,18 @@ const Logica = (() => {
     const clave = (g) => (orden ? Math.min(...g.map((k) => orden.indexOf(k))) : Math.min(...g.map((k) => pts[k].x)));
     if (!Array.isArray(opciones.cantidades)) grupos.sort((a, b) => clave(a) - clave(b));   // con cantidades elegidas se respeta su orden
     const suf = sufijos(new Set(items.map((i) => zip5(i.zipCode))), opciones.digitos || 2);
+    const ubicada = pts.map((p) => p.bien);
     const partes = grupos.map((g) => {
       const its = [...g].sort((a, b) => (+items[a].sequence || 0) - (+items[b].sequence || 0) || a - b).map((k) => items[k]);
       const zs = [...new Set(its.map((i) => zip5(i.zipCode)).filter(Boolean))].sort(cmp);
-      const bien = its.filter((i) => Number.isFinite(+i.lat) && +i.lat !== 0);
+      const bien = [...g].filter((k) => ubicada[k]).map((k) => items[k]);
       return {
         indices: g, trackings: its.map((i) => i.trackingNo), n: its.length, zips: zs,
         etiqueta: etiqueta(zs, opciones.digitos || 2, suf),
         centro: bien.length ? { lat: bien.reduce((s, i) => s + +i.lat, 0) / bien.length, lng: bien.reduce((s, i) => s + +i.lng, 0) / bien.length } : null,
       };
     });
-    return { forma, partes, costo: grupos.reduce((s, g) => s + costoGrupo(pts, g), 0) };
+    return { forma, partes, costo: grupos.reduce((s, g) => s + costoGrupo(pts, g), 0), ubicada, sinUbicacion: ubicada.filter((b) => !b).length };
   }
 
   /** Nombre final: «1026-001-batch9308:C 05 Juan Perez» (base + números del ZIP + driver). */
@@ -963,7 +979,7 @@ const Logica = (() => {
   }
 
   return { zip5, sufijos, etiqueta, baseNombre, mapaGrupos, esEditable, conteoZips, planear, ejecutar,
-    unionesDelDia, cambiarUniones, contarUso, uid, repartir, metas, proyectar, nombreConDriver, emparejar, costoGrupo };
+    unionesDelDia, cambiarUniones, contarUso, uid, repartir, metas, proyectar, ubicadas, nombreConDriver, emparejar, costoGrupo };
 })();
 if (typeof module !== "undefined") module.exports = Logica;
 
@@ -1340,7 +1356,7 @@ function pintarPartes(){
  const res=R.res,lista=listaDrivers();
  const dl=`<datalist id="dl-drivers">${lista.map(d=>`<option value="${esc(d.nombre)}"></option>`).join('')}</datalist>`;
  if(!res){$('rep-partes').innerHTML='';botonRep();return;}
- $('mapa-nota').textContent=res.forma==='ruta'?'Áreas cortadas siguiendo el orden de entrega de SpeedX (por las calles).':(R.forma==='ruta'?'Esta ruta no tiene orden de SpeedX: se partió por zonas.':'Áreas por zonas del mapa.');
+ $('mapa-nota').textContent=(res.forma==='ruta'?'Áreas cortadas siguiendo el orden de entrega de SpeedX (por las calles).':(R.forma==='ruta'?'Esta ruta no tiene orden de SpeedX: se partió por zonas.':'Áreas por zonas del mapa.'))+(res.sinUbicacion?` ${res.sinUbicacion} paquete(s) con ubicación equivocada en SpeedX (muy lejos de la ruta): no salen en el mapa${res.forma==='ruta'?' y van según su orden de entrega':''}.`:'');
  $('rep-partes').innerHTML=dl+res.partes.map((p,k)=>`<div class="parte">
   <span class="color" style="background:${COLORES[k%COLORES.length]}">${String.fromCharCode(65+k)}</span>
   <div class="info"><b>${num(p.n)} paquetes</b><span>Código ${esc(p.etiqueta||'—')}</span></div>
@@ -1388,7 +1404,7 @@ function pintarMapa(){
  const todos=[];
  R.res.partes.forEach((p,k)=>{
   const c=COLORES[k%COLORES.length];
-  const pts=p.indices.map(i=>R.items[i]).filter(i=>Number.isFinite(+i.lat)&&+i.lat!==0).map(i=>[+i.lat,+i.lng]);
+  const pts=p.indices.filter(i=>R.res.ubicada?R.res.ubicada[i]:(Number.isFinite(+R.items[i].lat)&&+R.items[i].lat!==0)).map(i=>[+R.items[i].lat,+R.items[i].lng]);
   todos.push(...pts);
   const h=envoltura(pts);if(h.length>=3)L.polygon(h,{color:c,weight:2,fillOpacity:.12}).addTo(capas);
   for(const q of pts)L.circleMarker(q,{radius:4,color:'#fff',weight:1,fillColor:c,fillOpacity:1}).addTo(capas);
