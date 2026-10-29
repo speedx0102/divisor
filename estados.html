@@ -283,6 +283,17 @@ textarea:focus{border-color:var(--azul);outline:none}
 .cajita.gris b{color:#8A6400}
 .caja.gris{border-left:6px solid #C9A227}
 .reset{margin-top:12px}
+.hist{margin-left:6px;padding:2px 8px;font-size:12px;vertical-align:middle}
+dialog.hist-dlg{border:0;border-radius:18px;padding:0;max-width:640px;width:calc(100% - 24px);height:fit-content;max-height:88vh;margin:auto;inset:0;overflow:hidden;background:var(--hoja);color:var(--tinta)}
+.hist-dlg::backdrop{background:#0008}
+dialog.hist-dlg .panel{position:static;transform:none;top:auto;bottom:auto;left:auto;right:auto;width:auto;border-radius:18px;padding:16px;max-height:88vh;overflow:auto;box-sizing:border-box}
+.hist-dlg h2{font-size:18px;margin:0 0 4px;overflow-wrap:anywhere}
+.hev{border-top:1px dashed var(--linea);padding:8px 0;font-size:14px}
+.hev-h{display:flex;justify-content:space-between;gap:8px}.hev-h span{color:var(--tinta2);white-space:nowrap}
+.hev-d{color:var(--tinta2);overflow-wrap:anywhere}.hev-t{font-size:12.5px;font-weight:700;margin-top:2px}
+.hev.cuenta{background:#E8F6EE;border-radius:10px;padding:8px}.hev.cuenta .hev-t{color:var(--verde)}
+.hev.ign{opacity:.6}
+@media (prefers-color-scheme:dark){.hev.cuenta{background:#123222}}
 #ciudades{grid-template-columns:repeat(5,1fr)}
 #ciudades .ciudad-larga{font-size:14px;letter-spacing:-.2px}
 .dia select{flex:1;min-width:0;font:inherit;padding:10px 12px;border:1.5px solid var(--linea);border-radius:12px;background:var(--fondo);color:var(--tinta)}
@@ -358,6 +369,15 @@ textarea:focus{border-color:var(--azul);outline:none}
   </div>
  </section>
 </main>
+
+<dialog id="historial" class="hist-dlg">
+ <div class="panel">
+  <h2>Historial · <span id="hist-tit"></span></h2>
+  <p class="sub" style="margin:0 0 8px">El Operation Log como lo leyó la app (lo más reciente arriba). Marca cuál contó y cuáles no.</p>
+  <div id="hist-lista"></div>
+  <div class="fila2"><button id="hist-copiar" class="mini">Copiar historial</button><button id="hist-cerrar" class="btn btn-pri">Cerrar</button></div>
+ </div>
+</dialog>
 
 <div id="final" class="abajo hidden">
  <div class="dentro">
@@ -678,7 +698,24 @@ const Estados = (() => {
       { nombre: "Para resetear", filas: [["Tracking", "Cajita", "Ruta"], ...cs.filter((c) => c.reiniciar).flatMap((c) => c.paquetes.map((r) => [r.tracking, c.titulo, r.ruta]))] }];
   }
 
-  return { clasificar, clasificarAnterior, cajas, porRuta, hojasExcel, rutaDe, categoria, ordenar, tipoDe, ESTADOS, fCorta };
+  /** Historial explicado (más reciente primero): por cada evento, si contó o por qué se descartó. */
+  function explicar(logs, opciones = {}) {
+    const almacen = new Set((opciones.almacen || ["dominguez"]).map(clave));
+    const evs = ordenar(logs);
+    let usado = -1;
+    evs.forEach((e, i) => { if (categoria(e, almacen) !== "ignorar" || esEntregaEv(e)) usado = i; });
+    return evs.map((e, i) => {
+      const cat = categoria(e, almacen), ent = esEntregaEv(e);
+      const t = tipoDe(e);
+      let por = "";
+      if (cat === "ignorar" && !ent) por = TIPOS_IGNORADOS.has(t) ? "evento administrativo" : (t === "LOADING_GROUP_SORT_SUCCESS" ? "OFD automático del inicio de ruta" : "lo hizo el sistema");
+      const fh = typeof Paquetes !== "undefined" ? Paquetes.fechaHora(e.operationDate || e.createdAt) : { fecha: "", hora: "" };
+      return { tipo: t, operador: nombre(e.operator), fecha: fh.fecha, hora: fh.hora, nota: nombre(e.remarks).slice(0, 300),
+        cuenta: i === usado, ignorado: !!por, por, almacen: cat === "almacen", entrega: ent, crudo: e.operationDate ?? e.createdAt ?? "" };
+    }).reverse();
+  }
+
+  return { explicar, clasificar, clasificarAnterior, cajas, porRuta, hojasExcel, rutaDe, categoria, ordenar, tipoDe, ESTADOS, fCorta };
 })();
 if (typeof module !== "undefined") module.exports = Estados;
 
@@ -819,7 +856,7 @@ $('revisar').onclick=async()=>{
  trabajando=false;
  await procesar(ts.map(t=>({tracking:t,estadoSpeedX:st[t]||''})),{anterior:false,almacen:cuentasAlmacen()});
 };
-let modoAnt=false;
+let modoAnt=false;const LOGS=new Map();
 async function procesar(items,{anterior,extra=[],almacen}){
  trabajando=true;contar();err('err','');show('estado-sec',true);show('cargando',true);$('detener').disabled=false;
  store.set('est_almacen',$('almacen').value);
@@ -829,7 +866,7 @@ async function procesar(items,{anterior,extra=[],almacen}){
  async function trabajador(){
   while(!parar&&!fatal&&i<items.length){
    const k=i++,x=items[k],t=x.tracking;
-   try{const logs=await operationLog(t);
+   try{const logs=await operationLog(t);LOGS.set(t,logs);
     res[k]={tracking:t,...(anterior?Estados.clasificarAnterior(logs,{dia:diaR,almacen,origen:x.origen,estadoSpeedX:x.estadoSpeedX}):Estados.clasificar(logs,{dia:diaR,almacen,estadoSpeedX:x.estadoSpeedX}))};}
    catch(e){
     if(e.sesion||e.config||e.red){fatal=e;break;}
@@ -852,7 +889,7 @@ async function procesar(items,{anterior,extra=[],almacen}){
 const clase=k=>k==='success'?'ok':k==='fail'?'mal':k==='blanco'?'gris':['a_undelivered','a_no_salio','a_sin_resultado'].includes(k)?'reini':['a_hoy','a_entregado'].includes(k)?'nada':'';
 const pill=r=>['a_hoy','a_entregado'].includes(r.caja)?'p-verde':['a_undelivered','a_sin_resultado'].includes(r.caja)?'p-rojo':r.caja==='a_no_salio'?'p-amar':r.estado==='success'||r.estado==='entregado'?'p-verde':r.estado==='fail'?'p-rojo':r.estado==='blanco'?'p-amar':'p-azul';
 const MAX_VISIBLES=150;
-const paqHTML=p=>`<div class="paq"><span class="t">${esc(p.tracking)}</span><span class="pill ${pill(p)}">${esc(p.estadoTxt)}</span>
+const paqHTML=p=>`<div class="paq"><span class="t">${esc(p.tracking)} ${LOGS.has(p.tracking)?`<button class="mini hist" data-hist="${esc(p.tracking)}">Historial</button>`:''}</span><span class="pill ${pill(p)}">${esc(p.estadoTxt)}</span>
  <span class="d">${p.operador?esc(p.operador)+' · ':''}${p.hora?esc(Estados.fCorta(p.fecha))+' '+esc(p.hora):''}${p.rutaUltima&&p.rutaUltima!==p.ruta?' · ahora en '+esc(p.rutaUltima):''}${p.estado==='no_encontrado'&&p.nota?' · '+esc(p.nota):''}</span></div>`;
 let CS=[];
 function pintar(){
@@ -868,10 +905,21 @@ function pintar(){
   ${c.rutas.map((g,j)=>`<details class="ruta"${c.rutas.length<=3?' open':''}><summary><span class="rn">${esc(g.ruta||'Sin ruta')}${g.otroDia?`<span class="otro-dia">${esc(Estados.fCorta(g.fecha))} · otro día</span>`:''}</span><span class="rc">${num(g.paquetes.length)}</span><button class="mini" data-copiar-r="${k}:${j}">Copiar</button></summary>
    ${g.paquetes.slice(0,MAX_VISIBLES).map(paqHTML).join('')}${g.paquetes.length>MAX_VISIBLES?`<div class="mas">…y ${num(g.paquetes.length-MAX_VISIBLES)} más (en «Copiar» y en el Excel).</div>`:''}</details>`).join('')}</div>`).join('');
  document.querySelectorAll('[data-copiar]').forEach(b=>b.onclick=()=>copiar(cs[+b.dataset.copiar].paquetes.map(p=>p.tracking).join('\n'),b));
+ document.querySelectorAll('[data-hist]').forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();verHistorial(b.dataset.hist);});
  document.querySelectorAll('[data-copiar-r]').forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();const [k,j]=b.dataset.copiarR.split(':').map(Number);copiar(cs[k].rutas[j].paquetes.map(p=>p.tracking).join('\n'),b);});
  const n=k=>(cs.find(c=>c.clave===k)||{paquetes:[]}).paquetes.length;
  $('final-txt').innerHTML=modoAnt?`<b>${num(R.length)}</b> paquetes de días anteriores · <b>${num(reset.length)}</b> para reiniciar`:`<b>${num(R.length)}</b> paquetes · <b>${num(n('success'))}</b> escaneados · <b>${num(n('fail'))}</b> fail · <b>${num(n('blanco'))}</b> en blanco`;
 }
+function verHistorial(t){
+ const evs=Estados.explicar(LOGS.get(t)||[],{almacen:cuentasAlmacen()});
+ $('hist-tit').textContent=t;
+ $('hist-lista').innerHTML=evs.length?evs.map(e=>`<div class="hev${e.cuenta?' cuenta':''}${e.ignorado?' ign':''}"><div class="hev-h"><b>${esc(e.tipo||'(sin tipo)')}</b><span>${esc(Estados.fCorta(e.fecha))} ${esc(e.hora)}</span></div>
+  <div class="hev-d">${esc(e.operador||'(sin operador)')}${e.nota?' · '+esc(e.nota):''}</div>
+  <div class="hev-t">${e.cuenta?'✓ Este es el que contó':e.ignorado?'No cuenta: '+esc(e.por):e.entrega?'Entrega':e.almacen?'Warehouse':'Escaneo de persona'}</div></div>`).join(''):'<p class="sub">SpeedX no trajo historial para este paquete.</p>';
+ $('historial').showModal();
+}
+$('hist-cerrar').onclick=()=>$('historial').close();
+$('hist-copiar').onclick=e=>{const evs=Estados.explicar(LOGS.get($('hist-tit').textContent)||[],{almacen:cuentasAlmacen()});copiar($('hist-tit').textContent+'\n'+evs.map(x=>[x.fecha,x.hora,x.tipo,x.operador,x.nota,x.cuenta?'CUENTA':x.ignorado?'no cuenta: '+x.por:''].join(' | ')).join('\n'),e.currentTarget);};
 async function copiar(texto,boton){
  try{await navigator.clipboard.writeText(texto);}catch(e){const t=document.createElement('textarea');t.value=texto;document.body.appendChild(t);t.select();try{document.execCommand('copy');}catch(_){}t.remove();}
  const antes=boton.textContent;boton.textContent='Copiado ✓';setTimeout(()=>{boton.textContent=antes;},1500);
