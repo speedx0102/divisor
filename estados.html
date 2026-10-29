@@ -1,0 +1,774 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0D2454">
+<meta name="description" content="Pega una lista de trackings y acomódalos por su último estado en SpeedX: scan success, scan fail y rutas de otros días.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="AFLEX Divisor">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="iconos/favicon.png">
+<link rel="apple-touch-icon" href="iconos/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<title>AFLEX Escaneos</title>
+<style>
+:root{
+ --fondo:#EDF1F7;--hoja:#FFFFFF;--tinta:#0F1B33;--tinta2:#55617A;--linea:#D7DEEA;
+ --azul:#1F5FD6;--noche:#0D2454;--amarillo:#FFD23F;--verde:#16855A;--verdebg:#DDF5EA;
+ --rojo:#C9372C;--rojobg:#FBE6E3;--avisobg:#FFF3C4;--sel:#FFD23F;--seltinta:#0F1B33;
+ --sombra:0 1px 2px rgba(13,36,84,.06),0 4px 14px rgba(13,36,84,.06);
+ color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+ --fondo:#0B1220;--hoja:#141D2E;--tinta:#E8EDF6;--tinta2:#9AA7BD;--linea:#26324A;
+ --azul:#7FA6FF;--verde:#4FD39B;--verdebg:#123426;--rojo:#FF8A7E;--rojobg:#3A1714;--avisobg:#3A3110;
+ --sombra:0 1px 2px rgba(0,0,0,.3);color-scheme:dark;}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--fondo);color:var(--tinta);font:16px/1.45 Barlow,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--azul);outline-offset:2px}
+.hidden{display:none!important}
+
+/* barra superior */
+.barra{position:sticky;top:0;z-index:10;background:var(--noche);color:#fff;display:flex;align-items:center;gap:10px;
+ padding:calc(10px + env(safe-area-inset-top)) 16px 10px}
+.barra img{width:30px;height:30px;border-radius:8px}
+.barra .marca{flex:1;font-weight:700;font-size:18px;letter-spacing:.01em}
+.barra .marca span{font-weight:500;opacity:.75}
+.icono-btn{border:0;background:rgba(255,255,255,.12);color:#fff;width:42px;height:42px;border-radius:12px;display:grid;place-items:center;cursor:pointer}
+.icono-btn svg{width:22px;height:22px}
+
+main{max-width:760px;margin:0 auto;padding:16px 16px 140px}
+.hoja{background:var(--hoja);border:1px solid var(--linea);border-radius:18px;padding:18px;box-shadow:var(--sombra);margin-bottom:14px}
+h1,h2,h3{margin:0;line-height:1.15}
+h3{font-size:18px;font-weight:700;margin-bottom:4px}
+.sub{color:var(--tinta2);font-size:14.5px;margin:0 0 12px}
+label.campo{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600;color:var(--tinta2);margin-bottom:12px}
+input[type=text],input[type=password],input[type=url],input[type=number],input[type=date],select{
+ width:100%;background:var(--fondo);border:1.5px solid var(--linea);border-radius:12px;padding:12px 14px;font-size:16px;color:var(--tinta)}
+input:focus,select:focus{border-color:var(--azul);outline:none}
+.btn{border:0;border-radius:14px;padding:14px 18px;font-weight:700;font-size:17px;cursor:pointer;min-height:50px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-pri{background:var(--amarillo);color:#0F1B33}
+.btn-azul{background:var(--azul);color:#fff}
+.btn-suave{background:var(--fondo);color:var(--tinta);border:1.5px solid var(--linea)}
+.btn-ancho{width:100%}
+.enlace{border:0;background:none;color:var(--azul);font-weight:600;padding:8px 2px;cursor:pointer;font-size:15px}
+.err{background:var(--rojobg);color:var(--rojo);border-radius:12px;padding:12px 14px;margin:10px 0;font-weight:500}
+.check{display:flex;align-items:center;gap:10px;font-size:15px;margin:4px 0 14px}
+.check input{width:22px;height:22px;accent-color:var(--azul)}
+
+/* bienvenida */
+.bienvenida{text-align:center;padding:26px 18px}
+.bienvenida img{width:96px;height:96px;border-radius:24px;box-shadow:0 8px 24px rgba(13,36,84,.25)}
+.bienvenida h2{font-size:24px;margin:14px 0 6px}
+.bienvenida form{text-align:left;margin-top:16px}
+
+/* ciudad y fecha */
+.seg{display:grid;grid-template-columns:repeat(4,1fr);background:var(--fondo);border-radius:14px;padding:4px;gap:4px;margin-bottom:10px}
+.seg button{border:0;background:none;border-radius:10px;padding:10px 0;font-weight:700;font-size:16px;cursor:pointer;color:var(--tinta2)}
+.seg button[aria-pressed=true]{background:var(--noche);color:#fff}
+#ciudades{grid-template-columns:repeat(5,1fr)}
+#ciudades .ciudad-larga{font-size:14px;letter-spacing:-.2px}
+.fechas{display:flex;gap:6px;align-items:center}
+.fechas .chip{border:1.5px solid var(--linea);background:var(--hoja);border-radius:999px;padding:9px 13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.fechas .chip[aria-pressed=true],.fechas .otra[aria-pressed=true]{background:var(--noche);border-color:var(--noche);color:#fff}
+.fechas .otra{position:relative;flex:1 0 auto;min-width:0;display:flex;align-items:center;justify-content:center;gap:6px}
+.fechas .otra span{overflow:hidden;text-overflow:ellipsis}
+.fechas .otra input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;padding:0}
+.fechas .refrescar{flex:none;border:0;background:var(--fondo);border-radius:999px;width:42px;height:42px;display:grid;place-items:center;cursor:pointer;color:var(--tinta)}
+.cargando{display:flex;align-items:center;gap:10px;color:var(--tinta2);padding:14px 4px}
+.rueda{width:20px;height:20px;border-radius:50%;border:3px solid var(--linea);border-top-color:var(--azul);animation:gira .8s linear infinite}
+@keyframes gira{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.rueda{animation-duration:3s}}
+
+/* resumen */
+.resumen h2{font-size:30px;font-weight:700;font-family:"Barlow Condensed",Barlow,sans-serif;letter-spacing:.01em}
+.resumen .cifras{color:var(--tinta2);margin:4px 0 14px;font-size:16px}
+.resumen .cifras b{color:var(--tinta)}
+.pasos{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.pasos li{display:flex;gap:12px;align-items:center;font-size:16px}
+.pasos .ic{flex:none;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-weight:700;font-size:15px}
+.ic-azul{background:#E3ECFF;color:#1F4DB0}.ic-amar{background:var(--avisobg);color:#8A6400}.ic-verde{background:var(--verdebg);color:var(--verde)}.ic-rojo{background:var(--rojobg);color:var(--rojo)}
+@media (prefers-color-scheme:dark){.ic-azul{background:#1A2A4D;color:#9DB9FF}.ic-amar{color:#F1C94A}}
+.listo{display:flex;gap:10px;align-items:center;background:var(--verdebg);color:var(--verde);border-radius:12px;padding:12px 14px;font-weight:600}
+
+/* etiquetas de código postal */
+.tags{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px}
+.tag{position:relative;text-align:left;background:var(--hoja);border:2px solid var(--linea);border-radius:14px;padding:10px 12px 10px;cursor:pointer;
+ transition:background-color .15s,border-color .15s,transform .1s;user-select:none}
+.tag:active{transform:scale(.98)}
+.tag .etq{display:block;font-family:"Barlow Condensed",Barlow,sans-serif;font-weight:700;font-size:34px;line-height:1;letter-spacing:.01em}
+.tag .etq{padding-right:30px}
+.tag .etq.largo{font-size:27px}
+.tag .paq{display:block;font-weight:600;font-size:15px;margin-top:4px}
+.tag .donde{display:block;color:var(--tinta2);font-size:13.5px;margin-top:2px}
+.tag .marcas{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.pill{display:inline-block;border-radius:999px;padding:2px 9px;font-size:12.5px;font-weight:700;background:var(--fondo);color:var(--tinta2)}
+.p-verde{background:var(--verdebg);color:var(--verde)}.p-amar{background:var(--avisobg);color:#8A6400}.b-bad,.p-rojo{background:var(--rojobg);color:var(--rojo)}
+@media (prefers-color-scheme:dark){.p-amar{color:#F1C94A}}
+.tag[aria-pressed=true]{background:var(--sel);border-color:#0F1B33;color:var(--seltinta)}
+.tag[aria-pressed=true] .donde{color:#3D3A20}
+.tag[aria-pressed=true] .pill{background:rgba(15,27,51,.12);color:#0F1B33}
+.tag .visto{position:absolute;top:8px;right:8px;width:24px;height:24px;border-radius:50%;border:2px solid var(--linea);display:grid;place-items:center;font-size:14px;font-weight:700;background:var(--hoja)}
+.tag[aria-pressed=true] .visto{background:#0F1B33;border-color:#0F1B33;color:var(--amarillo)}
+.tag .separar{margin-top:6px;border:0;background:none;color:var(--azul);font-weight:700;padding:4px 0;cursor:pointer;font-size:14px}
+.tag[aria-pressed=true] .separar{color:#0F1B33}
+.tag.sinzip{cursor:default;opacity:.8}
+
+/* uniones recordadas */
+.guard{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;padding:12px 0;border-top:1px solid var(--linea)}
+.guard:first-child{border-top:0;padding-top:2px}
+.guard .nom{font-family:"Barlow Condensed",Barlow,sans-serif;font-weight:700;font-size:24px;line-height:1}
+.guard .det{grid-column:1/-1;color:var(--tinta2);font-size:14px}
+.guard .acciones{grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.guard .lim{display:flex;align-items:center;gap:6px;font-size:14.5px;flex:1 1 200px}
+.guard .lim input{width:96px;padding:8px 10px;border-radius:10px}
+.mini{border:1.5px solid var(--linea);background:var(--hoja);border-radius:10px;padding:8px 12px;font-weight:600;cursor:pointer;font-size:14.5px}
+.vacio-txt{color:var(--tinta2);margin:0}
+
+/* así quedan las rutas */
+.ruta{padding:12px 0;border-top:1px solid var(--linea)}
+.ruta:first-child{border-top:0;padding-top:2px}
+.ruta .cab{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ruta .cab b{font-size:17px}
+.subs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.sub-r{display:inline-flex;align-items:center;gap:8px;background:var(--fondo);border-radius:10px;padding:5px 10px 5px 5px}
+.sub-r .letra{width:26px;height:26px;border-radius:7px;background:var(--noche);color:#fff;display:grid;place-items:center;font-weight:700;font-size:14px}
+.sub-r .lbl{font-family:"Barlow Condensed",Barlow,sans-serif;font-weight:700;font-size:21px;line-height:1}
+.ruta .completo{color:var(--tinta2);font-size:12.5px;margin-top:6px;word-break:break-all}
+.nota{background:var(--rojobg);color:var(--rojo);border-radius:10px;padding:8px 10px;margin-top:8px;font-size:14px;font-weight:500}
+details.mas{margin-top:2px}
+details.mas summary{cursor:pointer;font-weight:700;color:var(--azul);padding:6px 0;list-style:none}
+details.mas summary::-webkit-details-marker{display:none}
+details.mas summary::before{content:"+ "}
+details.mas[open] summary::before{content:"− "}
+ul.simple{margin:8px 0 0;padding-left:18px;color:var(--tinta2)}ul.simple li{margin:5px 0}ul.simple b{color:var(--tinta)}
+
+/* barra inferior */
+.abajo{position:fixed;left:0;right:0;bottom:0;z-index:9;background:var(--hoja);border-top:1px solid var(--linea);
+ padding:12px 16px calc(12px + env(safe-area-inset-bottom));box-shadow:0 -6px 20px rgba(13,36,84,.08)}
+.abajo .dentro{max-width:760px;margin:0 auto;display:flex;gap:12px;align-items:center}
+.abajo .txt{flex:1;font-size:14.5px;color:var(--tinta2);line-height:1.3}
+.abajo .txt b{color:var(--tinta)}
+.abajo .btn{flex:none}
+.abajo .recordar{display:flex;align-items:center;gap:8px;font-size:14.5px;flex:1 1 100%}
+#modo-unir{flex-wrap:wrap;gap:10px}
+#modo-unir .btn{flex:1 1 0}
+#modo-unir #unir{flex:2 1 0}
+.abajo .recordar input{width:22px;height:22px;accent-color:var(--azul)}
+
+/* hojas (diálogos) */
+dialog{border:0;padding:0;background:transparent;max-width:none;max-height:none;width:100%;height:100%;margin:0}
+dialog::backdrop{background:rgba(8,15,30,.55)}
+dialog .panel{position:absolute;left:0;right:0;bottom:0;margin:0 auto;max-width:560px;background:var(--hoja);color:var(--tinta);border-radius:22px 22px 0 0;
+ padding:10px 20px calc(20px + env(safe-area-inset-bottom));max-height:92vh;overflow:auto}
+dialog .agarre{width:44px;height:5px;border-radius:3px;background:var(--linea);margin:0 auto 14px}
+dialog h2{font-size:22px;margin-bottom:10px}
+dialog .fila{display:flex;gap:10px;margin-top:16px}
+dialog .fila .btn{flex:1}
+@media (min-width:700px){dialog .panel{bottom:auto;top:50%;transform:translateY(-50%);border-radius:22px}}
+.seg2{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--fondo);border-radius:12px;padding:4px}
+.seg2 button{border:0;background:none;border-radius:9px;padding:10px;font-weight:700;cursor:pointer;color:var(--tinta2)}
+.seg2 button[aria-pressed=true]{background:var(--noche);color:#fff}
+.bloque{padding:14px 0;border-top:1px solid var(--linea)}
+.bloque:first-of-type{border-top:0}
+.bloque h3{font-size:15px;color:var(--tinta2);font-weight:600;margin-bottom:8px}
+
+/* progreso */
+.progreso{position:fixed;inset:0;z-index:20;background:var(--noche);color:#fff;display:flex;flex-direction:column;justify-content:center;padding:24px 22px calc(24px + env(safe-area-inset-bottom))}
+.progreso .caja{max-width:520px;width:100%;margin:0 auto}
+.progreso h2{font-size:28px;font-family:"Barlow Condensed",Barlow,sans-serif}
+.progreso .paso{opacity:.85;margin:10px 0 18px;min-height:3em}
+.barra-p{height:12px;border-radius:999px;background:rgba(255,255,255,.15);overflow:hidden}
+.barra-p i{display:block;height:100%;width:0;background:var(--amarillo);border-radius:999px;transition:width .4s}
+.progreso.listo-ok .barra-p i{background:#4FD39B}
+.progreso.con-error .barra-p i{background:#FF8A7E}
+.progreso details{margin-top:18px}
+.progreso summary{cursor:pointer;opacity:.8;font-weight:600}
+.log{background:rgba(0,0,0,.25);border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.5;max-height:40vh;overflow:auto;white-space:pre-wrap;word-break:break-word;margin-top:8px}
+.progreso .btn{margin-top:18px}
+.aviso{font-size:14px;opacity:.75;margin-top:14px}
+
+/* instalar */
+.instalar{display:flex;gap:12px;align-items:center;background:var(--hoja);border:1.5px dashed var(--azul);border-radius:16px;padding:12px 14px;margin-bottom:14px}
+.instalar img{width:44px;height:44px;border-radius:11px}
+.instalar .t{flex:1;font-size:14.5px;line-height:1.3}
+.instalar .t b{display:block;font-size:16px}
+.instalar .x{border:0;background:none;color:var(--tinta2);font-size:22px;cursor:pointer;padding:4px 8px}
+
+/* repartir entre drivers */
+.rep-ruta{display:flex;align-items:center;gap:10px;padding:12px 0;border-top:1px solid var(--linea)}
+.rep-ruta:first-child{border-top:0;padding-top:2px}
+.rep-ruta .q{flex:1;min-width:0}
+.rep-ruta .q b{display:block;font-family:"Barlow Condensed",Barlow,sans-serif;font-size:24px;line-height:1.05}
+.rep-ruta .q span{color:var(--tinta2);font-size:14px}
+.rep-ruta .btn{min-height:44px;padding:10px 14px;font-size:15.5px}
+#repartir .panel{max-width:640px;max-height:96vh;padding-top:8px}
+@media (min-width:700px){#repartir .panel{max-height:94vh}}
+.paso-rep{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:6px 0 12px}
+.contador{display:flex;align-items:center;gap:6px}
+.contador button{width:46px;height:46px;border-radius:12px;border:1.5px solid var(--linea);background:var(--fondo);font-size:24px;font-weight:700;cursor:pointer;color:var(--tinta)}
+.contador output{min-width:44px;text-align:center;font-family:"Barlow Condensed",Barlow,sans-serif;font-weight:700;font-size:32px}
+.rep-ops{display:grid;gap:8px;margin-bottom:10px}
+#mapa{height:300px;border-radius:14px;border:1px solid var(--linea);background:var(--fondo);overflow:hidden;z-index:0}
+@media (min-height:800px){#mapa{height:360px}}
+.mapa-nota{color:var(--tinta2);font-size:13px;margin:6px 0 0}
+.parte{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;align-items:center;padding:12px 0;border-top:1px solid var(--linea)}
+.parte:first-child{border-top:0}
+.parte .color{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;color:#fff;font-weight:700;font-size:17px}
+.parte .info b{font-family:"Barlow Condensed",Barlow,sans-serif;font-size:23px;line-height:1}
+.parte .info span{display:block;color:var(--tinta2);font-size:14px}
+.parte .elegir{grid-column:1/-1;display:flex;gap:8px}
+.parte .elegir input[type=text]{flex:1;min-width:0}
+.parte .elegir input[type=number]{width:92px;flex:none;text-align:center}
+.parte .nombre-final{grid-column:1/-1;color:var(--tinta2);font-size:12.5px;overflow-wrap:anywhere}
+.drv{display:flex;align-items:center;gap:8px;padding:9px 0;border-top:1px solid var(--linea)}
+.drv:first-child{border-top:0}
+.drv span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.drv small{color:var(--tinta2)}
+.fila-add{display:flex;gap:8px;margin-top:10px}
+.fila-add input{flex:1;min-width:0}
+.fila-add .btn{min-height:46px;padding:10px 14px;font-size:15.5px}
+</style>
+<style>
+.barra a.icono-btn{text-decoration:none}
+textarea{width:100%;min-height:150px;resize:vertical;background:var(--fondo);border:1.5px solid var(--linea);border-radius:12px;padding:12px 14px;
+ font:15px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--tinta)}
+textarea:focus{border-color:var(--azul);outline:none}
+.fila2{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.fila2 .cuenta{flex:1;color:var(--tinta2);font-size:14.5px;min-width:0}
+.archivo{position:relative;overflow:hidden}
+.archivo input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.dia{display:flex;align-items:center;gap:10px;margin-top:12px;font-weight:600}
+.dia input{flex:1;min-width:0;font:inherit;padding:10px 12px;border:1.5px solid var(--linea);border-radius:12px;background:var(--fondo);color:var(--tinta)}
+.cajitas{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media (min-width:560px){.cajitas{grid-template-columns:repeat(3,1fr)}}
+.cajita{border:2px solid var(--linea);border-radius:16px;padding:12px;background:var(--hoja);text-align:left;cursor:pointer;font:inherit;color:inherit}
+.cajita b{display:block;font-family:"Barlow Condensed",Barlow,sans-serif;font-size:38px;line-height:1}
+.cajita span{color:var(--tinta2);font-size:14.5px;font-weight:700}
+.cajita.ok{border-color:#1E8E4E}.cajita.ok b{color:var(--verde)}
+.cajita.mal{border-color:#C93C3C}.cajita.mal b{color:var(--rojo)}
+.cajita.diac{border-color:#1F4DB0}.cajita.diac b{color:#1F4DB0}
+@media (prefers-color-scheme:dark){.cajita.diac b{color:#9DB9FF}}
+.caja-h{display:flex;align-items:center;gap:10px}
+.caja-h h3{flex:1;margin:0}
+.caja-h .n{font-family:"Barlow Condensed",Barlow,sans-serif;font-weight:700;font-size:26px}
+.caja.ok{border-left:6px solid #1E8E4E}.caja.mal{border-left:6px solid #C93C3C}.caja.diac{border-left:6px solid #1F4DB0}
+.paq{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:9px 0 9px 2px;border-top:1px dashed var(--linea)}
+.paq .t{font:600 13.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;overflow-wrap:anywhere;min-width:0}
+.paq .d{grid-column:1/-1;color:var(--tinta2);font-size:13.5px}
+.p-azul{background:#E3ECFF;color:#1F4DB0}
+@media (prefers-color-scheme:dark){.p-azul{background:#1A2A4D;color:#9DB9FF}}
+.barra-av{height:8px;border-radius:99px;background:var(--fondo);overflow:hidden;margin-top:8px}
+.barra-av i{display:block;height:100%;width:0;background:var(--azul);transition:width .2s}
+.mas{color:var(--tinta2);font-size:13.5px;padding-top:8px}
+.ruta{border-top:1px solid var(--linea);padding:4px 0}
+.ruta summary{display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none;padding:10px 0}
+.ruta summary::-webkit-details-marker{display:none}
+.ruta .rn{flex:1;font-weight:700;min-width:0;overflow-wrap:anywhere}
+.ruta .rn small{display:block;color:var(--tinta2);font-weight:500;font-size:13px}
+.ruta .rc{font-family:"Barlow Condensed",Barlow,sans-serif;font-weight:700;font-size:24px}
+.otro-dia{display:inline-block;margin-left:6px;padding:1px 8px;border-radius:99px;background:#E3ECFF;color:#1F4DB0;font-size:12px;font-weight:700}
+@media (prefers-color-scheme:dark){.otro-dia{background:#1A2A4D;color:#9DB9FF}}
+.cajita.gris b{color:#8A6400}
+.caja.gris{border-left:6px solid #C9A227}
+.reset{margin-top:12px}
+</style>
+</head>
+<body>
+<header class="barra">
+ <img src="iconos/icono-192.png" alt="">
+ <div class="marca">AFLEX <span>Escaneos</span></div>
+ <a class="icono-btn" href="./" aria-label="Volver al Divisor de rutas" title="Divisor de rutas"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
+</header>
+
+<main>
+ <section id="sin-config" class="hoja bienvenida hidden">
+  <img src="iconos/icono-192.png" alt="">
+  <h2>Primero conecta el Divisor</h2>
+  <p class="sub">Esta pantalla usa la misma conexión con Supabase que el Divisor de rutas.</p>
+  <a class="btn btn-azul btn-ancho" style="display:block;text-decoration:none;text-align:center" href="./">Abrir el Divisor</a>
+ </section>
+
+ <section id="login" class="hoja bienvenida hidden">
+  <img src="iconos/icono-192.png" alt="">
+  <h2>Entra con SpeedX POS</h2>
+  <p class="sub">Tu usuario y contraseña de pos.speedx.io. La contraseña no se guarda.</p>
+  <form id="login-form">
+   <label class="campo">Usuario<input id="usuario" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" required></label>
+   <label class="campo">Contraseña<input id="clave" type="password" autocomplete="current-password" required></label>
+   <button class="btn btn-azul btn-ancho" type="submit">Entrar</button>
+  </form>
+  <div id="login-err" class="err hidden"></div>
+ </section>
+
+ <section id="app" class="hidden">
+  <div class="hoja">
+   <h3>Trackings</h3>
+   <p class="sub">Pégalos como vengan (WhatsApp, Excel, uno por línea o con comas) o carga un archivo. Se acomodan por su último escaneo real en SpeedX.</p>
+   <textarea id="lista" placeholder="SPXHSV000000000000000001&#10;SPXHSV000000000000000002&#10;…" spellcheck="false" autocapitalize="characters" autocorrect="off" aria-label="Lista de trackings"></textarea>
+   <div class="fila2">
+    <span class="cuenta" id="cuenta">0 trackings</span>
+    <label class="mini archivo">Cargar archivo<input id="archivo" type="file" accept=".txt,.csv,.xlsx,.xls,text/plain,text/csv"></label>
+    <button id="limpiar" class="mini">Borrar</button>
+   </div>
+   <label class="dia">Día de las rutas<input id="dia" type="date"></label>
+   <p class="sub" style="margin:6px 0 0">Las rutas de otro día se marcan dentro de cada cajita.</p>
+   <label class="dia">Cuentas del warehouse<input id="almacen" type="text" autocapitalize="none" autocorrect="off" placeholder="dominguez, Arrieta"></label>
+   <p class="sub" style="margin:6px 0 0">Si lo último lo hizo una de estas cuentas (o fue contenedor / batch), el paquete queda «en blanco».</p>
+   <button id="revisar" class="btn btn-pri btn-ancho" style="margin-top:12px" disabled>Acomodar con SpeedX</button>
+   <div id="cargando" class="hidden" style="margin-top:12px">
+    <div class="fila2" style="margin-top:0"><span class="cuenta" id="cargando-txt">Revisando…</span><button id="detener" class="mini">Detener</button></div>
+    <div class="barra-av"><i id="avance"></i></div>
+   </div>
+   <div id="err" class="err hidden"></div>
+  </div>
+
+  <div id="res" class="hidden">
+   <div class="hoja"><div class="cajitas" id="cajitas" role="group" aria-label="Cajitas"></div>
+    <button id="copiar-reset" class="btn btn-azul btn-ancho reset">Copiar fail + en blanco (para resetear)</button></div>
+   <div id="cajas"></div>
+  </div>
+ </section>
+</main>
+
+<div id="final" class="abajo hidden">
+ <div class="dentro">
+  <div class="txt" id="final-txt"></div>
+  <button id="excel" class="btn btn-pri">Descargar Excel</button>
+ </div>
+</div>
+
+<script>
+/* Revisar paquetes — lógica (sin red). Se copia dentro de paquetes.html al armar; también la usan las pruebas.
+   SpeedX «Lista de parcelas» (POST /dms-api/parcels/search) regresa por tracking: ruta, driver, dirección,
+   estado (DELIVERED, FAILED_ATTEMPT… o vacío) y la hora del último evento. */
+const Paquetes = (() => {
+  const TZ = "America/Chicago";
+
+  /** Saca los trackings de un texto pegado (WhatsApp, Excel, uno por línea, con comas…). Sin repetidos, en orden. */
+  function leerTrackings(texto) {
+    const vistos = new Set(), out = [];
+    for (let t of String(texto || "").toUpperCase().split(/[\s,;|]+/)) {
+      t = t.replace(/[^A-Z0-9_-]/g, "");
+      if (t.length >= 8 && /\d{5}/.test(t) && !vistos.has(t)) { vistos.add(t); out.push(t); }
+    }
+    return out;
+  }
+
+  const zipDe = (direccion) => { const m = String(direccion || "").match(/\b(\d{5})(?:-\d{4})?\s*$/) || String(direccion || "").match(/\b(\d{5})\b(?!.*\b\d{5}\b)/); return m ? m[1] : ""; };
+
+  /** «1024-HSV001-batch8733:C ROBELIO» -> fecha de la ruta (24 oct). El año es el más cercano a hoy. */
+  function fechaRuta(nombre, hoy = new Date()) {
+    const m = String(nombre || "").match(/^(\d{2})(\d{2})-/);
+    if (!m) return "";
+    const mes = +m[1], dia = +m[2];
+    if (mes < 1 || mes > 12 || dia < 1 || dia > 31) return "";
+    const y = +new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeric" }).format(hoy);
+    let mejor = "", dist = Infinity;
+    for (const a of [y - 1, y, y + 1]) {
+      const f = new Date(Date.UTC(a, mes - 1, dia, 12));
+      if (f.getUTCMonth() !== mes - 1) continue;
+      const d = Math.abs(f - hoy);
+      if (d < dist) { dist = d; mejor = f.toISOString().slice(0, 10); }
+    }
+    return mejor;
+  }
+
+  /** milisegundos -> {fecha:"2026-10-26", hora:"14:05"} en hora de Alabama. */
+  function fechaHora(ms) {
+    if (ms === null || ms === undefined || ms === "" || !Number.isFinite(+ms)) return { fecha: "", hora: "" };
+    const p = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date(+ms)).map((x) => [x.type, x.value]));
+    return { fecha: `${p.year}-${p.month}-${p.day}`, hora: `${p.hour}:${p.minute}` };
+  }
+
+  const ESTADOS = {
+    DELIVERED: "Entregado", FAILED_ATTEMPT: "Intento fallido", RETURNED_SORT_CENTER: "Regresó al almacén",
+    OUT_FOR_DELIVERY: "En ruta", IN_TRANSIT: "En tránsito",
+  };
+  const nombreEstado = (s) => (s ? ESTADOS[s] || String(s).replace(/_/g, " ").toLowerCase().replace(/^./, (c) => c.toUpperCase()) : "En blanco");
+
+  /** Si SpeedX trae el mismo tracking más de una vez, se queda con el más reciente (evento, y si no, fecha de ruta). */
+  function elegir(a, b, hoy) {
+    const ka = [+a.lastEventTime || 0, fechaRuta(a.routeName, hoy)], kb = [+b.lastEventTime || 0, fechaRuta(b.routeName, hoy)];
+    return kb[0] > ka[0] || (kb[0] === ka[0] && kb[1] > ka[1]) ? b : a;
+  }
+
+  /**
+   * trackings: lista pedida. filas: lo que regresó SpeedX (todas las páginas).
+   * -> {paquetes:[…en el orden pedido], noEncontrados:[…], resumen, blancoPorZip:[{zip, paquetes}], porEstado}
+   */
+  function analizar(trackings, filas, hoy = new Date()) {
+    const por = new Map();
+    for (const f of filas || []) {
+      const t = String(f.trackingNo || "").toUpperCase();
+      if (!t) continue;
+      por.set(t, por.has(t) ? elegir(por.get(t), f, hoy) : f);
+    }
+    const paquetes = [], noEncontrados = [];
+    for (const t of trackings) {
+      const f = por.get(t);
+      if (!f) { noEncontrados.push(t); continue; }
+      const estado = f.status || "";
+      const ev = fechaHora(f.lastEventTime);
+      const asignado = fechaRuta(f.routeName, hoy);
+      paquetes.push({
+        tracking: t, estado, estadoTxt: nombreEstado(estado), zip: zipDe(f.address), direccion: String(f.address || "").replace(/\s+/g, " ").trim(),
+        ruta: String(f.routeName || "").replace(/\s+/g, " ").trim(), driver: String(f.driverName || "").replace(/\s+/g, " ").trim(),
+        fleet: f.fleetName || "", dsp: f.dspName || "",
+        asignado,                                         // fecha de la ruta (asignación)
+        entregado: estado === "DELIVERED" ? ev.fecha : "",  // fecha de entrega
+        horaEntrega: estado === "DELIVERED" ? ev.hora : "",
+        ultimoEvento: ev.fecha ? `${ev.fecha} ${ev.hora}` : "",
+        motivo: f.failReasonDetail || "",
+        enBlanco: !estado,
+      });
+    }
+    const zips = new Map();
+    for (const p of paquetes) if (p.enBlanco) {
+      const z = p.zip || "SIN ZIP";
+      if (!zips.has(z)) zips.set(z, []);
+      zips.get(z).push(p);
+    }
+    const blancoPorZip = [...zips.entries()].sort((a, b) => (a[0] === "SIN ZIP") - (b[0] === "SIN ZIP") || a[0].localeCompare(b[0]))
+      .map(([zip, ps]) => ({ zip, paquetes: ps.sort((x, y) => x.asignado.localeCompare(y.asignado) || x.ruta.localeCompare(y.ruta) || x.tracking.localeCompare(y.tracking)) }));
+    const porEstado = {};
+    for (const p of paquetes) (porEstado[p.estadoTxt] = porEstado[p.estadoTxt] || []).push(p);
+    return {
+      paquetes, noEncontrados, blancoPorZip, porEstado,
+      resumen: {
+        pedidos: trackings.length, encontrados: paquetes.length, noEncontrados: noEncontrados.length,
+        entregados: paquetes.filter((p) => p.estado === "DELIVERED").length,
+        enBlanco: paquetes.filter((p) => p.enBlanco).length,
+        otros: paquetes.filter((p) => p.estado && p.estado !== "DELIVERED").length,
+      },
+    };
+  }
+
+  /** Hojas para el Excel: [{nombre, filas:[[…]]}] */
+  function hojasExcel(a) {
+    const cab = ["Tracking", "Estado", "Código postal", "Fecha de entrega", "Hora de entrega", "Fecha asignada (ruta)", "Ruta", "Driver", "Motivo", "Último evento", "Dirección"];
+    const fila = (p) => [p.tracking, p.estadoTxt, p.zip, p.entregado, p.horaEntrega, p.asignado, p.ruta, p.driver, p.motivo, p.ultimoEvento, p.direccion];
+    const blanco = [["Código postal", "Tracking", "Fecha asignada (ruta)", "Ruta", "Driver", "Dirección"]];
+    for (const g of a.blancoPorZip) {
+      blanco.push([`${g.zip} · ${g.paquetes.length} paquete(s)`, "", "", "", "", ""]);
+      for (const p of g.paquetes) blanco.push([p.zip, p.tracking, p.asignado, p.ruta, p.driver, p.direccion]);
+    }
+    const hojas = [{ nombre: "En blanco por ZIP", filas: blanco }, { nombre: "Todos", filas: [cab, ...a.paquetes.map(fila)] }];
+    if (a.noEncontrados.length) hojas.push({ nombre: "No encontrados", filas: [["Tracking"], ...a.noEncontrados.map((t) => [t])] });
+    return hojas;
+  }
+
+  return { leerTrackings, zipDe, fechaRuta, fechaHora, nombreEstado, analizar, hojasExcel };
+})();
+if (typeof module !== "undefined") module.exports = Paquetes;
+
+</script>
+<script>
+/* Escaneos — acomoda trackings por su ÚLTIMO estado real en SpeedX (Operation Log). Sin red.
+   Se copia dentro de estados.html al armar; también la usan las pruebas.
+   Misma regla que el robot (archuvo-retorno-auto/responsables.py): manda la última actualización real;
+   no cuentan los eventos del sistema (RPS, refrescos, geocodificación, despacho, etiquetas…) ni el OFD automático
+   del inicio de ruta.
+   Cajitas: Ya escaneados (scan success) · Scan fail · En blanco (nadie lo escaneó después del warehouse) · otros.
+   Dentro de cada cajita los paquetes van por ruta; si la ruta es de otro día se marca. */
+const Estados = (() => {
+  const TIPOS_IGNORADOS = new Set([
+    "DELIVER_DISPATCH", "FORCE_REFRESH_STATUS", "FIX_ROUTE", "FIX_ROUTE_EXPIRE", "FINALIZE_BATCH",
+    "POS_PUSH_CONTAINER_TO_BATCH", "DISPATCH_TMS_SUBMIT", "CREATE_LABEL", "PARCEL_TO_CONTAINER_DO_A_SCAN"]);
+  const TIPOS_ALMACEN = new Set([
+    "SCAN_INBOUND_PARCEL", "SCAN_PARCEL_TO_CONTAINER", "CLOSE_CONTAINER", "EXCEPTION_RETURN_PARCEL",
+    "RETURN_SORTING_CENTER", "CREATE_RECEIVING_V2", "TMS_UNLOAD_SCAN", "TMS_LOAD_SCAN",
+    "SCAN_REMOVE_PARCEL_FROM_CONTAINER", "REOPEN_CONTAINER", "RE_OPEN_CONTAINER"]);
+  const OPERADORES_SISTEMA = new Set(["_pos_sys", "system", "refreshroute", "tms", "rps api", "rps send data to pos"]);
+  const INICIO_RUTA = /ofd\s+event\s+sent\s+at\s+start-?route/i;
+
+  const nombre = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
+  const clave = (s) => nombre(s).toLowerCase();
+  const tipoDe = (ev) => nombre(ev && ev.operationType).toUpperCase().replace(/ /g, "_");
+  const esSistema = (ev) => {
+    const op = clave(ev.operator), t = tipoDe(ev);
+    return !op || OPERADORES_SISTEMA.has(op) || /send data to pos/.test(op) || /^rps( |$|[_-])/.test(op) ||
+      /^CREATE_SHIPMENT|_BY_RPS$|_BY_SYSTEM$/.test(t);
+  };
+
+  /** Más antiguo primero (SpeedX los manda del más reciente al más antiguo). */
+  function ordenar(logs) {
+    return (Array.isArray(logs) ? logs : []).filter((x) => x && typeof x === "object" && !x.deleted)
+      .map((x, k) => [x, k])
+      .sort((a, b) => ((+a[0].operationDate || +a[0].createdAt || 0) - (+b[0].operationDate || +b[0].createdAt || 0)) ||
+        ((+a[0].id || 0) - (+b[0].id || 0)) || (b[1] - a[1]))
+      .map((x) => x[0]);
+  }
+
+  /** 'ignorar' | 'almacen' | 'persona' */
+  function categoria(ev, almacen) {
+    const t = tipoDe(ev), op = clave(ev.operator);
+    if (TIPOS_ALMACEN.has(t)) return "almacen";
+    if (TIPOS_IGNORADOS.has(t)) return "ignorar";
+    if (t === "LOADING_GROUP_SORT_SUCCESS" && INICIO_RUTA.test(String(ev.remarks || ""))) return "ignorar";
+    if (esSistema(ev)) return "ignorar";
+    if (almacen.has(op)) return "almacen";
+    return "persona";
+  }
+
+  /** Nombre de ruta que trae la nota del evento. En un LOADING_SCAN_FAIL, «originalRoute» es la ruta del paquete. */
+  function rutaDe(ev) {
+    const r = String((ev && ev.remarks) || "");
+    const m = r.match(/originalRoute:\s*\[\s*([^\]]+?)\s*\]/i) || r.match(/(?:^|[^a-z])Route:\s*\[\s*([^\]]+?)\s*\]/i);
+    return m ? nombre(m[1]) : nombre((ev && (ev.routeName || "")) || "");
+  }
+
+  const esEntrega = (t) => /(^|_)DELIVER(ED|Y_SUCCESS|ED_SUCCESS)($|_)/.test(t) && !/(UNDELIVER|OUT_FOR|FAIL|ATTEMPT)/.test(t);
+
+  const ESTADOS = {
+    success: "Ya escaneados (scan success)", fail: "Scan fail (error)", blanco: "En blanco (sin escanear)", entregado: "Entregado",
+    no_entregable: "No entregable", otro: "Otro estado", no_encontrado: "No encontrado",
+  };
+  const PILL = { success: "Scan success", fail: "Scan fail", blanco: "En blanco", entregado: "Entregado", no_entregable: "No entregable", no_encontrado: "No encontrado" };
+
+  /**
+   * logs: operationLogsDto de SpeedX. opciones: {dia:'2026-10-28', almacen:['dominguez'], hoy:Date}
+   * Devuelve {caja, estado, estadoTxt, evento, operador, fecha, hora, ruta, fechaRuta, nota}
+   */
+  function clasificar(logs, opciones = {}) {
+    const almacen = new Set((opciones.almacen || ["dominguez"]).map(clave));
+    const evs = ordenar(logs);
+    let ultimo = null;
+    for (const e of evs) if (categoria(e, almacen) !== "ignorar") ultimo = e;
+    // ruta del paquete: la del último evento real; si no trae, la más reciente que aparezca en el historial
+    let ruta = ultimo ? rutaDe(ultimo) : "";
+    if (!ruta) for (let k = evs.length - 1; k >= 0 && !ruta; k--) ruta = rutaDe(evs[k]);
+    const fechaRuta = ruta && typeof Paquetes !== "undefined" ? Paquetes.fechaRuta(ruta, opciones.hoy || new Date()) : "";
+    const otroDia = !!(opciones.dia && fechaRuta && fechaRuta !== opciones.dia);
+    if (!ultimo) {
+      return { caja: "blanco", estado: "blanco", estadoTxt: "En blanco", evento: "", operador: "", fecha: "", hora: "",
+        ruta, fechaRuta, otroDia, nota: evs.length ? "Solo hay eventos del sistema, ningún escaneo de personas." : "SpeedX no tiene historial." };
+    }
+    const t = tipoDe(ultimo), cat = categoria(ultimo, almacen);
+    let estado;
+    if (["LOADING_SCAN_SUCCESS", "LOADING_GROUP_SORT_SUCCESS", "SCAN_TO_ROUTE", "SCAN_ADD_PARCEL_TO_ROUTE", "ADD_ADDITIONAL_PARCEL"].includes(t)) estado = "success";
+    else if (t === "LOADING_SCAN_FAIL") estado = "fail";
+    else if (esEntrega(t)) estado = "entregado";
+    else if (cat === "almacen") estado = "blanco";   // lo último fue del warehouse: ningún driver lo ha escaneado después
+    else if (/UNDELIVERABLE/.test(t)) estado = "no_entregable";
+    else estado = "otro";
+    const fh = typeof Paquetes !== "undefined" ? Paquetes.fechaHora(ultimo.operationDate || ultimo.createdAt) : { fecha: "", hora: "" };
+    let txt = PILL[estado] || t.replace(/_/g, " ").toLowerCase();
+    if (t === "LOADING_GROUP_SORT_SUCCESS") txt = "Scan success (pre-carga)";
+    else if (estado === "success" && t !== "LOADING_SCAN_SUCCESS") txt = "Scan success (agregado a la ruta)";
+    else if (estado === "blanco") txt = "En blanco · " + t.replace(/_/g, " ").toLowerCase();
+    return {
+      caja: estado, estado, estadoTxt: txt, evento: t, operador: nombre(ultimo.operator),
+      fecha: fh.fecha, hora: fh.hora, ruta, fechaRuta, otroDia, nota: nombre(ultimo.remarks).slice(0, 300),
+    };
+  }
+
+  /** Cajitas en orden (las 3 principales siempre). Cada una con sus paquetes agrupados por ruta. */
+  function cajas(resultados, dia) {
+    const por = new Map();
+    for (const r of resultados) { if (!por.has(r.caja)) por.set(r.caja, []); por.get(r.caja).push(r); }
+    const fijas = ["success", "fail", "blanco"], resto = ["entregado", "no_entregable", "otro", "no_encontrado"];
+    const out = [];
+    for (const k of [...fijas, ...resto]) {
+      if (!por.has(k) && !fijas.includes(k)) continue;
+      const paquetes = por.get(k) || [];
+      out.push({ clave: k, titulo: ESTADOS[k], paquetes, rutas: porRuta(paquetes, dia),
+        otroDia: paquetes.filter((p) => p.otroDia).length });
+    }
+    return out;
+  }
+  /** Agrupa por ruta: primero las del día elegido, luego las de otros días (más reciente primero); sin ruta al final. */
+  function porRuta(paquetes, dia) {
+    const m = new Map();
+    for (const p of paquetes) { const k = p.ruta || ""; if (!m.has(k)) m.set(k, []); m.get(k).push(p); }
+    return [...m.entries()].map(([ruta, ps]) => ({ ruta, fecha: ps[0].fechaRuta || "", otroDia: !!(dia && ps[0].fechaRuta && ps[0].fechaRuta !== dia), paquetes: ps }))
+      .sort((a, b) => (!a.ruta) - (!b.ruta) || a.otroDia - b.otroDia || String(b.fecha).localeCompare(String(a.fecha)) || a.ruta.localeCompare(b.ruta));
+  }
+  function fCorta(f) {
+    if (!f) return "";
+    const d = new Date(f + "T12:00:00Z");
+    return d.toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
+  }
+
+  function hojasExcel(lista, dia) {
+    const cab = ["Tracking", "Cajita", "Último estado", "Evento SpeedX", "Quién", "Fecha", "Hora", "Ruta", "Fecha de la ruta", "¿Ruta de otro día?", "Nota"];
+    const fila = (r) => [r.tracking, r.cajaTxt, r.estadoTxt, r.evento, r.operador, r.fecha, r.hora, r.ruta, r.fechaRuta, r.otroDia ? "Sí" : "", r.nota];
+    const cs = cajas(lista, dia);
+    const nombreHoja = (t) => t.replace(/[\\/?*[\]:]/g, " ").slice(0, 31);
+    return [{ nombre: "Todos", filas: [cab, ...cs.flatMap((c) => c.paquetes.map((r) => fila({ ...r, cajaTxt: c.titulo })))] },
+      ...cs.filter((c) => c.paquetes.length).map((c) => ({ nombre: nombreHoja(c.titulo), filas: [cab, ...c.rutas.flatMap((g) => g.paquetes).map((r) => fila({ ...r, cajaTxt: c.titulo }))] })),
+      { nombre: "Para resetear", filas: [["Tracking", "Cajita", "Ruta"], ...cs.filter((c) => c.clave === "fail" || c.clave === "blanco").flatMap((c) => c.paquetes.map((r) => [r.tracking, c.titulo, r.ruta]))] }];
+  }
+
+  return { clasificar, cajas, porRuta, hojasExcel, rutaDe, categoria, ordenar, tipoDe, ESTADOS, fCorta };
+})();
+if (typeof module !== "undefined") module.exports = Estados;
+
+</script>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num=n=>Number(n||0).toLocaleString('es-MX');
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}},del(k){try{localStorage.removeItem(k);}catch(e){}}};
+let token=store.get('token',''),usuario=store.get('usuario','');
+let R=[],diaR='',trabajando=false,parar=false;
+class Err extends Error{constructor(m,x){super(m);Object.assign(this,x||{});}}
+function show(id,on){$(id).classList.toggle('hidden',!on);}
+function err(id,msg){$(id).textContent=msg||'';show(id,!!msg);}
+function pantalla(c){for(const s of ['sin-config','login','app'])show(s,s===c);if(c!=='app')show('final',false);}
+
+async function fn(body){
+ const url=store.get('funcion',''),clave=store.get('acceso','');
+ if(!url||!clave){pantalla('sin-config');throw new Err('Falta conectar con tu Supabase.',{config:true});}
+ let r;
+ try{r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','x-divisor-clave':clave},body:JSON.stringify(body)});}
+ catch(e){throw new Err('Sin conexión. Revisa el internet y vuelve a intentar.',{red:true});}
+ const j=await r.json().catch(()=>({error:'El servidor respondió algo que no se entiende (HTTP '+r.status+').'}));
+ if(r.status===403&&j.clave){pantalla('sin-config');throw new Err(j.error,{config:true});}
+ if(r.status===401&&j.sesion){token='';store.del('token');mostrarLogin('Tu sesión de SpeedX venció. Vuelve a entrar.');throw new Err(j.error,{sesion:true});}
+ if(!r.ok||j.error){
+  if(/no permitida/i.test(j.error||''))throw new Err('Falta actualizar la función divisor-rutas en Supabase (versión 1.8). Mira la guía.',{config:true,permitida:true});
+  throw new Err(j.error||('HTTP '+r.status));
+ }
+ return j;
+}
+const sxReq=async(metodo,ruta,params,cuerpo)=>(await fn({accion:'speedx',metodo,ruta,params,cuerpo,token})).datos;
+function mostrarLogin(msg){pantalla('login');$('usuario').value=usuario;err('login-err',msg||'');}
+$('login-form').onsubmit=async e=>{
+ e.preventDefault();err('login-err','');
+ const b=$('login-form').querySelector('button');b.disabled=true;b.textContent='Entrando…';
+ try{token='';const d=await sxReq('POST','/pos-exchange-api/login/login',null,{loginName:$('usuario').value.trim(),passwd:$('clave').value,autoLogin:true,facilityCode:'LAX',verifyCode:'8888'});
+  if(!d||!d.authToken)throw new Err('SpeedX no aceptó el usuario o la contraseña.');
+  token=d.authToken;usuario=$('usuario').value.trim();store.set('usuario',usuario);store.set('token',token);$('clave').value='';pantalla('app');}
+ catch(x){if(!x.config)err('login-err',x.message);}
+ finally{b.disabled=false;b.textContent='Entrar';}
+};
+
+// ---------- lista
+const hoyISO=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Chicago'}).format(new Date());
+function contar(){const n=Paquetes.leerTrackings($('lista').value).length;$('cuenta').textContent=`${num(n)} ${n===1?'tracking':'trackings'}`;$('revisar').disabled=!n||trabajando;try{sessionStorage.setItem('est_lista',$('lista').value);}catch(e){}}
+$('lista').oninput=contar;
+$('limpiar').onclick=()=>{$('lista').value='';contar();};
+let xlsxLib=null;
+function cargarXLSX(){
+ if(window.XLSX)return Promise.resolve(window.XLSX);
+ if(xlsxLib)return xlsxLib;
+ xlsxLib=new Promise((ok,mal)=>{const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';s.onload=()=>ok(window.XLSX);s.onerror=()=>{xlsxLib=null;mal(new Error('No se pudo cargar el lector de Excel (revisa el internet).'));};document.head.appendChild(s);});
+ return xlsxLib;
+}
+$('archivo').onchange=async()=>{
+ const f=$('archivo').files[0];if(!f)return;err('err','');
+ try{
+  let texto='';
+  if(/\.xlsx?$/i.test(f.name)){const X=await cargarXLSX();const wb=X.read(await f.arrayBuffer(),{type:'array'});
+   for(const n of wb.SheetNames)texto+=X.utils.sheet_to_csv(wb.Sheets[n])+'\n';}
+  else texto=await f.text();
+  const ts=Paquetes.leerTrackings(texto);
+  if(!ts.length)throw new Error('No encontré trackings en ese archivo.');
+  $('lista').value=($('lista').value.trim()?$('lista').value.trim()+'\n':'')+ts.join('\n');contar();
+ }catch(x){err('err',x.message);}
+ finally{$('archivo').value='';}
+};
+
+const cuentasAlmacen=()=>{const l=String($('almacen').value||'').split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean);return l.length?l:['dominguez'];};
+// ---------- revisar en SpeedX (Operation Log de cada tracking, como el robot)
+const A_LA_VEZ=3;
+async function operationLog(t){
+ const d=await sxReq('GET','/pos-exchange-api/web/dms/getLabelInfo/'+encodeURIComponent(t));
+ const logs=d&&d.operationLogsDto;
+ if(!Array.isArray(logs))throw new Err('SpeedX no trajo el historial de este paquete.');
+ return logs;
+}
+$('detener').onclick=()=>{parar=true;$('detener').disabled=true;$('cargando-txt').textContent='Deteniendo…';};
+$('revisar').onclick=async()=>{
+ const ts=Paquetes.leerTrackings($('lista').value);if(!ts.length||trabajando)return;
+ trabajando=true;parar=false;contar();err('err','');show('cargando',true);$('detener').disabled=false;
+ diaR=$('dia').value||hoyISO();const almacen=cuentasAlmacen();store.set('est_almacen',$('almacen').value);
+ const res=new Array(ts.length);let hechos=0,i=0,fatal=null;
+ const avance=()=>{$('cargando-txt').textContent=`Revisando ${num(hechos)} de ${num(ts.length)}…`;$('avance').style.width=(100*hechos/ts.length)+'%';};
+ avance();
+ async function trabajador(){
+  while(!parar&&!fatal&&i<ts.length){
+   const k=i++,t=ts[k];
+   try{res[k]={tracking:t,...Estados.clasificar(await operationLog(t),{dia:diaR,almacen})};}
+   catch(x){
+    if(x.sesion||x.config||x.red){fatal=x;break;}
+    res[k]={tracking:t,caja:'no_encontrado',estado:'no_encontrado',estadoTxt:'No encontrado',evento:'',operador:'',fecha:'',hora:'',ruta:'',fechaRuta:'',nota:x.message};
+   }
+   hechos++;avance();
+  }
+ }
+ try{
+  await Promise.all(Array.from({length:Math.min(A_LA_VEZ,ts.length)},trabajador));
+  R=res.filter(Boolean);
+  if(fatal&&!fatal.sesion&&!fatal.config||fatal&&fatal.permitida)err('err',fatal.message+(R.length?` Se acomodaron ${num(R.length)} de ${num(ts.length)}.`:''));
+  else if(parar&&R.length<ts.length)err('err',`Detenido: se acomodaron ${num(R.length)} de ${num(ts.length)}.`);
+  if(R.length){pintar();$('res').scrollIntoView({behavior:'smooth',block:'start'});}
+ }finally{trabajando=false;show('cargando',false);contar();}
+};
+
+// ---------- pintar
+const clase=k=>k==='success'?'ok':k==='fail'?'mal':k==='blanco'?'gris':'';
+const pill=r=>r.estado==='success'||r.estado==='entregado'?'p-verde':r.estado==='fail'?'p-rojo':r.estado==='blanco'?'p-amar':'p-azul';
+const MAX_VISIBLES=150;
+const paqHTML=p=>`<div class="paq"><span class="t">${esc(p.tracking)}</span><span class="pill ${pill(p)}">${esc(p.estadoTxt)}</span>
+ <span class="d">${p.operador?esc(p.operador)+' · ':''}${p.hora?esc(Estados.fCorta(p.fecha))+' '+esc(p.hora):''}${p.estado==='no_encontrado'&&p.nota?' · '+esc(p.nota):''}</span></div>`;
+let CS=[];
+function pintar(){
+ const cs=CS=Estados.cajas(R,diaR);show('res',true);show('final',true);
+ $('cajitas').innerHTML=cs.map((c,k)=>`<button class="cajita ${clase(c.clave)}" data-ir="${k}"><b>${num(c.paquetes.length)}</b><span>${esc(c.titulo)}</span></button>`).join('');
+ document.querySelectorAll('[data-ir]').forEach(b=>b.onclick=()=>{const el=$('caja-'+b.dataset.ir);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});});
+ const reset=cs.filter(c=>c.clave==='fail'||c.clave==='blanco').flatMap(c=>c.paquetes.map(p=>p.tracking));
+ $('copiar-reset').textContent=`Copiar fail + en blanco (${num(reset.length)}) para resetear`;$('copiar-reset').disabled=!reset.length;
+ $('copiar-reset').onclick=e=>copiar(reset.join('\n'),e.currentTarget);
+ $('cajas').innerHTML=cs.map((c,k)=>!c.paquetes.length?'':`<div class="hoja caja ${clase(c.clave)}" id="caja-${k}">
+  <div class="caja-h"><h3>${esc(c.titulo)}</h3><span class="n">${num(c.paquetes.length)}</span><button class="mini" data-copiar="${k}">Copiar</button></div>
+  <p class="sub" style="margin:4px 0 0">${num(c.rutas.length)} ${c.rutas.length===1?'ruta':'rutas'}${c.otroDia?` · <b>${num(c.otroDia)}</b> de rutas de otro día`:''}</p>
+  ${c.rutas.map((g,j)=>`<details class="ruta"${c.rutas.length<=3?' open':''}><summary><span class="rn">${esc(g.ruta||'Sin ruta')}${g.otroDia?`<span class="otro-dia">${esc(Estados.fCorta(g.fecha))} · otro día</span>`:''}</span><span class="rc">${num(g.paquetes.length)}</span><button class="mini" data-copiar-r="${k}:${j}">Copiar</button></summary>
+   ${g.paquetes.slice(0,MAX_VISIBLES).map(paqHTML).join('')}${g.paquetes.length>MAX_VISIBLES?`<div class="mas">…y ${num(g.paquetes.length-MAX_VISIBLES)} más (en «Copiar» y en el Excel).</div>`:''}</details>`).join('')}</div>`).join('');
+ document.querySelectorAll('[data-copiar]').forEach(b=>b.onclick=()=>copiar(cs[+b.dataset.copiar].paquetes.map(p=>p.tracking).join('\n'),b));
+ document.querySelectorAll('[data-copiar-r]').forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();const [k,j]=b.dataset.copiarR.split(':').map(Number);copiar(cs[k].rutas[j].paquetes.map(p=>p.tracking).join('\n'),b);});
+ const n=k=>(cs.find(c=>c.clave===k)||{paquetes:[]}).paquetes.length;
+ $('final-txt').innerHTML=`<b>${num(R.length)}</b> paquetes · <b>${num(n('success'))}</b> escaneados · <b>${num(n('fail'))}</b> fail · <b>${num(n('blanco'))}</b> en blanco`;
+}
+async function copiar(texto,boton){
+ try{await navigator.clipboard.writeText(texto);}catch(e){const t=document.createElement('textarea');t.value=texto;document.body.appendChild(t);t.select();try{document.execCommand('copy');}catch(_){}t.remove();}
+ const antes=boton.textContent;boton.textContent='Copiado ✓';setTimeout(()=>{boton.textContent=antes;},1500);
+}
+
+// ---------- Excel
+$('excel').onclick=async()=>{
+ if(!R.length)return;const b=$('excel');b.disabled=true;
+ const nombre=`Escaneos_${diaR}`;
+ try{
+  const X=await cargarXLSX();const wb=X.utils.book_new();
+  for(const h of Estados.hojasExcel(R,diaR)){const ws=X.utils.aoa_to_sheet(h.filas);ws['!cols']=h.filas[0].map((_,i)=>({wch:Math.min(48,Math.max(10,...h.filas.map(f=>String(f[i]??'').length)))}));X.utils.book_append_sheet(wb,ws,h.nombre);}
+  X.writeFile(wb,nombre+'.xlsx');
+ }catch(e){
+  const h=Estados.hojasExcel(R,diaR)[0];
+  const csv='﻿'+h.filas.map(f=>f.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download=nombre+'.csv';a.click();
+ }finally{b.disabled=false;}
+};
+
+// ---------- inicio
+(function inicio(){
+ $('dia').value=hoyISO();$('almacen').value=store.get('est_almacen','dominguez, Arrieta');
+ if(!store.get('funcion','')||!store.get('acceso',''))return pantalla('sin-config');
+ if(!token)return mostrarLogin();
+ pantalla('app');
+ try{const v=sessionStorage.getItem('est_lista');if(v)$('lista').value=v;}catch(e){}
+ contar();
+})();
+</script>
+</body>
+</html>
