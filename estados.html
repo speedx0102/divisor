@@ -283,6 +283,11 @@ textarea:focus{border-color:var(--azul);outline:none}
 .cajita.gris b{color:#8A6400}
 .caja.gris{border-left:6px solid #C9A227}
 .reset{margin-top:12px}
+#ciudades{grid-template-columns:repeat(5,1fr)}
+#ciudades .ciudad-larga{font-size:14px;letter-spacing:-.2px}
+.dia select{flex:1;min-width:0;font:inherit;padding:10px 12px;border:1.5px solid var(--linea);border-radius:12px;background:var(--fondo);color:var(--tinta)}
+.cajita.reini b{color:var(--rojo)}.caja.reini{border-left:6px solid #C93C3C}
+.cajita.nada b{color:var(--verde)}.caja.nada{border-left:6px solid #1E8E4E}
 </style>
 </head>
 <body>
@@ -313,8 +318,18 @@ textarea:focus{border-color:var(--azul);outline:none}
  </section>
 
  <section id="app" class="hidden">
+  <div class="hoja" id="ant-sec">
+   <h3>Paquetes de rutas de días anteriores</h3>
+   <p class="sub">Saca todos los paquetes de las rutas de los días anteriores (con o sin driver), revisa en SpeedX en qué quedó cada uno y te dice cuáles hay que <b>reiniciar y meter en el batch de hoy</b>: undelivered, asignados que no salieron y los que salieron sin resultado. Los entregados y los que ya están en una ruta de hoy no.</p>
+   <div class="seg" id="ciudades" role="group" aria-label="Ciudad">
+    <button data-ciudad="HSV">HSV</button><button data-ciudad="BHM">BHM</button><button data-ciudad="MEM">MEM</button><button data-ciudad="TCL">TCL</button><button data-ciudad="BNA03A" class="ciudad-larga" title="Columbia, Tennessee">BNA03A</button>
+   </div>
+   <label class="dia">Días hacia atrás<select id="dias-atras"><option value="1">1 día (ayer)</option><option value="2">2 días</option><option value="3" selected>3 días</option><option value="5">5 días</option><option value="7">7 días</option></select></label>
+   <button id="buscar-ant" class="btn btn-pri btn-ancho" style="margin-top:12px">Buscar paquetes de días anteriores</button>
+  </div>
+
   <div class="hoja">
-   <h3>Trackings</h3>
+   <h3>O pega tus trackings</h3>
    <p class="sub">Pégalos como vengan (WhatsApp, Excel, uno por línea o con comas) o carga un archivo. Se acomodan por su último escaneo real en SpeedX.</p>
    <textarea id="lista" placeholder="SPXHSV000000000000000001&#10;SPXHSV000000000000000002&#10;…" spellcheck="false" autocapitalize="characters" autocorrect="off" aria-label="Lista de trackings"></textarea>
    <div class="fila2">
@@ -326,8 +341,10 @@ textarea:focus{border-color:var(--azul);outline:none}
    <p class="sub" style="margin:6px 0 0">Las rutas de otro día se marcan dentro de cada cajita.</p>
    <label class="dia">Cuentas del warehouse<input id="almacen" type="text" autocapitalize="none" autocorrect="off" placeholder="dominguez, Arrieta"></label>
    <p class="sub" style="margin:6px 0 0">Si lo último lo hizo una de estas cuentas (o fue contenedor / batch), el paquete queda «en blanco».</p>
-   <button id="revisar" class="btn btn-pri btn-ancho" style="margin-top:12px" disabled>Acomodar con SpeedX</button>
-   <div id="cargando" class="hidden" style="margin-top:12px">
+   <button id="revisar" class="btn btn-azul btn-ancho" style="margin-top:12px" disabled>Acomodar con SpeedX</button>
+  </div>
+  <div class="hoja hidden" id="estado-sec">
+   <div id="cargando" class="hidden">
     <div class="fila2" style="margin-top:0"><span class="cuenta" id="cargando-txt">Revisando…</span><button id="detener" class="mini">Detener</button></div>
     <div class="barra-av"><i id="avance"></i></div>
    </div>
@@ -531,11 +548,24 @@ const Estados = (() => {
   }
 
   const esEntrega = (t) => /(^|_)DELIVER(ED|Y_SUCCESS|ED_SUCCESS)($|_)/.test(t) && !/(UNDELIVER|OUT_FOR|FAIL|ATTEMPT)/.test(t);
+  // Evento de entrega: por su tipo (DELIVERED, *_POD, SIGN…) o por su nota. Nunca se descarta, aunque venga sin operador o del sistema.
+  const esEntregaEv = (e) => {
+    const t = tipoDe(e), r = String((e && e.remarks) || "");
+    if (/(UNDELIVER|OUT_FOR|FAIL|ATTEMPT|LOADING)/.test(t)) return false;
+    return esEntrega(t) || /(^|_)(POD|SIGN|SIGNED|PROOF_OF_DELIVERY|DELIVERY_CONFIRM(ED)?)($|_)/.test(t) ||
+      (/\bdelivered\b|entregado/i.test(r) && !/undeliver|not delivered|no entregado/i.test(r));
+  };
 
   const ESTADOS = {
     success: "Ya escaneados (scan success)", fail: "Scan fail (error)", blanco: "En blanco (sin escanear)", entregado: "Entregado",
     no_entregable: "No entregable", otro: "Otro estado", no_encontrado: "No encontrado",
   };
+  // Modo «días anteriores»: paquetes sacados de rutas viejas
+  Object.assign(ESTADOS, {
+    a_undelivered: "Undelivered (intento fallido)", a_no_salio: "Asignados que no salieron",
+    a_sin_resultado: "Salieron sin resultado", a_hoy: "Ya están en una ruta de hoy", a_entregado: "Entregados",
+  });
+  const REINICIAR = new Set(["fail", "blanco", "a_undelivered", "a_no_salio", "a_sin_resultado"]);
   const PILL = { success: "Scan success", fail: "Scan fail", blanco: "En blanco", entregado: "Entregado", no_entregable: "No entregable", no_encontrado: "No encontrado" };
 
   /**
@@ -546,7 +576,7 @@ const Estados = (() => {
     const almacen = new Set((opciones.almacen || ["dominguez"]).map(clave));
     const evs = ordenar(logs);
     let ultimo = null;
-    for (const e of evs) if (categoria(e, almacen) !== "ignorar") ultimo = e;
+    for (const e of evs) if (categoria(e, almacen) !== "ignorar" || esEntregaEv(e)) ultimo = e;
     // ruta del paquete: la del último evento real; si no trae, la más reciente que aparezca en el historial
     let ruta = ultimo ? rutaDe(ultimo) : "";
     if (!ruta) for (let k = evs.length - 1; k >= 0 && !ruta; k--) ruta = rutaDe(evs[k]);
@@ -560,10 +590,12 @@ const Estados = (() => {
     let estado;
     if (["LOADING_SCAN_SUCCESS", "LOADING_GROUP_SORT_SUCCESS", "SCAN_TO_ROUTE", "SCAN_ADD_PARCEL_TO_ROUTE", "ADD_ADDITIONAL_PARCEL"].includes(t)) estado = "success";
     else if (t === "LOADING_SCAN_FAIL") estado = "fail";
-    else if (esEntrega(t)) estado = "entregado";
+    else if (esEntregaEv(ultimo)) estado = "entregado";
     else if (cat === "almacen") estado = "blanco";   // lo último fue del warehouse: ningún driver lo ha escaneado después
     else if (/UNDELIVERABLE/.test(t)) estado = "no_entregable";
     else estado = "otro";
+    // La «Lista de parcelas» de SpeedX manda: si dice DELIVERED, está entregado.
+    if (String(opciones.estadoSpeedX || "").toUpperCase() === "DELIVERED") estado = "entregado";
     const fh = typeof Paquetes !== "undefined" ? Paquetes.fechaHora(ultimo.operationDate || ultimo.createdAt) : { fecha: "", hora: "" };
     let txt = PILL[estado] || t.replace(/_/g, " ").toLowerCase();
     if (t === "LOADING_GROUP_SORT_SUCCESS") txt = "Scan success (pre-carga)";
@@ -575,16 +607,50 @@ const Estados = (() => {
     };
   }
 
+  /**
+   * Paquete sacado de una ruta de un día anterior. origen = {ruta, fecha} (la ruta vieja donde estaba).
+   * estadoSpeedX = estado que da «Lista de parcelas» (DELIVERED, FAILED_ATTEMPT…), si se tiene.
+   *  - a_entregado: ya se entregó → nada que hacer.
+   *  - a_hoy: su último escaneo real ya es de una ruta de HOY → ya está en el batch de hoy.
+   *  - a_undelivered: lo último fue un intento fallido / no entregable → reiniciar y meter al batch de hoy.
+   *  - a_sin_resultado: se cargó, la ruta empezó (OFD) y no tiene resultado → reiniciar.
+   *  - a_no_salio: se asignó pero nunca salió en delivery (scan fail, se quedó en el warehouse, cargado sin OFD) → reiniciar.
+   */
+  function clasificarAnterior(logs, opciones = {}) {
+    const st = String(opciones.estadoSpeedX || "").toUpperCase();
+    const o = opciones.origen || {};
+    const b = clasificar(logs, opciones);
+    const fin = (caja, txt) => ({ ...b, caja, estadoTxt: txt || ESTADOS[caja], rutaUltima: b.ruta, ruta: o.ruta || b.ruta, fechaRuta: o.fecha || b.fechaRuta,
+      otroDia: !!(opciones.dia && (o.fecha || b.fechaRuta) && (o.fecha || b.fechaRuta) !== opciones.dia) });
+    const t = b.evento || "";
+    if (b.estado === "entregado" || (st === "DELIVERED" && b.estado !== "success")) return fin("a_entregado", "Entregado");
+    if (b.estado === "success" && b.fechaRuta && b.fechaRuta === opciones.dia) return fin("a_hoy", "En ruta de hoy");
+    const fallido = (x) => /UNDELIVER|FAIL(ED)?_?ATTEMPT|ATTEMPT_?FAIL|DELIVERY_?FAIL|ATTEMPT/.test(x) && x !== "LOADING_SCAN_FAIL";
+    if (fallido(t) || b.estado === "no_entregable") return fin("a_undelivered", "Undelivered");
+    // ¿Salió en delivery después de su última carga?
+    const evs = ordenar(logs);
+    const CARGA = /^(LOADING_SCAN_SUCCESS|LOADING_GROUP_SORT_SUCCESS|SCAN_TO_ROUTE|SCAN_ADD_PARCEL_TO_ROUTE|ADD_ADDITIONAL_PARCEL)$/;
+    let k = -1;
+    evs.forEach((e, i) => { if (CARGA.test(tipoDe(e)) && !INICIO_RUTA.test(String(e.remarks || ""))) k = i; });
+    const salio = k >= 0 && evs.slice(k + 1).some((e) => /OUT_FOR_DELIVERY|START_ROUTE|^OFD/.test(tipoDe(e)) || INICIO_RUTA.test(String(e.remarks || "")));
+    if (b.estado === "success" && salio) return fin(fallido(st) ? "a_undelivered" : "a_sin_resultado", fallido(st) ? "Undelivered" : "Salió sin resultado");
+    if (fallido(st)) return fin("a_undelivered", "Undelivered");
+    const porQue = b.estado === "fail" ? "No salió · scan fail" : b.estado === "blanco" ? "No salió · en el warehouse" : b.estado === "success" ? "No salió · cargado sin salir" : "No salió";
+    return fin("a_no_salio", porQue);
+  }
+
   /** Cajitas en orden (las 3 principales siempre). Cada una con sus paquetes agrupados por ruta. */
   function cajas(resultados, dia) {
     const por = new Map();
     for (const r of resultados) { if (!por.has(r.caja)) por.set(r.caja, []); por.get(r.caja).push(r); }
-    const fijas = ["success", "fail", "blanco"], resto = ["entregado", "no_entregable", "otro", "no_encontrado"];
+    const anterior = resultados.some((r) => String(r.caja).startsWith("a_"));
+    const fijas = anterior ? ["a_undelivered", "a_no_salio"] : ["success", "fail", "blanco"];
+    const resto = anterior ? ["a_sin_resultado", "a_hoy", "a_entregado", "no_encontrado"] : ["entregado", "no_entregable", "otro", "no_encontrado"];
     const out = [];
     for (const k of [...fijas, ...resto]) {
       if (!por.has(k) && !fijas.includes(k)) continue;
       const paquetes = por.get(k) || [];
-      out.push({ clave: k, titulo: ESTADOS[k], paquetes, rutas: porRuta(paquetes, dia),
+      out.push({ clave: k, titulo: ESTADOS[k], paquetes, rutas: porRuta(paquetes, dia), reiniciar: REINICIAR.has(k),
         otroDia: paquetes.filter((p) => p.otroDia).length });
     }
     return out;
@@ -609,10 +675,10 @@ const Estados = (() => {
     const nombreHoja = (t) => t.replace(/[\\/?*[\]:]/g, " ").slice(0, 31);
     return [{ nombre: "Todos", filas: [cab, ...cs.flatMap((c) => c.paquetes.map((r) => fila({ ...r, cajaTxt: c.titulo })))] },
       ...cs.filter((c) => c.paquetes.length).map((c) => ({ nombre: nombreHoja(c.titulo), filas: [cab, ...c.rutas.flatMap((g) => g.paquetes).map((r) => fila({ ...r, cajaTxt: c.titulo }))] })),
-      { nombre: "Para resetear", filas: [["Tracking", "Cajita", "Ruta"], ...cs.filter((c) => c.clave === "fail" || c.clave === "blanco").flatMap((c) => c.paquetes.map((r) => [r.tracking, c.titulo, r.ruta]))] }];
+      { nombre: "Para resetear", filas: [["Tracking", "Cajita", "Ruta"], ...cs.filter((c) => c.reiniciar).flatMap((c) => c.paquetes.map((r) => [r.tracking, c.titulo, r.ruta]))] }];
   }
 
-  return { clasificar, cajas, porRuta, hojasExcel, rutaDe, categoria, ordenar, tipoDe, ESTADOS, fCorta };
+  return { clasificar, clasificarAnterior, cajas, porRuta, hojasExcel, rutaDe, categoria, ordenar, tipoDe, ESTADOS, fCorta };
 })();
 if (typeof module !== "undefined") module.exports = Estados;
 
@@ -626,7 +692,7 @@ let token=store.get('token',''),usuario=store.get('usuario','');
 let R=[],diaR='',trabajando=false,parar=false;
 class Err extends Error{constructor(m,x){super(m);Object.assign(this,x||{});}}
 function show(id,on){$(id).classList.toggle('hidden',!on);}
-function err(id,msg){$(id).textContent=msg||'';show(id,!!msg);}
+function err(id,msg){$(id).textContent=msg||'';show(id,!!msg);if(id==='err'&&msg)show('estado-sec',true);}
 function pantalla(c){for(const s of ['sin-config','login','app'])show(s,s===c);if(c!=='app')show('final',false);}
 
 async function fn(body){
@@ -683,6 +749,58 @@ $('archivo').onchange=async()=>{
 };
 
 const cuentasAlmacen=()=>{const l=String($('almacen').value||'').split(/[,;\n]+/).map(x=>x.trim()).filter(Boolean);return l.length?l:['dominguez'];};
+// ---------- rutas de SpeedX (igual que el Divisor; BNA03A = área de Columbia dentro del centro BNA)
+const AREAS={BNA03A:{fac:'BNA',area:'BNA03A'}};
+let ciudad=store.get('ciudad','HSV');
+function pintarCiudad(){document.querySelectorAll('[data-ciudad]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.ciudad===ciudad)));}
+document.querySelectorAll('[data-ciudad]').forEach(b=>b.onclick=()=>{if(trabajando)return;ciudad=b.dataset.ciudad;store.set('ciudad',ciudad);pintarCiudad();});
+async function rutasDe(fecha,c){
+ const m=AREAS[c]||{fac:c};const f=new Date(fecha+'T12:00:00Z');f.setUTCDate(f.getUTCDate()+1);const fin=f.toISOString().slice(0,10);
+ let out=[];for(let page=1;page<=20;page++){const d=await sxReq('GET','/dms-api/route/list',{startTime:fecha,endTime:fin,sidx:'id',order:'desc',facilityCode:m.fac,size:'100',page:String(page)});const x=(d&&d.content)||[];out=out.concat(x);if(x.length<100)break;}
+ out=out.filter(r=>(r.deliverDate||fecha)===fecha);
+ if(m.area){const re=new RegExp('(^|[^A-Z0-9])'+m.area+'([^A-Z0-9]|$)','i');out=out.filter(r=>re.test(String(r.name||'')));}
+ return out;
+}
+const diaAntes=(f,n)=>{const d=new Date(f+'T12:00:00Z');d.setUTCDate(d.getUTCDate()-n);return d.toISOString().slice(0,10);};
+async function estadosLista(trackings,fecha,hasta){   // «Lista de parcelas»: estado rápido (DELIVERED, FAILED_ATTEMPT…) entre dos fechas
+ const out={};
+ for(let i=0;i<trackings.length&&!parar;i+=100){
+  const lote=trackings.slice(i,i+100);
+  for(let page=1;page<=20;page++){
+   const d=await sxReq('POST','/dms-api/parcels/search',{page:String(page),size:'100'},{trackingNos:lote,deliverDateStart:fecha,deliverDateEnd:hasta||fecha});
+   const c=(d&&d.content)||[];for(const x of c){const t=String(x.trackingNo||'').toUpperCase();if(t)out[t]=String(x.status||'');}
+   if(page>=(+(d&&d.totalPages)||1)||!c.length)break;
+  }
+ }
+ return out;
+}
+$('buscar-ant').onclick=async()=>{
+ if(trabajando)return;
+ trabajando=true;parar=false;contar();err('err','');show('estado-sec',true);show('cargando',true);$('detener').disabled=false;$('avance').style.width='0%';
+ diaR=$('dia').value||hoyISO();const almacen=cuentasAlmacen();const N=+$('dias-atras').value||3,c=ciudad;
+ const lista=new Map();let fatal=null;
+ try{
+  for(let d=1;d<=N&&!parar;d++){
+   const f=diaAntes(diaR,d);$('cargando-txt').textContent=`Leyendo rutas de ${c} del ${Estados.fCorta(f)}…`;
+   const rs=(await rutasDe(f,c)).filter(r=>(r.total||r.parcelCount||0)>0);
+   const pend=[...rs],det={};let h=0;
+   const w=async()=>{while(pend.length&&!parar){const r=pend.shift();det[r.id]=await sxReq('GET','/dms-api/route/detail',{routeId:String(r.id),plaintext:'false'});h++;$('cargando-txt').textContent=`Leyendo rutas del ${Estados.fCorta(f)}… ${h} de ${rs.length}`;}};
+   await Promise.all([w(),w(),w(),w()]);
+   const delDia=[];
+   for(const r of rs)for(const i of ((det[r.id]||{}).items||[])){const t=String(i.trackingNo||'').toUpperCase();if(t&&!lista.has(t)){lista.set(t,{tracking:t,origen:{ruta:String(r.name||''),fecha:f}});delDia.push(t);}}
+   $('cargando-txt').textContent=`Revisando estados del ${Estados.fCorta(f)} (${num(delDia.length)} paquetes)…`;
+   try{const st=await estadosLista(delDia,f,diaR);for(const t of delDia)lista.get(t).estadoSpeedX=st[t]||'';}catch(x){if(x.sesion||x.config)throw x;}
+  }
+ }catch(x){fatal=x;}
+ trabajando=false;
+ if(fatal){show('cargando',false);if(!fatal.sesion&&!fatal.config)err('err',fatal.message);contar();return;}
+ const items=[...lista.values()];
+ if(!items.length){show('cargando',false);err('err',`No hay paquetes en rutas de ${c} de los ${N} días anteriores.`);contar();return;}
+ // los entregados según «Lista de parcelas» no necesitan Operation Log
+ const rapidos=items.filter(x=>x.estadoSpeedX==='DELIVERED').map(x=>({tracking:x.tracking,caja:'a_entregado',estado:'entregado',estadoTxt:'Entregado',evento:'DELIVERED',operador:'',fecha:'',hora:'',ruta:x.origen.ruta,fechaRuta:x.origen.fecha,otroDia:true,nota:''}));
+ await procesar(items.filter(x=>x.estadoSpeedX!=='DELIVERED'),{anterior:true,extra:rapidos,almacen});
+};
+
 // ---------- revisar en SpeedX (Operation Log de cada tracking, como el robot)
 const A_LA_VEZ=3;
 async function operationLog(t){
@@ -694,44 +812,55 @@ async function operationLog(t){
 $('detener').onclick=()=>{parar=true;$('detener').disabled=true;$('cargando-txt').textContent='Deteniendo…';};
 $('revisar').onclick=async()=>{
  const ts=Paquetes.leerTrackings($('lista').value);if(!ts.length||trabajando)return;
- trabajando=true;parar=false;contar();err('err','');show('cargando',true);$('detener').disabled=false;
- diaR=$('dia').value||hoyISO();const almacen=cuentasAlmacen();store.set('est_almacen',$('almacen').value);
- const res=new Array(ts.length);let hechos=0,i=0,fatal=null;
- const avance=()=>{$('cargando-txt').textContent=`Revisando ${num(hechos)} de ${num(ts.length)}…`;$('avance').style.width=(100*hechos/ts.length)+'%';};
+ parar=false;diaR=$('dia').value||hoyISO();
+ // primero el estado en la «Lista de parcelas» (últimos 30 días): si SpeedX dice DELIVERED, está entregado
+ let st={};trabajando=true;show('estado-sec',true);show('cargando',true);$('cargando-txt').textContent=`Revisando estados en SpeedX (${num(ts.length)} paquetes)…`;
+ try{st=await estadosLista(ts,diaAntes(diaR,30),diaR);}catch(x){if(x.sesion||x.config){trabajando=false;show('cargando',false);return;}}
+ trabajando=false;
+ await procesar(ts.map(t=>({tracking:t,estadoSpeedX:st[t]||''})),{anterior:false,almacen:cuentasAlmacen()});
+};
+let modoAnt=false;
+async function procesar(items,{anterior,extra=[],almacen}){
+ trabajando=true;contar();err('err','');show('estado-sec',true);show('cargando',true);$('detener').disabled=false;
+ store.set('est_almacen',$('almacen').value);
+ const total=items.length+extra.length,res=new Array(items.length);let hechos=0,i=0,fatal=null;
+ const avance=()=>{$('cargando-txt').textContent=`Revisando ${num(hechos+extra.length)} de ${num(total)}…`;$('avance').style.width=(100*(hechos+extra.length)/Math.max(1,total))+'%';};
  avance();
  async function trabajador(){
-  while(!parar&&!fatal&&i<ts.length){
-   const k=i++,t=ts[k];
-   try{res[k]={tracking:t,...Estados.clasificar(await operationLog(t),{dia:diaR,almacen})};}
-   catch(x){
-    if(x.sesion||x.config||x.red){fatal=x;break;}
-    res[k]={tracking:t,caja:'no_encontrado',estado:'no_encontrado',estadoTxt:'No encontrado',evento:'',operador:'',fecha:'',hora:'',ruta:'',fechaRuta:'',nota:x.message};
+  while(!parar&&!fatal&&i<items.length){
+   const k=i++,x=items[k],t=x.tracking;
+   try{const logs=await operationLog(t);
+    res[k]={tracking:t,...(anterior?Estados.clasificarAnterior(logs,{dia:diaR,almacen,origen:x.origen,estadoSpeedX:x.estadoSpeedX}):Estados.clasificar(logs,{dia:diaR,almacen,estadoSpeedX:x.estadoSpeedX}))};}
+   catch(e){
+    if(e.sesion||e.config||e.red){fatal=e;break;}
+    res[k]={tracking:t,caja:'no_encontrado',estado:'no_encontrado',estadoTxt:'No encontrado',evento:'',operador:'',fecha:'',hora:'',ruta:x.origen?x.origen.ruta:'',fechaRuta:x.origen?x.origen.fecha:'',nota:e.message};
    }
    hechos++;avance();
   }
  }
  try{
-  await Promise.all(Array.from({length:Math.min(A_LA_VEZ,ts.length)},trabajador));
-  R=res.filter(Boolean);
-  if(fatal&&!fatal.sesion&&!fatal.config||fatal&&fatal.permitida)err('err',fatal.message+(R.length?` Se acomodaron ${num(R.length)} de ${num(ts.length)}.`:''));
-  else if(parar&&R.length<ts.length)err('err',`Detenido: se acomodaron ${num(R.length)} de ${num(ts.length)}.`);
+  await Promise.all(Array.from({length:Math.min(A_LA_VEZ,Math.max(1,items.length))},trabajador));
+  R=[...extra,...res.filter(Boolean)];modoAnt=anterior;
+  if(fatal&&!fatal.sesion&&!fatal.config||fatal&&fatal.permitida)err('err',fatal.message+(R.length?` Se acomodaron ${num(R.length)} de ${num(total)}.`:''));
+  else if(parar&&R.length<total)err('err',`Detenido: se acomodaron ${num(R.length)} de ${num(total)}.`);
+  else if(!$('err').textContent)show('estado-sec',false);
   if(R.length){pintar();$('res').scrollIntoView({behavior:'smooth',block:'start'});}
  }finally{trabajando=false;show('cargando',false);contar();}
-};
+}
 
 // ---------- pintar
-const clase=k=>k==='success'?'ok':k==='fail'?'mal':k==='blanco'?'gris':'';
-const pill=r=>r.estado==='success'||r.estado==='entregado'?'p-verde':r.estado==='fail'?'p-rojo':r.estado==='blanco'?'p-amar':'p-azul';
+const clase=k=>k==='success'?'ok':k==='fail'?'mal':k==='blanco'?'gris':['a_undelivered','a_no_salio','a_sin_resultado'].includes(k)?'reini':['a_hoy','a_entregado'].includes(k)?'nada':'';
+const pill=r=>['a_hoy','a_entregado'].includes(r.caja)?'p-verde':['a_undelivered','a_sin_resultado'].includes(r.caja)?'p-rojo':r.caja==='a_no_salio'?'p-amar':r.estado==='success'||r.estado==='entregado'?'p-verde':r.estado==='fail'?'p-rojo':r.estado==='blanco'?'p-amar':'p-azul';
 const MAX_VISIBLES=150;
 const paqHTML=p=>`<div class="paq"><span class="t">${esc(p.tracking)}</span><span class="pill ${pill(p)}">${esc(p.estadoTxt)}</span>
- <span class="d">${p.operador?esc(p.operador)+' · ':''}${p.hora?esc(Estados.fCorta(p.fecha))+' '+esc(p.hora):''}${p.estado==='no_encontrado'&&p.nota?' · '+esc(p.nota):''}</span></div>`;
+ <span class="d">${p.operador?esc(p.operador)+' · ':''}${p.hora?esc(Estados.fCorta(p.fecha))+' '+esc(p.hora):''}${p.rutaUltima&&p.rutaUltima!==p.ruta?' · ahora en '+esc(p.rutaUltima):''}${p.estado==='no_encontrado'&&p.nota?' · '+esc(p.nota):''}</span></div>`;
 let CS=[];
 function pintar(){
  const cs=CS=Estados.cajas(R,diaR);show('res',true);show('final',true);
  $('cajitas').innerHTML=cs.map((c,k)=>`<button class="cajita ${clase(c.clave)}" data-ir="${k}"><b>${num(c.paquetes.length)}</b><span>${esc(c.titulo)}</span></button>`).join('');
  document.querySelectorAll('[data-ir]').forEach(b=>b.onclick=()=>{const el=$('caja-'+b.dataset.ir);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});});
- const reset=cs.filter(c=>c.clave==='fail'||c.clave==='blanco').flatMap(c=>c.paquetes.map(p=>p.tracking));
- $('copiar-reset').textContent=`Copiar fail + en blanco (${num(reset.length)}) para resetear`;$('copiar-reset').disabled=!reset.length;
+ const reset=cs.filter(c=>c.reiniciar).flatMap(c=>c.paquetes.map(p=>p.tracking));
+ $('copiar-reset').textContent=modoAnt?`Copiar los ${num(reset.length)} que hay que reiniciar y meter al batch de hoy`:`Copiar fail + en blanco (${num(reset.length)}) para resetear`;$('copiar-reset').disabled=!reset.length;
  $('copiar-reset').onclick=e=>copiar(reset.join('\n'),e.currentTarget);
  $('cajas').innerHTML=cs.map((c,k)=>!c.paquetes.length?'':`<div class="hoja caja ${clase(c.clave)}" id="caja-${k}">
   <div class="caja-h"><h3>${esc(c.titulo)}</h3><span class="n">${num(c.paquetes.length)}</span><button class="mini" data-copiar="${k}">Copiar</button></div>
@@ -741,7 +870,7 @@ function pintar(){
  document.querySelectorAll('[data-copiar]').forEach(b=>b.onclick=()=>copiar(cs[+b.dataset.copiar].paquetes.map(p=>p.tracking).join('\n'),b));
  document.querySelectorAll('[data-copiar-r]').forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();const [k,j]=b.dataset.copiarR.split(':').map(Number);copiar(cs[k].rutas[j].paquetes.map(p=>p.tracking).join('\n'),b);});
  const n=k=>(cs.find(c=>c.clave===k)||{paquetes:[]}).paquetes.length;
- $('final-txt').innerHTML=`<b>${num(R.length)}</b> paquetes · <b>${num(n('success'))}</b> escaneados · <b>${num(n('fail'))}</b> fail · <b>${num(n('blanco'))}</b> en blanco`;
+ $('final-txt').innerHTML=modoAnt?`<b>${num(R.length)}</b> paquetes de días anteriores · <b>${num(reset.length)}</b> para reiniciar`:`<b>${num(R.length)}</b> paquetes · <b>${num(n('success'))}</b> escaneados · <b>${num(n('fail'))}</b> fail · <b>${num(n('blanco'))}</b> en blanco`;
 }
 async function copiar(texto,boton){
  try{await navigator.clipboard.writeText(texto);}catch(e){const t=document.createElement('textarea');t.value=texto;document.body.appendChild(t);t.select();try{document.execCommand('copy');}catch(_){}t.remove();}
@@ -751,7 +880,7 @@ async function copiar(texto,boton){
 // ---------- Excel
 $('excel').onclick=async()=>{
  if(!R.length)return;const b=$('excel');b.disabled=true;
- const nombre=`Escaneos_${diaR}`;
+ const nombre=(modoAnt?`Dias_anteriores_${ciudad}_`:'Escaneos_')+diaR;
  try{
   const X=await cargarXLSX();const wb=X.utils.book_new();
   for(const h of Estados.hojasExcel(R,diaR)){const ws=X.utils.aoa_to_sheet(h.filas);ws['!cols']=h.filas[0].map((_,i)=>({wch:Math.min(48,Math.max(10,...h.filas.map(f=>String(f[i]??'').length)))}));X.utils.book_append_sheet(wb,ws,h.nombre);}
@@ -765,7 +894,7 @@ $('excel').onclick=async()=>{
 
 // ---------- inicio
 (function inicio(){
- $('dia').value=hoyISO();$('almacen').value=store.get('est_almacen','dominguez, Arrieta');
+ $('dia').value=hoyISO();pintarCiudad();$('almacen').value=store.get('est_almacen','dominguez, Arrieta');
  if(!store.get('funcion','')||!store.get('acceso',''))return pantalla('sin-config');
  if(!token)return mostrarLogin();
  pantalla('app');
