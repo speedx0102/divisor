@@ -576,9 +576,17 @@ const Estados = (() => {
       (/\bdelivered\b|entregado/i.test(r) && !/undeliver|not delivered|no entregado/i.test(r));
   };
 
+  // Despacho y reinicio no son escaneos, pero cambian la historia del paquete:
+  //  DELIVER_DISPATCH «1027-BNA03A-batch9192:D has been dispatched to …» → la ruta a la que se asignó.
+  //  FORCE_REFRESH_STATUS «Triggered Force Reset Parcels Status & Route» → alguien reinició el paquete.
+  const rutaDespacho = (ev) => { const m = String((ev && ev.remarks) || "").match(/^\s*(.+?)\s+has\s+been\s+dispatched/i); return m ? nombre(m[1]).replace(/:[A-Z]$/, "") : ""; };
+  const esReinicio = (ev) => tipoDe(ev) === "FORCE_REFRESH_STATUS" && !esSistema(ev);
+  const esDespacho = (ev) => tipoDe(ev) === "DELIVER_DISPATCH";
+
   const ESTADOS = {
     success: "Ya escaneados (scan success)", fail: "Scan fail (error)", blanco: "En blanco (sin escanear)", entregado: "Entregado",
     no_entregable: "No entregable", otro: "Otro estado", no_encontrado: "No encontrado",
+    reiniciado: "Ya reiniciados (falta escanear hoy)",
   };
   // Modo «días anteriores»: paquetes sacados de rutas viejas
   Object.assign(ESTADOS, {
@@ -586,7 +594,7 @@ const Estados = (() => {
     a_sin_resultado: "Salieron sin resultado", a_hoy: "Ya están en una ruta de hoy", a_entregado: "Entregados",
   });
   const REINICIAR = new Set(["fail", "blanco", "a_undelivered", "a_no_salio", "a_sin_resultado"]);
-  const PILL = { success: "Scan success", fail: "Scan fail", blanco: "En blanco", entregado: "Entregado", no_entregable: "No entregable", no_encontrado: "No encontrado" };
+  const PILL = { success: "Scan success", fail: "Scan fail", blanco: "En blanco", entregado: "Entregado", no_entregable: "No entregable", no_encontrado: "No encontrado", reiniciado: "Reiniciado" };
 
   /**
    * logs: operationLogsDto de SpeedX. opciones: {dia:'2026-10-28', almacen:['dominguez'], hoy:Date}
@@ -595,10 +603,14 @@ const Estados = (() => {
   function clasificar(logs, opciones = {}) {
     const almacen = new Set((opciones.almacen || ["dominguez"]).map(clave));
     const evs = ordenar(logs);
-    let ultimo = null;
-    for (const e of evs) if (categoria(e, almacen) !== "ignorar" || esEntregaEv(e)) ultimo = e;
-    // ruta del paquete: la del último evento real; si no trae, la más reciente que aparezca en el historial
-    let ruta = ultimo ? rutaDe(ultimo) : "";
+    let ultimo = null, iu = -1;
+    evs.forEach((e, i) => { if (categoria(e, almacen) !== "ignorar" || esEntregaEv(e)) { ultimo = e; iu = i; } });
+    // Después del último escaneo: ¿se despachó en una ruta? ¿alguien lo reinició?
+    let despacho = null, reinicio = null;
+    evs.slice(iu + 1).forEach((e) => { if (esDespacho(e)) despacho = e; if (esReinicio(e)) reinicio = e; });
+    if (reinicio && despacho && (+despacho.operationDate || 0) > (+reinicio.operationDate || 0)) reinicio = null;   // lo despacharon otra vez después del reinicio
+    // ruta del paquete: la del último evento real (o la del despacho que vino después); si no, la más reciente del historial
+    let ruta = (despacho && rutaDespacho(despacho)) || (ultimo ? rutaDe(ultimo) : "");
     if (!ruta) for (let k = evs.length - 1; k >= 0 && !ruta; k--) ruta = rutaDe(evs[k]);
     const fechaRuta = ruta && typeof Paquetes !== "undefined" ? Paquetes.fechaRuta(ruta, opciones.hoy || new Date()) : "";
     const otroDia = !!(opciones.dia && fechaRuta && fechaRuta !== opciones.dia);
@@ -616,10 +628,23 @@ const Estados = (() => {
     else estado = "otro";
     // La «Lista de parcelas» de SpeedX manda: si dice DELIVERED, está entregado.
     if (String(opciones.estadoSpeedX || "").toUpperCase() === "DELIVERED") estado = "entregado";
-    const fh = typeof Paquetes !== "undefined" ? Paquetes.fechaHora(ultimo.operationDate || ultimo.createdAt) : { fecha: "", hora: "" };
+    const FH = (e) => typeof Paquetes !== "undefined" ? Paquetes.fechaHora(e.operationDate || e.createdAt) : { fecha: "", hora: "" };
+    // Reiniciado después de su último escaneo (y sin entregar): ya no cuenta ese escaneo.
+    if (reinicio && estado !== "entregado") {
+      const fr = FH(reinicio);
+      const yaHoy = !opciones.dia || (fr.fecha && fr.fecha >= opciones.dia);
+      const antes = (despacho ? "estaba en " + rutaDespacho(despacho) + (estado === "success" ? "" : " sin escanear") : "antes: " + t.replace(/_/g, " ").toLowerCase());
+      const fRut = ruta && typeof Paquetes !== "undefined" ? Paquetes.fechaRuta(ruta, opciones.hoy || new Date()) : "";
+      return { caja: yaHoy ? "reiniciado" : "blanco", estado: yaHoy ? "reiniciado" : "blanco", reinicio: true,
+        estadoTxt: (yaHoy ? "Reiniciado " : "En blanco · reiniciado el ") + fCorta(fr.fecha) + " · " + antes,
+        evento: "FORCE_REFRESH_STATUS", operador: nombre(reinicio.operator), fecha: fr.fecha, hora: fr.hora,
+        ruta, fechaRuta: fRut, otroDia: !!(opciones.dia && fRut && fRut !== opciones.dia), nota: nombre(reinicio.remarks).slice(0, 300) };
+    }
+    const fh = FH(ultimo);
     let txt = PILL[estado] || t.replace(/_/g, " ").toLowerCase();
     if (t === "LOADING_GROUP_SORT_SUCCESS") txt = "Scan success (pre-carga)";
     else if (estado === "success" && t !== "LOADING_SCAN_SUCCESS") txt = "Scan success (agregado a la ruta)";
+    else if (estado === "blanco" && despacho) txt = "En blanco · despachado en " + rutaDespacho(despacho) + " sin escanear";
     else if (estado === "blanco") txt = "En blanco · " + t.replace(/_/g, " ").toLowerCase();
     return {
       caja: estado, estado, estadoTxt: txt, evento: t, operador: nombre(ultimo.operator),
@@ -644,6 +669,8 @@ const Estados = (() => {
       otroDia: !!(opciones.dia && (o.fecha || b.fechaRuta) && (o.fecha || b.fechaRuta) !== opciones.dia) });
     const t = b.evento || "";
     if (b.estado === "entregado" || (st === "DELIVERED" && b.estado !== "success")) return fin("a_entregado", "Entregado");
+    if (b.reinicio) return fin("a_no_salio", "No salió · " + b.estadoTxt.replace(/^En blanco · /, ""));
+    if (b.estado === "blanco" && /despachado/.test(b.estadoTxt)) return fin("a_no_salio", "No salió · despachado sin escanear");
     if (b.estado === "success" && b.fechaRuta && b.fechaRuta === opciones.dia) return fin("a_hoy", "En ruta de hoy");
     const fallido = (x) => /UNDELIVER|FAIL(ED)?_?ATTEMPT|ATTEMPT_?FAIL|DELIVERY_?FAIL|ATTEMPT/.test(x) && x !== "LOADING_SCAN_FAIL";
     if (fallido(t) || b.estado === "no_entregable") return fin("a_undelivered", "Undelivered");
@@ -665,7 +692,7 @@ const Estados = (() => {
     for (const r of resultados) { if (!por.has(r.caja)) por.set(r.caja, []); por.get(r.caja).push(r); }
     const anterior = resultados.some((r) => String(r.caja).startsWith("a_"));
     const fijas = anterior ? ["a_undelivered", "a_no_salio"] : ["success", "fail", "blanco"];
-    const resto = anterior ? ["a_sin_resultado", "a_hoy", "a_entregado", "no_encontrado"] : ["entregado", "no_entregable", "otro", "no_encontrado"];
+    const resto = anterior ? ["a_sin_resultado", "a_hoy", "a_entregado", "no_encontrado"] : ["reiniciado", "entregado", "no_entregable", "otro", "no_encontrado"];
     const out = [];
     for (const k of [...fijas, ...resto]) {
       if (!por.has(k) && !fijas.includes(k)) continue;
@@ -704,15 +731,24 @@ const Estados = (() => {
     const evs = ordenar(logs);
     let usado = -1;
     evs.forEach((e, i) => { if (categoria(e, almacen) !== "ignorar" || esEntregaEv(e)) usado = i; });
+    let iRe = -1, iDe = -1;
+    evs.forEach((e, i) => { if (i > usado && esReinicio(e)) iRe = i; if (i > usado && esDespacho(e)) iDe = i; });
+    if (iDe > iRe) iRe = -1;
     return evs.map((e, i) => {
       const cat = categoria(e, almacen), ent = esEntregaEv(e);
       const t = tipoDe(e);
       let por = "";
       if (cat === "ignorar" && !ent) por = TIPOS_IGNORADOS.has(t) ? "evento administrativo" : (t === "LOADING_GROUP_SORT_SUCCESS" ? "OFD automático del inicio de ruta" : "lo hizo el sistema");
+      if (i === iRe) return { ...base(e, t, cat, ent), cuenta: true, ignorado: false, por: "", nota2: "Reinicio: el paquete quedó reiniciado" };
+      if (i === iDe) por = "despacho de la ruta (no es escaneo); se toma la ruta " + rutaDespacho(e);
+      return { ...base(e, t, cat, ent), cuenta: i === usado && iRe < 0, ignorado: !!por, por,
+        nota2: i === usado && iRe >= 0 ? "Era el último escaneo, pero después lo reiniciaron" : "" };
+    }).reverse();
+    function base(e, t, cat, ent) {
       const fh = typeof Paquetes !== "undefined" ? Paquetes.fechaHora(e.operationDate || e.createdAt) : { fecha: "", hora: "" };
       return { tipo: t, operador: nombre(e.operator), fecha: fh.fecha, hora: fh.hora, nota: nombre(e.remarks).slice(0, 300),
-        cuenta: i === usado, ignorado: !!por, por, almacen: cat === "almacen", entrega: ent, crudo: e.operationDate ?? e.createdAt ?? "" };
-    }).reverse();
+        almacen: cat === "almacen", entrega: ent, crudo: e.operationDate ?? e.createdAt ?? "" };
+    }
   }
 
   return { explicar, clasificar, clasificarAnterior, cajas, porRuta, hojasExcel, rutaDe, categoria, ordenar, tipoDe, ESTADOS, fCorta };
@@ -886,7 +922,7 @@ async function procesar(items,{anterior,extra=[],almacen}){
 }
 
 // ---------- pintar
-const clase=k=>k==='success'?'ok':k==='fail'?'mal':k==='blanco'?'gris':['a_undelivered','a_no_salio','a_sin_resultado'].includes(k)?'reini':['a_hoy','a_entregado'].includes(k)?'nada':'';
+const clase=k=>k==='success'?'ok':k==='fail'?'mal':k==='blanco'?'gris':['a_undelivered','a_no_salio','a_sin_resultado'].includes(k)?'reini':['a_hoy','a_entregado','reiniciado'].includes(k)?'nada':'';
 const pill=r=>['a_hoy','a_entregado'].includes(r.caja)?'p-verde':['a_undelivered','a_sin_resultado'].includes(r.caja)?'p-rojo':r.caja==='a_no_salio'?'p-amar':r.estado==='success'||r.estado==='entregado'?'p-verde':r.estado==='fail'?'p-rojo':r.estado==='blanco'?'p-amar':'p-azul';
 const MAX_VISIBLES=150;
 const paqHTML=p=>`<div class="paq"><span class="t">${esc(p.tracking)} ${LOGS.has(p.tracking)?`<button class="mini hist" data-hist="${esc(p.tracking)}">Historial</button>`:''}</span><span class="pill ${pill(p)}">${esc(p.estadoTxt)}</span>
@@ -915,7 +951,7 @@ function verHistorial(t){
  $('hist-tit').textContent=t;
  $('hist-lista').innerHTML=evs.length?evs.map(e=>`<div class="hev${e.cuenta?' cuenta':''}${e.ignorado?' ign':''}"><div class="hev-h"><b>${esc(e.tipo||'(sin tipo)')}</b><span>${esc(Estados.fCorta(e.fecha))} ${esc(e.hora)}</span></div>
   <div class="hev-d">${esc(e.operador||'(sin operador)')}${e.nota?' · '+esc(e.nota):''}</div>
-  <div class="hev-t">${e.cuenta?'✓ Este es el que contó':e.ignorado?'No cuenta: '+esc(e.por):e.entrega?'Entrega':e.almacen?'Warehouse':'Escaneo de persona'}</div></div>`).join(''):'<p class="sub">SpeedX no trajo historial para este paquete.</p>';
+  <div class="hev-t">${e.cuenta?(e.tipo==='FORCE_REFRESH_STATUS'?'✓ Este es el que contó: el paquete quedó reiniciado':'✓ Este es el que contó'):e.nota2?esc(e.nota2):e.ignorado?'No cuenta: '+esc(e.por):e.entrega?'Entrega':e.almacen?'Warehouse':'Escaneo de persona'}</div></div>`).join(''):'<p class="sub">SpeedX no trajo historial para este paquete.</p>';
  $('historial').showModal();
 }
 $('hist-cerrar').onclick=()=>$('historial').close();
