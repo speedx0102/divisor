@@ -168,15 +168,12 @@ dialog h2{font-size:22px;margin-bottom:8px}
  <section id="config" class="hidden bienvenida">
   <img src="iconos/icon-192.png" alt="">
   <h1>Conectar el PDA</h1>
-  <p class="sub">Solo se hace una vez. Son los mismos datos que usas en el Divisor de rutas para entrar a SpeedX.</p>
+  <p class="sub">La base de datos de AFLEX que usa este PDA. Ya viene puesta la de Tuscaloosa.</p>
   <form id="config-form" class="hoja" style="text-align:left">
-   <label class="campo">Dirección de la función (SpeedX)<input id="cfg-url" type="url" inputmode="url" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="https://xxxx.supabase.co/functions/v1/divisor-rutas" required></label>
-   <label class="campo">Clave de acceso<input id="cfg-clave" type="password" autocomplete="off" required></label>
-   <details style="margin-bottom:12px"><summary style="cursor:pointer;color:#9DB9FF;font-weight:700">AFLEX Tuscaloosa (ya viene puesto)</summary>
-    <label class="campo" style="margin-top:10px">Project URL de AFLEX<input id="cfg-aflex-url" type="url" autocapitalize="none" spellcheck="false"></label>
-    <label class="campo">Publishable key de AFLEX<input id="cfg-aflex-key" type="text" autocapitalize="none" spellcheck="false"></label>
-   </details>
-   <button class="btn btn-pri btn-ancho" type="submit">Conectar</button>
+   <label class="campo">Project URL de AFLEX<input id="cfg-aflex-url" type="url" autocapitalize="none" spellcheck="false" required></label>
+   <label class="campo">Publishable key de AFLEX<input id="cfg-aflex-key" type="text" autocapitalize="none" spellcheck="false" required></label>
+   <button class="btn btn-pri btn-ancho" type="submit">Guardar</button>
+   <button class="mini" type="button" id="cfg-tcl" style="margin-top:10px">Volver a Tuscaloosa</button>
    <div id="config-err" class="err hidden"></div>
   </form>
  </section>
@@ -185,7 +182,7 @@ dialog h2{font-size:22px;margin-bottom:8px}
  <section id="login" class="hidden bienvenida">
   <img src="iconos/icon-192.png" alt="">
   <h1>Entrar</h1>
-  <p class="sub">Se necesitan las dos cuentas: AFLEX (para marcar retornados) y SpeedX POS (para Left on dock).</p>
+  <p class="sub">Primero AFLEX y después SpeedX. AFLEX marca los retornados; SpeedX hace Left on dock.</p>
   <form id="login-aflex" class="hoja" style="text-align:left">
    <h3 style="margin-bottom:10px">1 · AFLEX Tuscaloosa <span id="aflex-ok" class="pill p-verde hidden">✓ dentro</span></h3>
    <div id="aflex-campos">
@@ -374,16 +371,21 @@ let aprendidas=store.get('pda_reglas',[]).filter(a=>!/no permitida/i.test((a.cla
 
 // ---------- SpeedX (por la misma función del Divisor de rutas)
 async function fn(body){
- const url=store.get('funcion',''),clave=store.get('acceso','');
- if(!url||!clave){mostrarConfig();throw new Err('Falta conectar el PDA.',{config:true});}
+ if(!db)conectarAflex();
  let r;
- try{r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','x-divisor-clave':clave},body:JSON.stringify(body)});}
+ try{r=await db.functions.invoke('aflex-pda',{body});}
  catch(e){throw new Err('Sin conexión. Revisa el internet del PDA.',{red:true});}
- const j=await r.json().catch(()=>({error:'El servidor respondió algo que no se entiende (HTTP '+r.status+').',red:true}));
- if(r.status===403&&j.clave){mostrarConfig('La clave de acceso no es correcta.');throw new Err(j.error,{config:true});}
- if(/no permitida/i.test(j.error||''))throw new Err('Tu función divisor-rutas de Supabase todavía no deja hacer Left on dock ni Contenedor. Hay que actualizarla; los paquetes esperan aquí.',{permitida:true});
- if(r.status===401&&j.sesion){sxToken='';store.del('pda_sx_token');estadoCuentas();throw new Err('La sesión de SpeedX venció. Vuelve a entrar a SpeedX.',{sesion:true});}
- if(!r.ok||j.error)throw new Err(String(j.error||('HTTP '+r.status)).replace(/^SpeedX:\s*/,''),{red:!!j.red||r.status>=500&&!j.error,speedx:true});
+ if(r.error){
+  const st=r.error.context&&r.error.context.status;
+  if(st===404)throw new Err('Falta instalar la función aflex-pda en el Supabase de AFLEX (mira la guía). Los paquetes esperan aquí.',{permitida:true});
+  if(st===401){perfil=null;estadoCuentas();throw new Err('La sesión de AFLEX venció. Vuelve a entrar a AFLEX.',{sesion:true});}
+  throw new Err('Sin conexión con la función del PDA'+(st?' (HTTP '+st+')':'')+'.',{red:true});
+ }
+ const j=r.data||{};
+ if(j.aflex){perfil=null;estadoCuentas();throw new Err(j.error,{sesion:true});}
+ if(/no permitida/i.test(j.error||''))throw new Err(j.error,{permitida:true});
+ if(j.sesion){sxToken='';store.del('pda_sx_token');estadoCuentas();throw new Err('La sesión de SpeedX venció. Vuelve a entrar a SpeedX.',{sesion:true});}
+ if(j.error)throw new Err(String(j.error).replace(/^SpeedX:\s*/,''),{red:!!j.red,speedx:true});
  return j;
 }
 const sx=async(metodo,ruta,params,cuerpo)=>(await fn({accion:'speedx',metodo,ruta,params,cuerpo,token:sxToken})).datos;
@@ -421,7 +423,7 @@ async function cargarPerfil(){
 
 // ---------- pantallas
 function pantalla(cual){for(const s of ['config','login'])show(s,s===cual);const app=cual==='app';for(const v of ['escanear','hoy','pendientes','caja'])show('v-'+v,app&&v===vista);show('tabs',app);show('estado-chip',app);show('abrir-ajustes',app);}
-function mostrarConfig(msg){pantalla('config');$('cfg-url').value=store.get('funcion','');const c=store.get('pda_aflex',AFLEX_TCL);$('cfg-aflex-url').value=c.url;$('cfg-aflex-key').value=c.key;err('config-err',msg||'');}
+function mostrarConfig(msg){pantalla('config');const c=store.get('pda_aflex',AFLEX_TCL);$('cfg-aflex-url').value=c.url;$('cfg-aflex-key').value=c.key;err('config-err',msg||'');}
 function mostrarLogin(){pantalla('login');show('aflex-ok',!!perfil);show('aflex-campos',!perfil);show('sx-ok',!!sxToken);show('sx-campos',!sxToken);if(!perfil)$('af-correo').focus();else if(!sxToken)$('sx-usuario').focus();}
 function ir(v){
  if(!perfil||!sxToken){mostrarLogin();return;}
@@ -444,10 +446,11 @@ function estadoCuentas(){
 $('estado-chip').onclick=()=>{if(!perfil||!sxToken)mostrarLogin();else if(cola.length)procesarCola(true);};
 
 // ---------- conexión y entrar
-$('config-form').onsubmit=e=>{e.preventDefault();
- store.set('funcion',$('cfg-url').value.trim());store.set('acceso',$('cfg-clave').value.trim());
+$('cfg-tcl').onclick=()=>{$('cfg-aflex-url').value=AFLEX_TCL.url;$('cfg-aflex-key').value=AFLEX_TCL.key;};
+$('config-form').onsubmit=async e=>{e.preventDefault();
+ if(db){try{await db.auth.signOut();}catch(x){}}perfil=null;
  const u=$('cfg-aflex-url').value.trim().replace(/\/+$/,'')||AFLEX_TCL.url,k=$('cfg-aflex-key').value.trim()||AFLEX_TCL.key;
- store.set('pda_aflex',{url:u,key:k});$('cfg-clave').value='';conectarAflex();iniciar();};
+ store.set('pda_aflex',{url:u,key:k});conectarAflex();iniciar();};
 $('cambiar-config').onclick=()=>mostrarConfig();
 $('login-aflex').onsubmit=async e=>{e.preventDefault();err('aflex-err','');const b=e.target.querySelector('button');b.disabled=true;b.textContent='Entrando…';
  try{const r=await db.auth.signInWithPassword({email:$('af-correo').value.trim(),password:$('af-clave').value});if(r.error)throw new Err(/invalid/i.test(r.error.message)?'Correo o contraseña incorrectos.':traducir(r.error.message));
@@ -515,7 +518,7 @@ async function procesarCola(forzar){
   }
  }catch(e){
   if(e.sesion)mostrar({color:'rojo',grande:'SpeedX: vuelve a entrar',det:e.message+' Los paquetes escaneados esperan aquí.'},'error');
-  else if(e.permitida)mostrar({color:'azul',grande:'Falta actualizar la función',det:e.message},'error');
+  else if(e.permitida)mostrar({color:'azul',grande:'Falta instalar la función',det:e.message},'error');
   else if(!e.config)mostrar({color:'azul',grande:'En espera',det:e.message+' Se reintenta solo; no vuelvas a escanear.'},'error');
   setTimeout(()=>procesarCola(),e.permitida?60000:15000);
  }finally{trabajandoCola=false;pintarCola();estadoCuentas();}
@@ -750,7 +753,6 @@ document.addEventListener('visibilitychange',()=>{if(!document.hidden){procesarC
 
 // ---------- inicio
 async function iniciar(){
- if(!store.get('funcion','')||!store.get('acceso',''))return mostrarConfig();
  if(!db)conectarAflex();
  try{await cargarPerfil();}catch(e){perfil=null;err('aflex-err',e.message);}
  estadoCuentas();pintarCola();

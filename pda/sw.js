@@ -1,5 +1,5 @@
 // AFLEX PDA: abre aunque la señal esté mala. Siempre busca primero la versión nueva.
-const CACHE = "aflex-pda-v2";
+const CACHE = "aflex-pda-v3";
 const BASE = ["./", "./index.html", "./manifest.webmanifest", "./vendor/supabase.min.js", "./vendor/exceljs.min.js", "./iconos/icon-192.png", "./iconos/icon-512.png"];
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(BASE)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", (e) => {
