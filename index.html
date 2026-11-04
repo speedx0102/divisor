@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0D2454">
+<meta name="theme-color" content="#0B1530">
 <meta name="description" content="Divide las rutas de SpeedX POS por código postal y las reparte entre drivers por mapa.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -246,15 +246,162 @@ dialog .fila .btn{flex:1}
 .fila-add{display:flex;gap:8px;margin-top:10px}
 .fila-add input{flex:1;min-width:0}
 .fila-add .btn{min-height:46px;padding:10px 14px;font-size:15.5px}
+
+/* ================= Diseño 2: oscuro, botones gigantes, animaciones ================= */
+:root{
+ --fondo:#0B1530;--hoja:#16244A;--hoja2:#1C2A4F;--tinta:#F2F5FB;--tinta2:#AEB9D1;--linea:#2A3A63;
+ --azul:#5B8CFF;--naranja:#FFA51F;--noche:#0B1530;--amarillo:#FFD23F;--verde:#4FD39B;--verdebg:#123426;
+ --rojo:#FF8A7E;--rojobg:#3A1714;--avisobg:#3A3110;--sel:#FFD23F;--seltinta:#0B1530;
+ --sombra:none;--suave:cubic-bezier(.2,.8,.2,1);color-scheme:dark;
+}
+body{background:var(--fondo)}
+.ic-azul{background:#1A2A4D;color:#9DB9FF}.ic-amar{color:#F1C94A}.p-amar{color:#F1C94A}
+.hoja{background:var(--hoja);border:0;border-radius:22px}
+input[type=text],input[type=password],input[type=url],input[type=number],input[type=date],select{background:var(--fondo);border-color:var(--linea)}
+.btn{border-radius:16px;min-height:54px;transition:transform .15s var(--suave),filter .15s,opacity .2s}
+.btn:active:not(:disabled),.tile:active,.mini:active,.redondo:active,.lugar:active,.contador button:active,.opcion:active,.herr:active{transform:scale(.96)}
+.btn-azul{background:var(--azul);color:#0B1530}
+.btn-suave{background:var(--hoja2);border:0;color:var(--tinta)}
+.btn-grande{min-height:66px;font-size:21px;border-radius:18px}
+.mini{background:var(--hoja2);border:0;color:var(--tinta);transition:transform .15s var(--suave)}
+.enlace{color:#9DB9FF}
+details.mas summary{color:#9DB9FF}
+
+/* barra de arriba */
+.barra{background:var(--fondo);padding:calc(12px + env(safe-area-inset-top)) 16px 10px;gap:10px}
+.barra .marca{font-size:22px;transition:opacity .2s}
+.barra .marca span{opacity:.6}
+.redondo{flex:none;width:48px;height:48px;border:0;border-radius:14px;background:var(--hoja2);color:var(--tinta);display:grid;place-items:center;cursor:pointer;transition:transform .15s var(--suave)}
+.redondo svg{width:24px;height:24px}
+.lugar{flex:none;height:48px;padding:0 12px 0 16px;border:0;border-radius:14px;background:var(--hoja2);color:var(--tinta);font-weight:700;font-size:17px;display:flex;align-items:center;gap:6px;cursor:pointer;transition:transform .15s var(--suave)}
+.lugar svg{width:18px;height:18px;opacity:.7}
+main{padding-top:6px}
+
+/* inicio */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;background:var(--hoja);border-radius:22px;padding:16px 18px;margin-bottom:14px}
+.stats div{display:flex;flex-direction:column}
+.stats b{font:700 44px/1 "Barlow Condensed",Barlow,sans-serif;font-variant-numeric:tabular-nums}
+.stats b.amar{color:var(--amarillo)}
+.stats span{color:var(--tinta2);font-size:15px;margin-top:4px}
+.stats.cargando-st b{animation:latido 1.2s ease-in-out infinite}
+@keyframes latido{50%{opacity:.35}}
+.mosaico{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tile{min-height:168px;border:0;border-radius:24px;background:var(--hoja2);color:var(--tinta);display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;
+ padding:18px;text-align:left;cursor:pointer;transition:transform .18s var(--suave),filter .18s;gap:10px}
+.tile svg{width:46px;height:46px}
+.tile b{font-size:23px;line-height:1.08;margin-top:auto}
+.tile span{font-size:14.5px;opacity:.75;line-height:1.2;min-height:1.2em}
+.t-amar{background:var(--amarillo);color:#0B1530}.t-azul{background:var(--azul);color:#0B1530}
+.t-amar span,.t-azul span{opacity:.85}
+.herramientas{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.herr{display:flex;align-items:center;gap:10px;min-height:58px;border-radius:18px;background:var(--hoja);color:var(--tinta);text-decoration:none;font-weight:700;padding:0 16px;transition:transform .15s var(--suave)}
+.herr svg{width:24px;height:24px;flex:none;color:#9DB9FF}
+.espera{color:var(--tinta2);text-align:center;padding:40px 0}
+.instalar{background:var(--hoja);border-color:var(--azul)}
+
+/* pantallas: entrar y salir */
+.vista.entra-der{animation:entraDer .34s var(--suave) both}
+.vista.entra-izq{animation:entraIzq .34s var(--suave) both}
+@keyframes entraDer{from{opacity:0;transform:translateX(36px)}to{opacity:1;transform:none}}
+@keyframes entraIzq{from{opacity:0;transform:translateX(-36px)}to{opacity:1;transform:none}}
+.vista.entra-der .hoja,.vista.entra-izq .hoja,.vista.entra-der .tile,.vista.entra-izq .tile,.vista.entra-izq .stats,.vista.entra-izq .herr{animation:subir .42s var(--suave) both}
+.vista .hoja:nth-child(2),.vista .tile:nth-child(2){animation-delay:.04s}
+.vista .hoja:nth-child(3),.vista .tile:nth-child(3){animation-delay:.08s}
+.vista .hoja:nth-child(4),.vista .tile:nth-child(4){animation-delay:.12s}
+@keyframes subir{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.aparece{animation:subir .36s var(--suave) both}
+.marca.cambia{animation:fundido .3s var(--suave)}
+@keyframes fundido{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.tag,.rep-ruta,.vieja,.guard,.ruta,.parte{animation:subir .34s var(--suave) both}
+.tag:nth-child(n+2),.rep-ruta:nth-child(n+2),.vieja:nth-child(n+2),.parte:nth-child(n+2){animation-delay:.03s}
+.tag:nth-child(n+4),.rep-ruta:nth-child(n+4),.vieja:nth-child(n+4),.parte:nth-child(n+4){animation-delay:.07s}
+.tag:nth-child(n+7),.rep-ruta:nth-child(n+7),.vieja:nth-child(n+7){animation-delay:.11s}
+.tag{background:var(--hoja2);border-color:transparent}
+.tag .visto{background:var(--hoja)}
+
+/* hojas que suben */
+dialog[open] .panel{animation:hojaSube .34s var(--suave) both}
+dialog[open]::backdrop{animation:velo .3s ease both}
+dialog.cerrando .panel{animation:hojaBaja .22s ease-in both}
+dialog.cerrando::backdrop{animation:velo .22s ease reverse both}
+@keyframes hojaSube{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes hojaBaja{to{transform:translateY(40px);opacity:0}}
+@keyframes velo{from{opacity:0}to{opacity:1}}
+@media (min-width:700px){dialog[open] .panel{animation-name:hojaSubeC}dialog.cerrando .panel{animation-name:hojaBajaC}}
+@keyframes hojaSubeC{from{transform:translateY(-46%);opacity:0}to{transform:translateY(-50%);opacity:1}}
+@keyframes hojaBajaC{to{transform:translateY(-46%);opacity:0}}
+dialog .panel{background:var(--hoja)}
+.seg{background:var(--fondo)}
+.seg button{padding:14px 0;font-size:17px}
+#ciudades{grid-template-columns:repeat(3,1fr)}
+.fechas .chip{background:var(--hoja2);border-color:transparent;padding:13px 16px;font-size:17px}
+.fechas .chip[aria-pressed=true],.fechas .otra[aria-pressed=true]{background:var(--amarillo);border-color:var(--amarillo);color:#0B1530}
+.seg button[aria-pressed=true],.seg2 button[aria-pressed=true]{background:var(--amarillo);color:#0B1530}
+.seg2{background:var(--fondo)}
+.seg2 button{transition:background-color .2s,color .2s}
+
+/* progreso */
+.progreso:not(.hidden){animation:velo .28s ease both}
+.progreso .caja{animation:subir .4s var(--suave) both}
+.progreso{background:#0B1530}
+
+/* repartir (pantalla completa) */
+#repartir .panel{top:0;bottom:0;max-width:560px;max-height:none;height:100%;border-radius:0;background:var(--fondo);
+ padding:calc(14px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px;overflow:auto}
+@media (min-width:700px){#repartir .panel{top:0;transform:none;border-radius:0}dialog#repartir[open] .panel{animation-name:hojaSube}dialog#repartir.cerrando .panel{animation-name:hojaBaja}}
+.rep-cab{display:flex;align-items:center;gap:10px}
+.rep-cab .t{flex:1;min-width:0}
+.rep-cab .t b{display:block;font-size:21px;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rep-cab .t span{color:var(--tinta2);font-size:15px}
+.contador button{width:48px;height:48px;border-radius:14px;border:0;background:var(--hoja2);color:var(--tinta);transition:transform .15s var(--suave)}
+.contador output{min-width:30px;font-size:30px}
+.opciones{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.opcion{position:relative;min-height:64px;border:0;border-radius:16px;background:var(--hoja2);color:var(--tinta);font-weight:700;font-size:17px;line-height:1.1;cursor:pointer;padding:8px 6px;
+ transition:background-color .25s var(--suave),color .25s,transform .15s var(--suave)}
+.opcion small{display:block;font-size:13px;font-weight:600;color:var(--tinta2);margin-top:3px;transition:color .25s}
+.opcion[aria-pressed=true]{background:var(--amarillo);color:#0B1530}
+.opcion[aria-pressed=true] small{color:#3B3412}
+.opcion .mejor{position:absolute;top:-7px;right:-4px;background:var(--verde);color:#08241A;border-radius:999px;font-size:11px;font-weight:800;padding:2px 7px}
+.mapa-caja{position:relative}
+#mapa{height:290px;border-radius:20px;border:0;background:#1A2848}
+@media (min-height:800px){#mapa{height:330px}}
+.leaflet-overlay-pane path{animation:velo .35s ease both}
+.leaflet-container{background:#1A2848;font-family:Barlow,sans-serif}
+.calles-estado{position:absolute;left:10px;bottom:10px;z-index:500;max-width:calc(100% - 20px);background:rgba(11,21,48,.86);color:var(--tinta);border-radius:12px;padding:7px 11px;font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:8px;transition:opacity .3s}
+.calles-estado:empty{opacity:0;pointer-events:none}
+.calles-estado .rueda{width:14px;height:14px;border-width:2px}
+.calles-estado button{border:0;background:var(--amarillo);color:#0B1530;border-radius:8px;font-weight:700;padding:4px 8px;cursor:pointer}
+.mapa-nota{margin:-4px 0 0}
+.mapa-nota:empty{display:none}
+.parte{display:flex;flex-wrap:wrap;align-items:center;gap:10px;background:var(--hoja);border-radius:18px;padding:10px 12px;border:0;margin-bottom:8px}
+.parte:first-child{border-top:0}
+.parte .color{width:44px;height:44px;border-radius:12px;color:#0B1530;font-size:21px}
+.parte .info{width:78px}
+.parte .info b{font-size:26px}
+.parte .info span{font-size:13px}
+.parte .elegir{flex:1;min-width:150px;display:flex;gap:8px}
+.parte .elegir input{height:50px;font-size:17px;font-weight:600}
+.parte .nombre-final{flex-basis:100%;font-size:12.5px}
+.rep-resumen{text-align:center;color:var(--tinta2);font-size:15px}
+.rep-resumen b{color:var(--tinta)}
+.rep-resumen .ok{color:var(--verde)}
+.rep-mas summary{text-align:center}
+.rep-mas .rep-ops{margin-top:8px}
+.rep-ruta{background:var(--hoja2);border-radius:18px;padding:12px 14px;border:0;margin-bottom:8px}
+.rep-ruta:first-child{border-top:0;padding-top:12px}
+.rep-ruta .btn{min-height:52px;padding:10px 18px;font-size:17px}
+.abajo{background:var(--hoja);border-top:0;box-shadow:0 -10px 30px rgba(0,0,0,.35)}
+.abajo:not(.hidden){animation:subirBarra .35s var(--suave) both}
+@keyframes subirBarra{from{transform:translateY(100%)}to{transform:none}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after,::backdrop{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}}
 </style>
 </head>
 <body>
 <header class="barra">
- <img src="iconos/icono-192.png" alt="">
- <div class="marca">AFLEX <span>Divisor de rutas</span></div>
- <a id="abrir-paquetes" class="icono-btn hidden" href="paquetes.html" aria-label="Revisar paquetes" title="Revisar paquetes" style="text-decoration:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg></a>
- <a id="abrir-estados" class="icono-btn hidden" href="estados.html" aria-label="Escaneos: acomodar por estado" title="Escaneos" style="text-decoration:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V4h3M18 4h3v3M21 17v3h-3M6 20H3v-3"/><path d="M7 12l3 3 7-7"/></svg></a>
- <button id="abrir-ajustes" class="icono-btn hidden" aria-label="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+ <button id="atras" class="redondo hidden" aria-label="Volver al inicio"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+ <div class="marca" id="marca">AFLEX <span>Divisor</span></div>
+ <button id="abrir-elegir" class="lugar hidden" aria-label="Cambiar ciudad o día"><span id="lugar-txt">TCL · Hoy</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+ <button id="abrir-ajustes" class="redondo hidden" aria-label="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
 </header>
 
 <main>
@@ -288,66 +435,79 @@ dialog .fila .btn{flex:1}
 
  <!-- App -->
  <section id="app" class="hidden">
-  <div id="instalar" class="instalar hidden">
-   <img src="iconos/icono-192.png" alt="">
-   <div class="t"><b>Instala la app</b><span id="instalar-txt">Ábrela desde tu pantalla de inicio, como cualquier app.</span></div>
-   <button id="instalar-btn" class="mini hidden">Instalar</button>
-   <button id="instalar-x" class="x" aria-label="Cerrar">×</button>
-  </div>
-
-  <div class="hoja">
-   <div class="seg" id="ciudades" role="group" aria-label="Ciudad">
-    <button data-ciudad="HSV">HSV</button><button data-ciudad="BHM">BHM</button><button data-ciudad="MEM">MEM</button><button data-ciudad="TCL">TCL</button><button data-ciudad="BNA03A" title="Columbia, Tennessee (área BNA03A del centro BNA)" class="ciudad-larga">BNA03A</button>
+  <!-- INICIO -->
+  <div id="v-inicio" class="vista">
+   <div id="instalar" class="instalar hidden">
+    <img src="iconos/icono-192.png" alt="">
+    <div class="t"><b>Instala la app</b><span id="instalar-txt">Ábrela desde tu pantalla de inicio, como cualquier app.</span></div>
+    <button id="instalar-btn" class="mini hidden">Instalar</button>
+    <button id="instalar-x" class="x" aria-label="Cerrar">×</button>
    </div>
-   <div class="fechas" role="group" aria-label="Fecha">
-    <button class="chip" data-dia="0">Hoy</button>
-    <button class="chip" data-dia="1">Mañana</button>
-    <label class="chip otra" id="otra-chip"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span id="otra-txt">Otra fecha</span><input id="fecha" type="date" aria-label="Otra fecha"></label>
-    <button id="cargar" class="refrescar" aria-label="Volver a leer las rutas"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg></button>
+   <div class="stats" id="stats" aria-live="polite">
+    <div><b id="st-rutas">–</b><span>rutas</span></div>
+    <div><b id="st-paq">–</b><span>paquetes</span></div>
+    <div><b id="st-div" class="amar">–</b><span>por dividir</span></div>
    </div>
    <div id="cargando" class="cargando hidden"><span class="rueda"></span><span id="cargando-txt">Leyendo rutas de SpeedX…</span></div>
    <div id="err" class="err hidden"></div>
+   <div class="mosaico">
+    <button class="tile t-amar" data-ir="dividir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 3v12M18 9v12M6 15c0-4 12-2 12-6"/></svg><b>Dividir y nombrar</b><span id="tl-dividir">&nbsp;</span></button>
+    <button class="tile t-azul" data-ir="repartir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="8" r="3"/><circle cx="16" cy="16" r="3"/><path d="M4 20c0-3 2-5 4-5M20 4c0 3-2 5-4 5"/></svg><b>Repartir entre drivers</b><span id="tl-repartir">&nbsp;</span></button>
+    <button class="tile" data-ir="traer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 12h13M11 6l6 6-6 6M21 4v16"/></svg><b>Traer días pasados</b><span>Rutas sin driver</span></button>
+    <button class="tile" id="tile-drivers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg><b>Drivers</b><span>Lista de la ciudad</span></button>
+   </div>
+   <div class="herramientas">
+    <a id="abrir-paquetes" class="herr" href="paquetes.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>Revisar paquetes</a>
+    <a id="abrir-estados" class="herr" href="estados.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V4h3M18 4h3v3M21 17v3h-3M6 20H3v-3"/><path d="M7 12l3 3 7-7"/></svg>Escaneos</a>
+   </div>
   </div>
 
-  <div id="plan" class="hidden">
-   <div class="hoja resumen">
-    <h2 id="titulo"></h2>
-    <p class="cifras" id="cifras"></p>
-    <ul class="pasos" id="pasos"></ul>
+  <!-- DIVIDIR Y NOMBRAR -->
+  <div id="v-dividir" class="vista hidden">
+   <p class="espera" id="dividir-espera">Leyendo rutas de SpeedX…</p>
+   <div id="plan" class="hidden">
+    <div class="hoja resumen">
+     <h2 id="titulo"></h2>
+     <p class="cifras" id="cifras"></p>
+     <ul class="pasos" id="pasos"></ul>
+    </div>
+    <div class="hoja">
+     <h3>Códigos postales</h3>
+     <p class="sub">El mismo código en varias rutas se junta solo. Para juntar códigos distintos, toca dos o más.</p>
+     <div class="tags" id="zips"></div>
+    </div>
+    <div class="hoja" id="guard-sec">
+     <h3>Uniones recordadas</h3>
+     <p class="sub">Se unen solas cada día que juntos no pasen del límite de paquetes. Sin límite, se unen siempre.</p>
+     <div id="guardadas"></div>
+    </div>
+    <div class="hoja">
+     <h3>Así quedan las rutas</h3>
+     <div id="rutas"></div>
+     <details class="mas"><summary>Ver qué paquetes se mueven</summary><div id="mover"></div></details>
+     <details class="mas" id="otras-card"><summary id="otras-tit">Rutas que no se tocan</summary><p class="sub" style="margin:6px 0 0">Ya tienen driver o ya salieron.</p><div id="otras"></div></details>
+    </div>
    </div>
+  </div>
 
-   <div class="hoja">
-    <h3>Códigos postales</h3>
-    <p class="sub">El mismo código en varias rutas se junta solo. Para juntar códigos distintos, toca dos o más.</p>
-    <div class="tags" id="zips"></div>
+  <!-- REPARTIR ENTRE DRIVERS -->
+  <div id="v-repartir" class="vista hidden">
+   <div class="hoja" id="rep-sec">
+    <h3>Elige la ruta</h3>
+    <p class="sub">Se parte en áreas por mapa, una por driver, sin que nadie cruce una avenida por pocos paquetes.</p>
+    <div id="rep-lista"></div>
    </div>
+  </div>
 
-   <div class="hoja" id="guard-sec">
-    <h3>Uniones recordadas</h3>
-    <p class="sub">Se unen solas cada día que juntos no pasen del límite de paquetes. Sin límite, se unen siempre.</p>
-    <div id="guardadas"></div>
-   </div>
-
-   <div class="hoja">
-    <h3>Así quedan las rutas</h3>
-    <div id="rutas"></div>
-    <details class="mas"><summary>Ver qué paquetes se mueven</summary><div id="mover"></div></details>
-    <details class="mas" id="otras-card"><summary id="otras-tit">Rutas que no se tocan</summary><p class="sub" style="margin:6px 0 0">Ya tienen driver o ya salieron.</p><div id="otras"></div></details>
-   </div>
-
+  <!-- TRAER DÍAS PASADOS -->
+  <div id="v-traer" class="vista hidden">
    <div class="hoja" id="traer-sec">
     <h3>Paquetes de días anteriores sin driver</h3>
     <p class="sub">Busca rutas <b>sin driver</b> de los días antes de esta fecha. Tú eliges cuáles se unen y a qué ruta de este día van. No se borra ninguna ruta.</p>
     <div class="paso-rep" style="margin:10px 0"><b>¿Cuántos días atrás?</b>
      <div class="contador"><button id="traer-menos" aria-label="Menos días">−</button><output id="traer-dias">7</output><button id="traer-mas" aria-label="Más días">+</button></div></div>
-    <button id="traer-buscar" class="btn btn-suave btn-ancho">Buscar rutas sin driver</button>
+    <button id="traer-buscar" class="btn btn-azul btn-ancho">Buscar rutas sin driver</button>
     <div id="traer-res"></div>
-   </div>
-
-   <div class="hoja" id="rep-sec">
-    <h3>Repartir entre drivers</h3>
-    <p class="sub">Parte una ruta en áreas pegadas por mapa, una por driver, y se la asigna con su nombre.</p>
-    <div id="rep-lista"></div>
    </div>
   </div>
  </section>
@@ -376,22 +536,43 @@ dialog .fila .btn{flex:1}
  </div>
 </dialog>
 
-<dialog id="repartir">
+<dialog id="elegir">
  <div class="panel">
   <div class="agarre"></div>
-  <h2 id="rep-titulo">Repartir</h2>
-  <p class="sub" id="rep-sub"></p>
-  <div class="paso-rep"><b>¿Cuántos drivers?</b>
-   <div class="contador"><button id="rep-menos" aria-label="Menos drivers">−</button><output id="rep-n">2</output><button id="rep-mas" aria-label="Más drivers">+</button></div></div>
-  <div class="rep-ops">
-   <div class="seg2" id="rep-cant"><button data-cant="parejo">Parejo</button><button data-cant="elijo">Yo elijo cuántos</button></div>
-   <div class="seg2" id="rep-forma"><button data-forma="ruta">Siguiendo la ruta</button><button data-forma="zonas">Por zonas</button></div>
+  <h2>Ciudad y día</h2>
+  <div class="seg" id="ciudades" role="group" aria-label="Ciudad">
+   <button data-ciudad="HSV">HSV</button><button data-ciudad="BHM">BHM</button><button data-ciudad="MEM">MEM</button><button data-ciudad="TCL">TCL</button><button data-ciudad="BNA03A" title="Columbia, Tennessee (área BNA03A del centro BNA)">Columbia</button>
   </div>
-  <div id="mapa" role="img" aria-label="Mapa con las áreas de cada driver"></div>
+  <div class="fechas" role="group" aria-label="Fecha">
+   <button class="chip" data-dia="0">Hoy</button>
+   <button class="chip" data-dia="1">Mañana</button>
+   <label class="chip otra" id="otra-chip"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span id="otra-txt">Otra fecha</span><input id="fecha" type="date" aria-label="Otra fecha"></label>
+  </div>
+  <button id="cargar" class="btn btn-suave btn-ancho" style="margin-top:12px">Volver a leer las rutas</button>
+  <div class="fila"><button id="elegir-listo" class="btn btn-pri">Listo</button></div>
+ </div>
+</dialog>
+
+<dialog id="repartir">
+ <div class="panel">
+  <div class="rep-cab">
+   <button id="rep-no" class="redondo" aria-label="Volver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+   <div class="t"><b id="rep-titulo">Repartir</b><span id="rep-sub"></span></div>
+   <div class="contador"><button id="rep-menos" aria-label="Menos drivers">−</button><output id="rep-n" aria-label="Drivers">2</output><button id="rep-mas" aria-label="Más drivers">+</button></div>
+  </div>
+  <div id="rep-opciones" class="opciones" role="group" aria-label="Formas de cortar"></div>
+  <div class="mapa-caja"><div id="mapa" role="img" aria-label="Mapa con las áreas de cada driver"></div><div id="rep-calles" class="calles-estado"></div></div>
   <p class="mapa-nota" id="mapa-nota"></p>
   <div id="rep-err" class="err hidden"></div>
   <div id="rep-partes"></div>
-  <div class="fila"><button id="rep-no" class="btn btn-suave">Cancelar</button><button id="rep-si" class="btn btn-pri">Hacer en SpeedX</button></div>
+  <div id="rep-resumen" class="rep-resumen"></div>
+  <details class="mas rep-mas"><summary>Más opciones</summary>
+   <div class="rep-ops">
+    <div class="seg2" id="rep-cant"><button data-cant="parejo">Parejo</button><button data-cant="elijo">Yo elijo cuántos</button></div>
+    <div class="seg2" id="rep-av"><button data-av="0">Solo avenidas grandes</button><button data-av="1">También medianas</button></div>
+   </div>
+  </details>
+  <button id="rep-si" class="btn btn-pri btn-ancho btn-grande">Dividir y asignar</button>
  </div>
 </dialog>
 
@@ -863,17 +1044,20 @@ const Logica = (() => {
     return items.map((i) => valida(i) && Math.hypot((+i.lat - la) * KM_LAT, (+i.lng - ln) * kx) <= LEJOS_KM);
   }
 
-  function proyectar(items) {
+  function marco(items) {
     const buena = ubicadas(items);
     const ok = items.filter((_, k) => buena[k]);
     const lat0 = ok.length ? ok.reduce((s, i) => s + +i.lat, 0) / ok.length : 0;
     const lng0 = ok.length ? ok.reduce((s, i) => s + +i.lng, 0) / ok.length : 0;
-    const kx = 111.32 * Math.cos((lat0 * Math.PI) / 180);
+    return { buena, lat0, lng0, kx: 111.32 * Math.cos((lat0 * Math.PI) / 180) };
+  }
+  function proyectarCon(items, m) {
     return items.map((i, k) => {
-      const bien = buena[k];
-      return { x: bien ? (+i.lng - lng0) * kx : 0, y: bien ? (+i.lat - lat0) * KM_LAT : 0, bien };
+      const bien = m.buena[k];
+      return { x: bien ? (+i.lng - m.lng0) * m.kx : 0, y: bien ? (+i.lat - m.lat0) * KM_LAT : 0, bien };
     });
   }
+  function proyectar(items) { return proyectarCon(items, marco(items)); }
 
   /** Cantidades por parte. cantidades = [n1, n2…] (las que tú eliges) o null = parejo. */
   function metas(total, partes, cantidades) {
@@ -931,12 +1115,12 @@ const Logica = (() => {
   }
 
   /** Por zonas: corta por el eje más largo en proporción a las cantidades, una y otra vez. */
-  function biseccion(idx, pts, M) {
+  function biseccion(idx, pts, M, giro = 0) {
     if (M.length === 1) return [idx];
     const mx = idx.reduce((s, k) => s + pts[k].x, 0) / idx.length, my = idx.reduce((s, k) => s + pts[k].y, 0) / idx.length;
     let xx = 0, yy = 0, xy = 0;
     for (const k of idx) { const dx = pts[k].x - mx, dy = pts[k].y - my; xx += dx * dx; yy += dy * dy; xy += dx * dy; }
-    const ang = 0.5 * Math.atan2(2 * xy, xx - yy), ux = Math.cos(ang), uy = Math.sin(ang);
+    const ang = 0.5 * Math.atan2(2 * xy, xx - yy) + giro, ux = Math.cos(ang), uy = Math.sin(ang);
     const ord = [...idx].sort((a, b) => (pts[a].x * ux + pts[a].y * uy) - (pts[b].x * ux + pts[b].y * uy) || a - b);
     const izq = Math.ceil(M.length / 2), nIzq = M.slice(0, izq).reduce((s, v) => s + v, 0);
     return [...biseccion(ord.slice(0, nIzq), pts, M.slice(0, izq)), ...biseccion(ord.slice(nIzq), pts, M.slice(izq))];
@@ -1035,6 +1219,230 @@ const Logica = (() => {
     return { forma, partes, costo: grupos.reduce((s, g) => s + costoGrupo(pts, g), 0), ubicada, sinUbicacion: ubicada.filter((b) => !b).length };
   }
 
+  // ------------------------------------------------ cortes que respetan avenidas (3 opciones)
+  // Las autopistas y avenidas grandes (de OpenStreetMap) son «paredes»: dos paquetes están del mismo lado
+  // si se puede llegar de uno a otro por paquetes vecinos sin cruzar una de esas vías.
+  // Cada driver se queda con su lado; los pedacitos (1–3 paquetes, o pocos) del otro lado se pasan
+  // al driver que ya trabaja de ese lado. Se prueban varios cortes y se ordenan del más cómodo al menos.
+  function prepararCalles(pts, calles, m) {
+    const segs = [];
+    for (const poly of calles || []) {
+      for (let i = 1; i < poly.length; i++) {
+        const ax = (poly[i - 1][1] - m.lng0) * m.kx, ay = (poly[i - 1][0] - m.lat0) * KM_LAT;
+        const bx = (poly[i][1] - m.lng0) * m.kx, by = (poly[i][0] - m.lat0) * KM_LAT;
+        segs.push({ ax, ay, bx, by, x0: Math.min(ax, bx), x1: Math.max(ax, bx), y0: Math.min(ay, by), y1: Math.max(ay, by) });
+      }
+    }
+    if (!segs.length) return null;
+    const o = (ax, ay, bx, by, cx, cy) => (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
+    const memo = new Map();
+    const cruzaPar = (i, j) => {
+      if (!pts[i].bien || !pts[j].bien) return false;
+      const key = i < j ? i * 100003 + j : j * 100003 + i;
+      if (memo.has(key)) return memo.get(key);
+      const p = pts[i], q = pts[j];
+      const x0 = Math.min(p.x, q.x), x1 = Math.max(p.x, q.x), y0 = Math.min(p.y, q.y), y1 = Math.max(p.y, q.y);
+      let r = false;
+      for (const s of segs) {
+        if (s.x1 < x0 || s.x0 > x1 || s.y1 < y0 || s.y0 > y1) continue;
+        const d1 = o(s.ax, s.ay, s.bx, s.by, p.x, p.y), d2 = o(s.ax, s.ay, s.bx, s.by, q.x, q.y);
+        if (d1 * d2 >= 0) continue;
+        const d3 = o(p.x, p.y, q.x, q.y, s.ax, s.ay), d4 = o(p.x, p.y, q.x, q.y, s.bx, s.by);
+        if (d3 * d4 < 0) { r = true; break; }
+      }
+      memo.set(key, r);
+      return r;
+    };
+    // lados: grafo de vecinos (más uniones entre grupos separados) sin aristas que crucen avenida
+    const idx = pts.map((p, k) => (p.bien ? k : -1)).filter((k) => k >= 0);
+    const padre = new Map(idx.map((k) => [k, k]));
+    const raiz = (k) => { while (padre.get(k) !== k) { padre.set(k, padre.get(padre.get(k))); k = padre.get(k); } return k; };
+    const unir = (a, b) => { a = raiz(a); b = raiz(b); if (a !== b) padre.set(Math.max(a, b), Math.min(a, b)); };
+    const d2 = (a, b) => (pts[a].x - pts[b].x) ** 2 + (pts[a].y - pts[b].y) ** 2;
+    const aristas = [];
+    for (const i of idx) {
+      const c = idx.filter((j) => j !== i).sort((a, b) => d2(i, a) - d2(i, b)).slice(0, 8);
+      for (const j of c) aristas.push([i, j]);
+    }
+    // conectar grupos lejanos entre sí (sin esto, dos barrios sin avenida en medio contarían como lados distintos)
+    const comp = new Map(idx.map((k) => [k, k]));
+    const rc = (k) => { while (comp.get(k) !== k) { comp.set(k, comp.get(comp.get(k))); k = comp.get(k); } return k; };
+    for (const [a, b] of aristas) { const x = rc(a), y = rc(b); if (x !== y) comp.set(Math.max(x, y), Math.min(x, y)); }
+    for (let vuelta = 0; vuelta < idx.length; vuelta++) {
+      const grupos = new Map();
+      for (const k of idx) { const r = rc(k); if (!grupos.has(r)) grupos.set(r, []); grupos.get(r).push(k); }
+      if (grupos.size <= 1) break;
+      const [g0, ...resto] = [...grupos.values()];
+      const otros = resto.flat();
+      let best = null;
+      for (const a of g0) for (const b of otros) { const d = d2(a, b); if (!best || d < best[2]) best = [a, b, d]; }
+      aristas.push([best[0], best[1]]);
+      const x = rc(best[0]), y = rc(best[1]); comp.set(Math.max(x, y), Math.min(x, y));
+    }
+    for (const [a, b] of aristas) if (!cruzaPar(a, b)) unir(a, b);
+    const lado = pts.map((p, k) => (p.bien ? raiz(k) : -1));
+    return { cruzaPar, lado, nLados: new Set(lado.filter((x) => x >= 0)).size, segs: segs.length };
+  }
+
+  /** Cuántos paquetes de cada driver quedan del otro lado de una avenida (fuera de su lado principal). */
+  /** cruces = paquetes fuera del lado principal de su driver; sueltos = los que van en pedacitos de 1–3. */
+  function contarCruces(grupos, lado) {
+    if (!lado) return { cruces: 0, sueltos: 0 };
+    const cnt = grupos.map((g) => { const n = new Map(); for (const k of g) if (lado[k] >= 0) n.set(lado[k], (n.get(lado[k]) || 0) + 1); return n; });
+    let c = 0, sueltos = 0;
+    cnt.forEach((n, a) => {
+      let princ = -1, max = 0, tot = 0;
+      for (const [r, v] of n) { tot += v; if (v > max) { max = v; princ = r; } }
+      c += tot - max;
+      // suelto: 1–3 paquetes del otro lado, donde otro driver ya trabaja más que este
+      for (const [r, v] of n) if (r !== princ && v <= 3 && cnt.some((m, b) => b !== a && (m.get(r) || 0) > v)) sueltos += v;
+    });
+    return { cruces: c, sueltos };
+  }
+
+  /** Pasa los pedacitos del otro lado de la avenida al driver que ya trabaja ahí, manteniendo cantidades. */
+  function separarAvenidas(grupos, pts, lado, M, H) {
+    const P = grupos.length, de = new Int32Array(pts.length);
+    grupos.forEach((g, p) => g.forEach((k) => (de[k] = p)));
+    const tam = grupos.map((g) => g.length);
+    const d2c = (k, c) => (pts[k].x - c.x) ** 2 + (pts[k].y - c.y) ** 2;
+    for (let it = 0; it < 60; it++) {
+      const cnt = Array.from({ length: P }, () => new Map());
+      const cen = Array.from({ length: P }, () => ({ x: 0, y: 0, n: 0 }));
+      for (let k = 0; k < pts.length; k++) {
+        const g = de[k];
+        if (lado[k] >= 0) cnt[g].set(lado[k], (cnt[g].get(lado[k]) || 0) + 1);
+        if (pts[k].bien) { cen[g].x += pts[k].x; cen[g].y += pts[k].y; cen[g].n++; }
+      }
+      for (const c of cen) if (c.n) { c.x /= c.n; c.y /= c.n; }
+      const principal = cnt.map((m) => { let b = -1, v = -1; for (const [r, n] of m) if (n > v) { v = n; b = r; } return b; });
+      // pedazos chicos primero
+      const pedazos = [];
+      for (let a = 0; a < P; a++) for (const [r, c] of cnt[a]) if (r !== principal[a] && c <= Math.max(3, Math.round(tam[a] * 0.3))) pedazos.push({ a, r, c });
+      pedazos.sort((x, y) => x.c - y.c);
+      let hecho = false;
+      for (const { a, r, c } of pedazos) {
+        const cand = [];
+        for (let b = 0; b < P; b++) if (b !== a && (cnt[b].get(r) || 0) >= c) cand.push(b);
+        cand.sort((x, y) => (cnt[y].get(r) || 0) - (cnt[x].get(r) || 0));
+        for (const b of cand) {
+          const pieza = []; for (let k = 0; k < pts.length; k++) if (de[k] === a && lado[k] === r) pieza.push(k);
+          const q = Math.max(0, tam[b] + c - (M[b] + H[b]), Math.max(1, M[a] - H[a]) - (tam[a] - c));
+          let devolver = [];
+          if (q > 0) {
+            // b devuelve q paquetes que estén del lado principal de a (los más cercanos a a)
+            const op = []; for (let k = 0; k < pts.length; k++) if (de[k] === b && lado[k] === principal[a]) op.push(k);
+            if (op.length < q) continue;
+            op.sort((x, y) => d2c(x, cen[a]) - d2c(y, cen[a]));
+            devolver = op.slice(0, q);
+          }
+          for (const k of pieza) de[k] = b;
+          for (const k of devolver) de[k] = a;
+          tam[a] += devolver.length - pieza.length; tam[b] += pieza.length - devolver.length;
+          hecho = true; break;
+        }
+        if (hecho) break;
+      }
+      if (!hecho) break;
+    }
+    const out = grupos.map(() => []);
+    for (let k = 0; k < pts.length; k++) out[de[k]].push(k);
+    return out;
+  }
+
+  /** Ordena los paquetes lado por lado de la avenida (y dentro de cada lado a lo largo), para cortar en tramos. */
+  function ordenPorLados(pts, lado, giro) {
+    const idx = pts.map((_, k) => k);
+    const ok = idx.filter((k) => pts[k].bien);
+    const mx = ok.reduce((s, k) => s + pts[k].x, 0) / (ok.length || 1), my = ok.reduce((s, k) => s + pts[k].y, 0) / (ok.length || 1);
+    let xx = 0, yy = 0, xy = 0;
+    for (const k of ok) { const dx = pts[k].x - mx, dy = pts[k].y - my; xx += dx * dx; yy += dy * dy; xy += dx * dy; }
+    const ang = 0.5 * Math.atan2(2 * xy, xx - yy) + giro, ux = Math.cos(ang), uy = Math.sin(ang);
+    const pr = (k) => pts[k].x * ux + pts[k].y * uy;
+    const cen = new Map();
+    for (const k of ok) { const l = lado[k]; const c = cen.get(l) || { s: 0, n: 0 }; c.s += pr(k); c.n++; cen.set(l, c); }
+    const posLado = (k) => (lado[k] >= 0 ? cen.get(lado[k]).s / cen.get(lado[k]).n : Infinity);
+    return idx.sort((a, b) => posLado(a) - posLado(b) || (lado[a] - lado[b]) || pr(a) - pr(b) || a - b);
+  }
+
+  const FORMAS = {
+    lados: { titulo: "Por lados de la avenida", corto: "por lados" },
+    lados2: { titulo: "Por lados, otro sentido", corto: "lados ↕" },
+    ruta: { titulo: "Siguiendo el recorrido", corto: "recorrido" },
+    zonas: { titulo: "Por zonas", corto: "zonas" },
+    otro: { titulo: "Zonas en otro sentido", corto: "otro sentido" },
+    diagonal: { titulo: "Zonas en diagonal", corto: "diagonal" },
+  };
+
+  /**
+   * Hasta 3 formas de cortar UNA ruta, de la más cómoda a la menos.
+   * opciones: {partes, cantidades (o null = parejo), digitos, calles: [[ [lat,lng], … ], …] o null}
+   */
+  function opcionesCorte(items, opciones = {}) {
+    const n = items.length, P = Math.max(1, Math.min(+opciones.partes || 1, n));
+    const elegidas = Array.isArray(opciones.cantidades);
+    const { metas: M, holgura: H0 } = metas(n, P, opciones.cantidades);
+    const m = marco(items), pts = proyectarCon(items, m);
+    const geo = opciones.calles && opciones.calles.length ? prepararCalles(pts, opciones.calles, m) : null;
+    const lado = geo ? geo.lado : null;
+    // con avenidas se permite un poco más de diferencia (±10 %) para no cruzar por 1–2 paquetes
+    const H = geo && !elegidas ? M.map((v, k) => Math.max(H0[k], 2, Math.round(v * 0.1))) : H0;
+    const todos = items.map((_, k) => k);
+    const conOrden = items.filter((i) => Number.isFinite(+i.sequence) && i.sequence !== null).length >= n * 0.9;
+    const orden = conOrden ? [...todos].sort((a, b) => (+items[a].sequence) - (+items[b].sequence) || a - b) : null;
+    const vec = vecinosCercanos(pts, 6);
+    if (orden) orden.forEach((k, i) => { for (const j of [orden[i - 1], orden[i + 1]]) if (j !== undefined && !vec[k].includes(j)) vec[k].push(j); });
+    const vecF = geo ? vec.map((l, k) => l.filter((j) => !geo.cruzaPar(k, j))) : vec;
+    const semillas = [];
+    if (P === 1) semillas.push(["zonas", [todos]]);
+    else {
+      if (orden) { const g = cortarTramos(orden, pts, M, H); if (g) semillas.push(["ruta", g]); }
+      semillas.push(["zonas", biseccion(todos, pts, M, 0)]);
+      semillas.push(["otro", biseccion(todos, pts, M, Math.PI / 2)]);
+      semillas.push(["diagonal", biseccion(todos, pts, M, Math.PI / 4)]);
+      if (geo) for (const [f, giro] of [["lados", 0], ["lados2", Math.PI / 2]]) {
+        const g = cortarTramos(ordenPorLados(pts, lado, giro), pts, M, H);
+        if (g) semillas.push([f, g]);
+      }
+    }
+    const vistas = new Set(), cands = [];
+    for (const [forma, g0] of semillas) {
+      let g = g0;
+      if (P > 1) {
+        g = pulir(g, pts, M, H, vecF);
+        if (geo) { g = separarAvenidas(g, pts, lado, M, H); g = pulir(g, pts, M, H, vecF); g = separarAvenidas(g, pts, lado, M, H); }
+      }
+      const clave = (x) => (orden ? Math.min(...x.map((k) => orden.indexOf(k))) : Math.min(...x.map((k) => pts[k].x)));
+      if (!elegidas) g = [...g].sort((a, b) => clave(a) - clave(b));
+      const firma = [...g].map((x) => [...x].sort((a, b) => a - b).join(",")).sort().join("|");
+      if (vistas.has(firma)) continue;
+      vistas.add(firma);
+      cands.push({ forma, grupos: g, costo: g.reduce((s, x) => s + costoGrupo(pts, x), 0), ...contarCruces(g, lado) });
+    }
+    const minC = Math.max(1e-9, Math.min(...cands.map((c) => c.costo)));
+    for (const c of cands) c.puntos = c.costo / minC + (geo ? 0.25 * c.sueltos + 0.05 * c.cruces : 0);
+    cands.sort((a, b) => a.puntos - b.puntos);
+    // con avenidas, las alternativas que cruzan mucho más que la mejor se van al final
+    if (geo && cands.length) {
+      const tope = cands[0].sueltos + 2;
+      const buenas = cands.filter((c) => c.sueltos <= tope), malas = cands.filter((c) => c.sueltos > tope);
+      cands.splice(0, cands.length, ...buenas, ...malas);
+    }
+    const suf = sufijos(new Set(items.map((i) => zip5(i.zipCode))), opciones.digitos || 2);
+    const ubicada = pts.map((p) => p.bien);
+    return cands.slice(0, 3).map((c, k) => ({
+      forma: c.forma, titulo: FORMAS[c.forma].titulo, corto: FORMAS[c.forma].corto, recomendada: k === 0 && cands.length > 1,
+      cruces: c.cruces, sueltos: c.sueltos, conCalles: !!geo, lados: geo ? geo.nLados : 0, costo: c.costo, ubicada, sinUbicacion: ubicada.filter((b) => !b).length,
+      partes: c.grupos.map((g) => {
+        const its = [...g].sort((a, b) => (+items[a].sequence || 0) - (+items[b].sequence || 0) || a - b).map((x) => items[x]);
+        const zs = [...new Set(its.map((i) => zip5(i.zipCode)).filter(Boolean))].sort(cmp);
+        const bien = g.filter((x) => ubicada[x]).map((x) => items[x]);
+        return { indices: g, trackings: its.map((i) => i.trackingNo), n: its.length, zips: zs, etiqueta: etiqueta(zs, opciones.digitos || 2, suf),
+          centro: bien.length ? { lat: bien.reduce((s, i) => s + +i.lat, 0) / bien.length, lng: bien.reduce((s, i) => s + +i.lng, 0) / bien.length } : null };
+      }),
+    }));
+  }
+
   /** Nombre final: «1026-001-batch9308:C 05 Juan Perez» (base + números del ZIP + driver). */
   function nombreConDriver(nombre, etq, driver) {
     return [baseNombre(nombre), etq, String(driver || "").trim()].filter(Boolean).join(" ").replace(/\s+/g, " ");
@@ -1057,7 +1465,8 @@ const Logica = (() => {
   }
 
   return { zip5, sufijos, etiqueta, baseNombre, mapaGrupos, esEditable, conteoZips, planear, ejecutar,
-    unionesDelDia, cambiarUniones, contarUso, uid, planTraer, moverSueltos, repartir, metas, proyectar, ubicadas, nombreConDriver, emparejar, costoGrupo };
+    unionesDelDia, cambiarUniones, contarUso, uid, planTraer, moverSueltos, repartir, metas, proyectar, ubicadas, nombreConDriver, emparejar, costoGrupo,
+    marco, opcionesCorte, prepararCalles, contarCruces, separarAvenidas };
 })();
 if (typeof module !== "undefined") module.exports = Logica;
 
@@ -1144,7 +1553,7 @@ function buscarDriver(lista,nombre){
 
 function show(id,on){$(id).classList.toggle('hidden',!on);}
 function err(id,msg){$(id).textContent=msg||'';show(id,!!msg);}
-function pantalla(cual){for(const s of ['config','login','app'])show(s,s===cual);show('abrir-ajustes',cual==='app');show('abrir-paquetes',cual==='app');show('abrir-estados',cual==='app');if(cual!=='app')show('final',false);}
+function pantalla(cual){for(const s of ['config','login','app'])show(s,s===cual);show('abrir-ajustes',cual==='app'&&vista==='inicio');show('abrir-elegir',cual==='app'&&(vista==='inicio'||vista==='dividir'));show('atras',cual==='app'&&vista!=='inicio');if(cual!=='app')show('final',false);}
 function mostrarConfig(msg){pantalla('config');$('cfg-url').value=store.get('funcion','');err('config-err',msg||'');try{$('ajustes').close();}catch(e){}}
 function mostrarLogin(msg){pantalla('login');$('usuario').value=usuario;err('login-err',msg||'');}
 function mostrarApp(){pantalla('app');$('aj-usuario').textContent=usuario;revisarInstalar();}
@@ -1166,6 +1575,54 @@ $('login-form').onsubmit=async e=>{
  finally{b.disabled=false;b.textContent='Entrar';}
 };
 $('logout').onclick=()=>{token='';store.del('token');plan=null;show('plan',false);$('ajustes').close();mostrarLogin();};
+
+// ---------- pantallas (inicio, dividir, repartir, traer) con transiciones
+const TITULOS={dividir:'Dividir',repartir:'Repartir',traer:'Días pasados'};
+let vista='inicio';
+const pocoMovimiento=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+function ir(v,{atras=false,historial=true}={}){
+ if(v===vista)return;
+ const ant=$('v-'+vista),nue=$('v-'+v);
+ ant.classList.add('hidden');ant.classList.remove('entra-der','entra-izq');
+ nue.classList.remove('hidden','entra-der','entra-izq');void nue.offsetWidth;nue.classList.add(atras?'entra-izq':'entra-der');
+ vista=v;
+ if(historial&&v!=='inicio')try{history.pushState({v},'');}catch(e){}
+ const m=$('marca');m.innerHTML=v==='inicio'?'AFLEX <span>Divisor</span>':esc(TITULOS[v]||'');m.classList.remove('cambia');void m.offsetWidth;m.classList.add('cambia');
+ show('atras',v!=='inicio');show('abrir-elegir',v==='inicio'||v==='dividir');show('abrir-ajustes',v==='inicio');
+ window.scrollTo({top:0,behavior:'instant'});
+ actualizarFinal();
+ if(v==='traer'&&typeof pintarTraer==='function')pintarTraer();
+}
+document.querySelectorAll('[data-ir]').forEach(b=>b.onclick=()=>ir(b.dataset.ir));
+$('atras').onclick=()=>{if(history.state&&history.state.v)history.back();else ir('inicio',{atras:true});};
+window.addEventListener('popstate',()=>{
+ const abierto=[...document.querySelectorAll('dialog')].find(d=>d.open);
+ if(abierto){abierto.close();return;}
+ if(vista!=='inicio')ir('inicio',{atras:true,historial:false});
+});
+function actualizarFinal(){show('final',vista==='dividir'&&!!plan&&!$('plan').classList.contains('hidden'));}
+$('tile-drivers').onclick=()=>{if(estadoCiudad!==ciudad){leerEstado(ciudad).then(abrirDrivers).catch(x=>err('err',x.message));}else abrirDrivers();};
+$('abrir-elegir').onclick=()=>$('elegir').showModal();
+$('elegir-listo').onclick=()=>$('elegir').close();
+$('elegir').addEventListener('click',e=>{if(e.target===$('elegir'))$('elegir').close();});
+// las hojas bajan suavemente al cerrarse
+document.querySelectorAll('dialog').forEach(d=>{
+ const cerrar=d.close.bind(d);
+ d.close=(...a)=>{
+  if(!d.open||d.classList.contains('cerrando'))return;
+  if(pocoMovimiento())return cerrar(...a);
+  d.classList.add('cerrando');
+  setTimeout(()=>{d.classList.remove('cerrando');cerrar(...a);},210);
+ };
+});
+// números que suben al cambiar
+function contar(el,v){
+ const fin=Math.round(+v||0),ini=+(el.dataset.v||0);el.dataset.v=fin;
+ if(pocoMovimiento()||ini===fin){el.textContent=num(fin);return;}
+ const t0=performance.now(),dur=600;
+ const paso=t=>{const p=Math.min(1,(t-t0)/dur),e=1-Math.pow(1-p,3);el.textContent=num(Math.round(ini+(fin-ini)*e));if(p<1)requestAnimationFrame(paso);};
+ requestAnimationFrame(paso);
+}
 
 // ---------- ajustes
 $('abrir-ajustes').onclick=()=>{pintarDig();$('ajustes').showModal();};
@@ -1201,6 +1658,8 @@ function pintarFiltros(){
  document.querySelectorAll('[data-dia]').forEach(b=>b.setAttribute('aria-pressed',String(f===diaMas(+b.dataset.dia))));
  $('otra-chip').setAttribute('aria-pressed',String(!esDia&&!!f));
  $('otra-txt').textContent=!esDia&&f?new Date(f+'T12:00:00').toLocaleDateString('es-MX',{day:'numeric',month:'short'}):'Otra fecha';
+ const dia=f===diaMas(0)?'Hoy':f===diaMas(1)?'Mañana':f===diaMas(-1)?'Ayer':(f?new Date(f+'T12:00:00').toLocaleDateString('es-MX',{day:'numeric',month:'short'}):'');
+ $('lugar-txt').textContent=`${ciudad==='BNA03A'?'Columbia':ciudad} · ${dia}`;
 }
 document.querySelectorAll('[data-ciudad]').forEach(b=>b.onclick=()=>{if(trabajando)return;ciudad=b.dataset.ciudad;store.set('ciudad',ciudad);pintarFiltros();cargar(true);});
 document.querySelectorAll('[data-dia]').forEach(b=>b.onclick=()=>{if(trabajando)return;$('fecha').value=diaMas(+b.dataset.dia);pintarFiltros();cargar(true);});
@@ -1226,7 +1685,8 @@ async function guardarEstado(){await fn({accion:'estado_guardar',ciudad:estadoCi
 async function cargar(recargar){
  if(trabajando)return;
  const mio=++pedido,c=ciudad,fecha=$('fecha').value;
- err('err','');show('cargando',true);$('cargando-txt').textContent='Leyendo rutas de SpeedX…';
+ err('err','');show('cargando',true);$('cargando-txt').textContent='Leyendo rutas de SpeedX…';$('stats').classList.add('cargando-st');
+ if(recargar||!cargado||cargado.ciudad!==c||cargado.fecha!==fecha){$('dividir-espera').textContent='Leyendo rutas de SpeedX…';show('dividir-espera',true);}
  try{
   if(estadoCiudad!==c)await leerEstado(c);
   if(recargar||!cargado||cargado.ciudad!==c||cargado.fecha!==fecha){
@@ -1239,8 +1699,8 @@ async function cargar(recargar){
    rutas=rs;detalles=det;cargado={ciudad:c,fecha};
   }
   replanear();
- }catch(x){if(mio===pedido&&!x.config&&!x.sesion){err('err',x.message);show('plan',false);show('final',false);}}
- finally{if(mio===pedido)show('cargando',false);}
+ }catch(x){if(mio===pedido&&!x.config&&!x.sesion){err('err',x.message);show('plan',false);show('final',false);$('dividir-espera').textContent=x.message;show('dividir-espera',true);}}
+ finally{if(mio===pedido){show('cargando',false);$('stats').classList.remove('cargando-st');}}
 }
 // Rutas que ya repartiste entre drivers: el plan («Hacer todo», uniones) ya no las toca ni las vuelve a juntar.
 function repartidas(f){f=f||(cargado&&cargado.fecha);return new Set(((((estado||{}).dias||{})[f]||{}).repartidas||[]).map(String));}
@@ -1274,7 +1734,9 @@ function partes(nombre){const m=String(nombre).match(/:([A-Z]{1,2}) (.+)$/);if(m
 const estados={aplica:['p-verde','Se unen hoy'],mucho:['p-amar','Hoy no: son muchos'],quitada:['','Hoy no'],no_hay:['','No vienen hoy']};
 function pintar(){
  const r=plan.resumen;
- show('plan',true);if(typeof pintarTraer==='function')setTimeout(pintarTraer,0);
+ show('plan',true);show('dividir-espera',false);if(typeof pintarTraer==='function')setTimeout(pintarTraer,0);
+ contar($('st-rutas'),r.rutas);contar($('st-paq'),r.paquetes);contar($('st-div'),r.divisiones);
+ $('tl-dividir').textContent=(r.movimientos+r.divisiones+r.nombres)>0?`${num(r.divisiones)} por dividir · ${num(r.nombres)} nombres`:'Todo listo ✓';
  $('titulo').textContent=`${cargado.ciudad}, ${nombreFecha(cargado.fecha)}`;
  $('cifras').innerHTML=r.rutas?`<b>${num(r.rutas)}</b> rutas, <b>${num(r.paquetes)}</b> paquetes y <b>${num(plan.grupos.length)}</b> códigos postales.`:'No hay rutas que se puedan dividir en esta fecha. Prueba con otra fecha o ciudad.';
  const pasos=[];
@@ -1328,7 +1790,7 @@ function pintar(){
  document.querySelectorAll('[data-soltar]').forEach(b=>b.onclick=async()=>{
   if(!confirm('¿Quitarle la marca de repartida? Así «Hacer todo» la puede volver a juntar con las del mismo código.'))return;
   marcarRepartidas(cargado.fecha,[b.dataset.soltar],true);replanear();try{await guardarEstado();}catch(x){if(!x.config)err('err','No se pudo guardar: '+x.message);}});
- show('final',true);barra();
+ actualizarFinal();barra();
  pintarRepartir();
 }
 function barra(){
@@ -1488,19 +1950,21 @@ async function hacerTraer(){
 }
 
 // ================================================= repartir entre drivers (por mapa)
-const COLORES=['#1F5FD6','#C9372C','#16855A','#D98A00','#7B3FC4','#0E8C9C','#C2387F','#5C6B00'];
+const COLORES=['#5B8CFF','#FFA51F','#4FD39B','#FF6B8A','#B48CFF','#3FD0E0','#F2E05A','#C7D0E0'];
 const MAXP=8;
-let R=null,mapa=null,capas=null;
+let R=null,mapa=null,capas=null,capaCalles=null,mapaFalla=false;
 const listaDrivers=()=>((estado&&estado.drivers)||[]).slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
+const letra=k=>String.fromCharCode(65+k);
 
 function pintarRepartir(){
  const rs=rutas.filter(r=>Logica.esEditable(r)&&detalles[r.id]&&(detalles[r.id].items||[]).length>0)
   .sort((a,b)=>String(a.name).localeCompare(String(b.name)));
- show('rep-sec',rs.length>0);
- $('rep-lista').innerHTML=rs.map(r=>{
+ $('tl-repartir').textContent=rs.length?`${num(rs.length)} ${rs.length===1?'ruta sin driver':'rutas sin driver'}`:'Sin rutas libres';
+ $('rep-lista').innerHTML=rs.length?rs.map(r=>{
   const x=partes(r.name),n=(detalles[r.id].items||[]).filter(i=>i.trackingNo).length,ya=repartidas().has(String(r.id));
   return `<div class="rep-ruta"><div class="q"><b>${esc(x.lbl||corto(r.name))}</b><span>${esc(Logica.baseNombre(r.name))} · ${num(n)} paquetes</span></div>
-   ${ya?'<span class="pill p-verde">repartida</span>':''}<button class="btn btn-azul" data-rep="${r.id}">${ya?'Asignar':'Repartir'}</button></div>`;}).join('');
+   ${ya?'<span class="pill p-verde">repartida</span>':''}<button class="btn btn-azul" data-rep="${r.id}">${ya?'Asignar':'Repartir'}</button></div>`;}).join('')
+  :'<p class="vacio-txt">No hay rutas sin driver en esta fecha.</p>';
  document.querySelectorAll('[data-rep]').forEach(b=>b.onclick=()=>abrirRepartir(+b.dataset.rep));
 }
 
@@ -1516,57 +1980,125 @@ function cargarLeaflet(){
  return leaflet;
 }
 
+// ---------- avenidas (OpenStreetMap, gratis y sin clave)
+const OVERPASS=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
+const callesCache=new Map();
+async function leerCalles(items,medianas){
+ const ok=items.filter((_,k)=>Logica.ubicadas(items)[k]);
+ if(!ok.length)return [];
+ const la=ok.map(i=>+i.lat),ln=ok.map(i=>+i.lng),m=0.01;
+ const r2=v=>Math.round(v*100)/100;
+ const caja=[r2(Math.min(...la)-m),r2(Math.min(...ln)-m),r2(Math.max(...la)+m),r2(Math.max(...ln)+m)];
+ const tipos='motorway|trunk|primary'+(medianas?'|secondary':'');
+ const clave=caja.join(',')+'|'+tipos;
+ if(callesCache.has(clave))return callesCache.get(clave);
+ try{const g=store.get('calles_cache',{});const e=g[clave];if(e&&Date.now()-e.t<14*864e5){callesCache.set(clave,e.c);return e.c;}}catch(e){}
+ const q=`[out:json][timeout:20];way["highway"~"^(${tipos})$"](${caja.join(',')});out geom;`;
+ let ultimo=null;
+ for(const url of OVERPASS){
+  const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),22000);
+  try{
+   const r=await fetch(url,{method:'POST',body:'data='+encodeURIComponent(q),headers:{'Content-Type':'application/x-www-form-urlencoded'},signal:ctl.signal});
+   if(!r.ok)throw new Error('HTTP '+r.status);
+   const j=await r.json();
+   const c=(j.elements||[]).filter(e=>e.geometry&&e.geometry.length>1).map(e=>e.geometry.map(p=>[+p.lat.toFixed(5),+p.lon.toFixed(5)]));
+   callesCache.set(clave,c);
+   try{const g=store.get('calles_cache',{});g[clave]={t:Date.now(),c};const ks=Object.keys(g).sort((a,b)=>g[b].t-g[a].t);for(const k of ks.slice(6))delete g[k];store.set('calles_cache',g);}catch(e){}
+   return c;
+  }catch(e){ultimo=e;}finally{clearTimeout(t);}
+ }
+ throw ultimo||new Error('sin avenidas');
+}
+function buscarCalles(){
+ const yo=R;if(!yo)return;
+ yo.estadoCalles='buscando';yo.calles=null;pintarCalles();
+ leerCalles(yo.items,store.get('avenidas_medianas',false)).then(c=>{
+  if(R!==yo)return;yo.calles=c;yo.estadoCalles=c.length?'ok':'nada';calcular(false);
+ }).catch(()=>{if(R!==yo)return;yo.estadoCalles='error';pintarCalles();});
+}
+function pintarCalles(){
+ const el=$('rep-calles'),e=R&&R.estadoCalles;
+ el.innerHTML=e==='buscando'?'<span class="rueda"></span>Buscando avenidas…'
+  :e==='ok'?'✓ Avenidas tomadas en cuenta'
+  :e==='nada'?'No hay avenidas grandes aquí'
+  :e==='error'?'No se pudieron leer las avenidas <button id="calles-otra">Reintentar</button>':'';
+ if($('calles-otra'))$('calles-otra').onclick=buscarCalles;
+ if(e==='ok'||e==='nada'){clearTimeout(pintarCalles.t);pintarCalles.t=setTimeout(()=>{if(R&&R.estadoCalles===e)el.innerHTML='';},3500);}
+}
+
 function abrirRepartir(rid){
  const r=rutas.find(x=>x.id===rid);if(!r)return;
  const items=(detalles[rid].items||[]).filter(i=>i.trackingNo);
- R={rid,ruta:r,items,n:repartidas().has(String(rid))?1:Math.min(2,items.length),cant:'parejo',forma:'ruta',cantidades:null,drivers:[],res:null,confirmar:false};
+ R={rid,ruta:r,items,n:repartidas().has(String(rid))?1:Math.min(2,items.length),cant:'parejo',cantidades:null,drivers:[],opciones:[],elegida:0,res:null,calles:null,estadoCalles:'',confirmar:false,encuadre:false};
  const x=partes(r.name);
- $('rep-titulo').textContent=`Repartir ${x.lbl||corto(r.name)}`;
- $('rep-sub').textContent=`${r.name} · ${num(items.length)} paquetes`;
- err('rep-err','');$('repartir').showModal();
- calcular();
- cargarLeaflet().then(()=>pintarMapa()).catch(()=>{$('mapa-nota').textContent='No se pudo cargar el mapa (revisa el internet). Igual puedes repartir.';});
+ $('rep-titulo').textContent=`Ruta ${x.lbl||x.letra||(String(r.name).match(/:([A-Z]{1,2})$/)||[])[1]||corto(r.name)}`;
+ $('rep-sub').textContent=`${num(items.length)} paquetes${x.lbl?'':' · '+corto(r.name)}`;
+ err('rep-err','');$('repartir').showModal();$('repartir').querySelector('.panel').scrollTop=0;
+ calcular(false);
+ cargarLeaflet().then(()=>{mapaFalla=false;pintarMapa();}).catch(()=>{mapaFalla=true;pintarPartes();});
+ buscarCalles();
 }
 function pintarOpciones(){
  $('rep-n').textContent=R.n;
  $('rep-menos').disabled=R.n<=1;$('rep-mas').disabled=R.n>=Math.min(MAXP,R.items.length);
  document.querySelectorAll('[data-cant]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.cant===R.cant)));
- document.querySelectorAll('[data-forma]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.forma===R.forma)));
+ const med=store.get('avenidas_medianas',false);
+ document.querySelectorAll('[data-av]').forEach(b=>b.setAttribute('aria-pressed',String((b.dataset.av==='1')===med)));
+ const ops=R.n>1?R.opciones:[];
+ show('rep-opciones',ops.length>1);
+ $('rep-opciones').style.gridTemplateColumns=`repeat(${Math.max(1,ops.length)},minmax(0,1fr))`;
+ $('rep-opciones').innerHTML=ops.map((o,k)=>`<button class="opcion" data-op="${k}" aria-pressed="${k===R.elegida}" title="${esc(o.titulo)}">${o.recomendada?'<span class="mejor">mejor</span>':''}Opción ${k+1}<small>${esc(o.corto)}</small></button>`).join('');
+ document.querySelectorAll('[data-op]').forEach(b=>b.onclick=()=>{const k=+b.dataset.op;if(k===R.elegida)return;R.elegida=k;R.res=R.opciones[k];R.confirmar=false;
+  if(R.cant==='elijo')R.cantidades=R.res.partes.map(p=>p.n);
+  document.querySelectorAll('[data-op]').forEach(x=>x.setAttribute('aria-pressed',String(+x.dataset.op===k)));pintarPartes();pintarMapa();});
 }
-function calcular(){
+// mantener=true: se queda con la misma forma de corte (si sigue existiendo)
+function calcular(mantener){
  R.confirmar=false;
  if(R.cant==='elijo'&&(!R.cantidades||R.cantidades.length!==R.n))R.cantidades=Logica.metas(R.items.length,R.n,null).metas;
  R.drivers=Array.from({length:R.n},(_,k)=>R.drivers[k]||'');
  err('rep-err','');
- try{R.res=Logica.repartir(R.items,{partes:R.n,cantidades:R.cant==='elijo'?R.cantidades:null,forma:R.forma,digitos:+$('digitos').value});}
- catch(e){R.res=null;err('rep-err',e.message);}
- pintarOpciones();pintarPartes();pintarMapa();
+ const antes=R.res&&R.res.forma;
+ try{
+  R.opciones=Logica.opcionesCorte(R.items,{partes:R.n,cantidades:R.cant==='elijo'?R.cantidades:null,digitos:+$('digitos').value,calles:R.calles});
+  const k=mantener?R.opciones.findIndex(o=>o.forma===antes):-1;
+  R.elegida=k>=0?k:0;R.res=R.opciones[R.elegida]||null;
+ }catch(e){R.opciones=[];R.res=null;err('rep-err',e.message);}
+ pintarOpciones();pintarPartes();pintarMapa();pintarCalles();
 }
-$('rep-menos').onclick=()=>{if(R.n>1){R.n--;R.cantidades=null;calcular();}};
-$('rep-mas').onclick=()=>{if(R.n<Math.min(MAXP,R.items.length)){R.n++;R.cantidades=null;calcular();}};
-document.querySelectorAll('[data-cant]').forEach(b=>b.onclick=()=>{R.cant=b.dataset.cant;R.cantidades=R.cant==='elijo'&&R.res?R.res.partes.map(p=>p.n):null;calcular();});
-document.querySelectorAll('[data-forma]').forEach(b=>b.onclick=()=>{R.forma=b.dataset.forma;calcular();});
+$('rep-menos').onclick=()=>{if(R.n>1){R.n--;R.cantidades=null;calcular(false);}};
+$('rep-mas').onclick=()=>{if(R.n<Math.min(MAXP,R.items.length)){R.n++;R.cantidades=null;calcular(false);}};
+document.querySelectorAll('[data-cant]').forEach(b=>b.onclick=()=>{R.cant=b.dataset.cant;R.cantidades=R.cant==='elijo'&&R.res?R.res.partes.map(p=>p.n):null;calcular(true);});
+document.querySelectorAll('[data-av]').forEach(b=>b.onclick=()=>{const v=b.dataset.av==='1';if(v===store.get('avenidas_medianas',false))return;store.set('avenidas_medianas',v);pintarOpciones();buscarCalles();});
 
 function pintarPartes(){
  const res=R.res,lista=listaDrivers();
  const dl=`<datalist id="dl-drivers">${lista.map(d=>`<option value="${esc(d.nombre)}"></option>`).join('')}</datalist>`;
- if(!res){$('rep-partes').innerHTML='';botonRep();return;}
- $('mapa-nota').textContent=(res.forma==='ruta'?'Áreas cortadas siguiendo el orden de entrega de SpeedX (por las calles).':(R.forma==='ruta'?'Esta ruta no tiene orden de SpeedX: se partió por zonas.':'Áreas por zonas del mapa.'))+(res.sinUbicacion?` ${res.sinUbicacion} paquete(s) con ubicación equivocada en SpeedX (muy lejos de la ruta): no salen en el mapa${res.forma==='ruta'?' y van según su orden de entrega':''}.`:'');
+ if(!res){$('rep-partes').innerHTML='';$('rep-resumen').innerHTML='';botonRep();return;}
+ $('mapa-nota').textContent=(mapaFalla?'No se pudo cargar el mapa (revisa el internet). Igual puedes repartir. ':'')+(res.sinUbicacion?`${res.sinUbicacion} paquete(s) con ubicación equivocada en SpeedX (muy lejos de la ruta): no salen en el mapa.`:'');
  $('rep-partes').innerHTML=dl+res.partes.map((p,k)=>`<div class="parte">
-  <span class="color" style="background:${COLORES[k%COLORES.length]}">${String.fromCharCode(65+k)}</span>
-  <div class="info"><b>${num(p.n)} paquetes</b><span>Código ${esc(p.etiqueta||'—')}</span></div>
+  <span class="color" style="background:${COLORES[k%COLORES.length]}">${letra(k)}</span>
+  <div class="info"><b>${num(p.n)}</b><span>paquetes</span></div>
   <div class="elegir">
-   <input type="text" list="dl-drivers" data-drv="${k}" value="${esc(R.drivers[k]||'')}" placeholder="Driver (elige o escribe)" autocomplete="off" aria-label="Driver del área ${String.fromCharCode(65+k)}">
-   ${R.cant==='elijo'?`<input type="number" min="1" inputmode="numeric" data-cnt="${k}" value="${R.cantidades[k]}" aria-label="Paquetes del área ${String.fromCharCode(65+k)}">`:''}
+   <input type="text" list="dl-drivers" data-drv="${k}" value="${esc(R.drivers[k]||'')}" placeholder="Elige driver" autocomplete="off" aria-label="Driver del área ${letra(k)}">
+   ${R.cant==='elijo'?`<input type="number" min="1" inputmode="numeric" data-cnt="${k}" value="${R.cantidades[k]}" style="width:84px;flex:none;text-align:center" aria-label="Paquetes del área ${letra(k)}">`:''}
   </div>
   <div class="nombre-final" id="nf-${k}"></div></div>`).join('');
+ let t='';
+ if(R.n>1&&res.conCalles){
+  t=res.sueltos?`<b>${num(res.sueltos)}</b> ${res.sueltos===1?'paquete suelto queda':'paquetes sueltos quedan'} del otro lado de una avenida`
+   :'<span class="ok">✓ Nadie cruza una avenida por pocos paquetes</span>';
+  if(res.cruces>res.sueltos&&res.lados<=12)t+=` · ${num(res.cruces)} en bloque al otro lado`;
+ }else if(R.n>1&&R.estadoCalles==='buscando')t='Buscando avenidas para no cruzarlas…';
+ if(R.n>1&&res.titulo)t=`<div style="margin-bottom:2px"><b>${esc(res.titulo)}</b></div>`+t;
+ $('rep-resumen').innerHTML=t;
  document.querySelectorAll('[data-drv]').forEach(i=>i.oninput=()=>{R.drivers[+i.dataset.drv]=i.value;R.confirmar=false;nombresFinales();botonRep();});
  document.querySelectorAll('[data-cnt]').forEach(i=>i.onchange=()=>{
   const k=+i.dataset.cnt,v=Math.max(1,Math.round(+i.value||1)),c=R.cantidades.slice();c[k]=v;
   const ult=k===c.length-1?c.length-2:c.length-1;
   c[ult]=R.items.length-c.reduce((s,x,j)=>j===ult?s:s+x,0);
   if(c[ult]<1){err('rep-err',`No alcanza: la ruta tiene ${R.items.length} paquetes.`);i.value=R.cantidades[k];return;}
-  R.cantidades=c;calcular();});
+  R.cantidades=c;calcular(true);});
  nombresFinales();botonRep();
 }
 function nombresFinales(){
@@ -1591,24 +2123,25 @@ function envoltura(pts){ // contorno (convex hull) de un área para dibujarla
 }
 function pintarMapa(){
  const L=window.L;if(!L||!L.map||!R||!$('repartir').open)return;
- if(!mapa){mapa=L.map('mapa',{zoomControl:true,attributionControl:true});
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(mapa);}
- setTimeout(()=>mapa.invalidateSize(),50);
+ if(!mapa){mapa=L.map('mapa',{zoomControl:false,attributionControl:true});
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd',attribution:'© OpenStreetMap © CARTO'}).addTo(mapa);}
+ setTimeout(()=>mapa.invalidateSize(),60);
+ if(capaCalles)capaCalles.remove();capaCalles=L.layerGroup().addTo(mapa);
+ for(const c of R.calles||[])L.polyline(c,{color:'#C7D0E0',weight:5,opacity:.5,interactive:false}).addTo(capaCalles);
  if(capas)capas.remove();capas=L.layerGroup().addTo(mapa);
  if(!R.res)return;
  const todos=[];
  R.res.partes.forEach((p,k)=>{
   const c=COLORES[k%COLORES.length];
-  const pts=p.indices.filter(i=>R.res.ubicada?R.res.ubicada[i]:(Number.isFinite(+R.items[i].lat)&&+R.items[i].lat!==0)).map(i=>[+R.items[i].lat,+R.items[i].lng]);
+  const pts=p.indices.filter(i=>R.res.ubicada[i]).map(i=>[+R.items[i].lat,+R.items[i].lng]);
   todos.push(...pts);
-  const h=envoltura(pts);if(h.length>=3)L.polygon(h,{color:c,weight:2,fillOpacity:.12}).addTo(capas);
-  for(const q of pts)L.circleMarker(q,{radius:4,color:'#fff',weight:1,fillColor:c,fillOpacity:1}).addTo(capas);
-  if(p.centro)L.marker([p.centro.lat,p.centro.lng],{icon:L.divIcon({className:'',html:`<span style="display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:${c};color:#fff;font-weight:700;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4)">${String.fromCharCode(65+k)}</span>`,iconSize:[28,28],iconAnchor:[14,14]})}).addTo(capas);
+  const h=envoltura(pts);if(h.length>=3)L.polygon(h,{color:c,weight:2,fillOpacity:.16,interactive:false}).addTo(capas);
+  for(const q of pts)L.circleMarker(q,{radius:5,color:'#0B1530',weight:1.5,fillColor:c,fillOpacity:1}).addTo(capas);
+  if(p.centro)L.marker([p.centro.lat,p.centro.lng],{interactive:false,icon:L.divIcon({className:'',html:`<span style="display:grid;place-items:center;width:30px;height:30px;border-radius:9px;background:${c};color:#0B1530;font:700 16px Barlow,sans-serif;border:2px solid #0B1530;box-shadow:0 2px 6px rgba(0,0,0,.5)">${letra(k)}</span>`,iconSize:[30,30],iconAnchor:[15,15]})}).addTo(capas);
  });
- if(todos.length)mapa.fitBounds(todos,{padding:[18,18]});
+ if(todos.length&&!R.encuadre){mapa.fitBounds(todos,{padding:[20,20]});R.encuadre=true;}
 }
 $('rep-no').onclick=()=>$('repartir').close();
-$('repartir').addEventListener('click',e=>{if(e.target===$('repartir'))$('repartir').close();});
 
 $('rep-si').onclick=async()=>{
  if(!R||!R.res)return;
