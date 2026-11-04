@@ -78,6 +78,13 @@ input:focus,select:focus{border-color:var(--azul);outline:none}
 #ciudades .ciudad-larga{font-size:14px;letter-spacing:-.2px}
 .fila-t{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:8px 0;border-top:1px dashed var(--linea);font-size:14.5px}
 .fila-t span{min-width:0;overflow-wrap:anywhere}.fila-t small{color:var(--tinta2)}
+.vieja{padding:10px 0;border-top:1px dashed var(--linea)}
+.vieja .arriba{display:flex;align-items:center;gap:10px;font-size:15px}
+.vieja .arriba input{width:22px;height:22px;flex:none;accent-color:var(--azul,#1F5FD6)}
+.vieja .arriba span{flex:1;min-width:0;overflow-wrap:anywhere}.vieja small{color:var(--tinta2)}
+.vieja select{margin-top:8px;width:100%;font:inherit;font-size:14.5px;padding:9px 10px;border-radius:10px;border:1.5px solid var(--linea);background:var(--fondo);color:var(--tinta)}
+.vieja.off{opacity:.55}.vieja.off select{display:none}
+.todas{display:flex;gap:8px;margin:8px 0 2px}
 .sueltos{margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--fondo)}
 .fechas{display:flex;gap:6px;align-items:center}
 .fechas .chip{border:1.5px solid var(--linea);background:var(--hoja);border-radius:999px;padding:9px 13px;font-weight:600;cursor:pointer;white-space:nowrap}
@@ -330,8 +337,10 @@ dialog .fila .btn{flex:1}
 
    <div class="hoja" id="traer-sec">
     <h3>Paquetes de días anteriores sin driver</h3>
-    <p class="sub">Busca rutas <b>sin driver</b> de los 7 días antes de esta fecha y pasa sus paquetes a las rutas de este día que ya tienen ese código postal. No se borra ninguna ruta.</p>
-    <button id="traer-buscar" class="btn btn-suave btn-ancho">Buscar rutas sin driver (7 días)</button>
+    <p class="sub">Busca rutas <b>sin driver</b> de los días antes de esta fecha. Tú eliges cuáles se unen y a qué ruta de este día van. No se borra ninguna ruta.</p>
+    <div class="paso-rep" style="margin:10px 0"><b>¿Cuántos días atrás?</b>
+     <div class="contador"><button id="traer-menos" aria-label="Menos días">−</button><output id="traer-dias">7</output><button id="traer-mas" aria-label="Más días">+</button></div></div>
+    <button id="traer-buscar" class="btn btn-suave btn-ancho">Buscar rutas sin driver</button>
     <div id="traer-res"></div>
    </div>
 
@@ -1233,20 +1242,29 @@ async function cargar(recargar){
  }catch(x){if(mio===pedido&&!x.config&&!x.sesion){err('err',x.message);show('plan',false);show('final',false);}}
  finally{if(mio===pedido)show('cargando',false);}
 }
+// Rutas que ya repartiste entre drivers: el plan («Hacer todo», uniones) ya no las toca ni las vuelve a juntar.
+function repartidas(f){f=f||(cargado&&cargado.fecha);return new Set(((((estado||{}).dias||{})[f]||{}).repartidas||[]).map(String));}
+function rutasParaPlan(rs,f){const s=repartidas(f);return (rs||rutas).filter(r=>!s.has(String(r.id)));}
+function marcarRepartidas(f,ids,quitar){
+ estado.dias=estado.dias||{};const d=estado.dias[f]=estado.dias[f]||{manuales:[],quitadas:[]};
+ const s=new Set((d.repartidas||[]).map(String));for(const id of ids)quitar?s.delete(String(id)):s.add(String(id));d.repartidas=[...s];
+}
 function replanear(){
- const conteo=Logica.conteoZips(rutas,detalles);
+ const rsP=rutasParaPlan();
+ const conteo=Logica.conteoZips(rsP,detalles);
  const [usar,info]=Logica.unionesDelDia(estado,cargado.fecha,conteo);
  const dig=+$('digitos').value;
- plan=Logica.planear(rutas,detalles,usar,dig);
+ plan=Logica.planear(rsP,detalles,usar,dig);
  const suf=Logica.sufijos(new Set([...Object.keys(conteo),...info.flatMap(g=>g.zips)]),dig);
  plan.uniones=usar;plan.guardadas=info.map(g=>Object.assign(g,{etiqueta:Logica.etiqueta(g.zips,dig,suf)}));
  plan.no_editables=rutas.filter(r=>!Logica.esEditable(r)).map(r=>({nombre:r.name,paquetes:r.total,driver:r.driver||''}));
+ const rp=repartidas();plan.repartidas=rutas.filter(r=>Logica.esEditable(r)&&rp.has(String(r.id))).map(r=>({id:r.id,nombre:r.name,paquetes:((detalles[r.id]||{}).items||[]).filter(i=>i.trackingNo).length}));
  sel.clear();pintar();
 }
 async function uniones(c){
  if(!cargado)return;
  err('err','');
- try{const conteo=Logica.conteoZips(rutas,detalles);Logica.cambiarUniones(estado,cargado.fecha,c,conteo);replanear();await guardarEstado();}
+ try{const conteo=Logica.conteoZips(rutasParaPlan(),detalles);Logica.cambiarUniones(estado,cargado.fecha,c,conteo);replanear();await guardarEstado();}
  catch(x){if(!x.config)err('err','No se pudo guardar la unión: '+x.message);}
 }
 
@@ -1302,9 +1320,14 @@ function pintar(){
   <div class="completo">${p.nombres.map(esc).join('<br>')}</div>`:''}
   ${p.nota?`<div class="nota">${esc(p.nota)}</div>`:''}</div>`).join(''):'<p class="vacio-txt">Nada que hacer.</p>';
  $('mover').innerHTML=plan.mover.length?`<ul class="simple">${plan.mover.map(m=>`<li><b>${num(m.item_ids.length)}</b> de <b>${esc(m.etiqueta)}</b>: de ${esc(corto(m.origen))} a <b>${esc(corto(m.destino))}</b></li>`).join('')}</ul>`:'<p class="sub" style="margin:6px 0 0">No hay paquetes repartidos entre rutas.</p>';
- show('otras-card',plan.no_editables.length>0);
- $('otras-tit').textContent=`Rutas que no se tocan (${plan.no_editables.length})`;
- $('otras').innerHTML=`<ul class="simple">${plan.no_editables.map(o=>`<li><b>${esc(corto(o.nombre))}</b>: ${num(o.paquetes)} paquetes${o.driver?', '+esc(o.driver):''}</li>`).join('')}</ul>`;
+ const nOt=plan.no_editables.length+plan.repartidas.length;
+ show('otras-card',nOt>0);
+ $('otras-tit').textContent=`Rutas que no se tocan (${nOt})`;
+ $('otras').innerHTML=`<ul class="simple">${plan.no_editables.map(o=>`<li><b>${esc(corto(o.nombre))}</b>: ${num(o.paquetes)} paquetes${o.driver?', '+esc(o.driver):''}</li>`).join('')}
+  ${plan.repartidas.map(o=>`<li><b>${esc(o.nombre)}</b>: ${num(o.paquetes)} paquetes · <span class="pill p-verde">repartida</span> <button class="enlace" data-soltar="${o.id}">Dejar que «Hacer todo» la junte</button></li>`).join('')}</ul>`;
+ document.querySelectorAll('[data-soltar]').forEach(b=>b.onclick=async()=>{
+  if(!confirm('¿Quitarle la marca de repartida? Así «Hacer todo» la puede volver a juntar con las del mismo código.'))return;
+  marcarRepartidas(cargado.fecha,[b.dataset.soltar],true);replanear();try{await guardarEstado();}catch(x){if(!x.config)err('err','No se pudo guardar: '+x.message);}});
  show('final',true);barra();
  pintarRepartir();
 }
@@ -1346,7 +1369,7 @@ $('conf-si').onclick=async()=>{
  let error='';
  try{
   log(`Leyendo las rutas de ${c}…`);
-  const rs=await SX.rutas(fecha,c);const det={};
+  const rs=rutasParaPlan(await SX.rutas(fecha,c),fecha);const det={};
   for(const r of rs)if(Logica.esEditable(r)&&(r.total||r.parcelCount||0)>0)det[r.id]=await SX.detalle(r.id);
   await Logica.ejecutar(SX,rs,det,usar,dig,log);
   try{Logica.contarUso(estado,fecha,usar);await guardarEstado();}catch(e){log('(No se pudo guardar el uso de las uniones: '+e.message+')');}
@@ -1364,46 +1387,82 @@ $('prog-cerrar').onclick=()=>show('progreso',false);
 let traer=null;
 const diaAntes=(f,n)=>{const d=new Date(f+'T12:00:00Z');d.setUTCDate(d.getUTCDate()-n);return d.toISOString().slice(0,10);};
 const fCh=f=>f?new Date(f+'T12:00:00Z').toLocaleDateString('es-MX',{day:'numeric',month:'short',timeZone:'UTC'}):'';
+const MAXDIAS=30;
+let diasAtras=Math.min(MAXDIAS,Math.max(1,+store.get('dias_atras',7)||7));
+function pintarDias(){$('traer-dias').textContent=diasAtras;$('traer-menos').disabled=diasAtras<=1;$('traer-mas').disabled=diasAtras>=MAXDIAS;
+ if(!traer)$('traer-buscar').textContent=`Buscar rutas sin driver (${diasAtras} ${diasAtras===1?'día':'días'})`;}
+$('traer-menos').onclick=()=>{if(diasAtras>1){diasAtras--;store.set('dias_atras',diasAtras);pintarDias();}};
+$('traer-mas').onclick=()=>{if(diasAtras<MAXDIAS){diasAtras++;store.set('dias_atras',diasAtras);pintarDias();}};
+pintarDias();
+const itemsDe=(det,r)=>((det[r.id]||{}).items||[]).filter(i=>i.trackingNo);
 $('traer-buscar').onclick=async()=>{
  if(trabajando||!cargado)return;
- const b=$('traer-buscar'),c=cargado.ciudad,f0=cargado.fecha,viejas=[],det={};
+ const b=$('traer-buscar'),c=cargado.ciudad,f0=cargado.fecha,dias=diasAtras,viejas=[],det={};
  b.disabled=true;err('err','');
  try{
-  for(let d=1;d<=7;d++){const f=diaAntes(f0,d);b.textContent=`Buscando rutas del ${fCh(f)}…`;
+  for(let d=1;d<=dias;d++){const f=diaAntes(f0,d);b.textContent=`Buscando rutas del ${fCh(f)}… (${d} de ${dias})`;
    viejas.push(...(await SX.rutas(f,c)).filter(r=>Logica.esEditable(r)&&(r.total||r.parcelCount||0)>0));}
   const pend=[...viejas];let h=0;
   const w=async()=>{while(pend.length){const r=pend.shift();det[r.id]=await SX.detalle(r.id);h++;b.textContent=`Leyendo rutas sin driver… ${h} de ${viejas.length}`;}};
   await Promise.all([w(),w(),w(),w()]);
   if(!cargado||cargado.ciudad!==c||cargado.fecha!==f0)return;
-  traer={ciudad:c,fecha:f0,plan:Logica.planTraer(rutas,detalles,viejas,det,(plan&&plan.uniones)||[])};
+  const vs=viejas.filter(r=>itemsDe(det,r).length)
+   .sort((a,b)=>String(b.deliverDate||'').localeCompare(String(a.deliverDate||''))||String(a.name).localeCompare(String(b.name)));
+  // Al principio todas van marcadas y «por código postal». Tú quitas las que no quieras o eliges otra ruta.
+  traer={ciudad:c,fecha:f0,dias,viejas:vs,det,elegidas:new Set(vs.map(r=>r.id)),destino:{},sueltos:''};
   pintarTraer();
  }catch(x){if(!x.config&&!x.sesion)err('err',x.message);}
- finally{b.disabled=false;b.textContent='Buscar otra vez (7 días)';}
+ finally{b.disabled=false;if(traer)b.textContent=`Buscar otra vez (${diasAtras} ${diasAtras===1?'día':'días'})`;else pintarDias();}
 };
+// Plan de lo que se va a mover según lo que elegiste.
+function planElegido(){
+ const t=traer,hoy=rutasParaPlan();
+ const auto=t.viejas.filter(r=>t.elegidas.has(r.id)&&!t.destino[r.id]);
+ const p=Logica.planTraer(hoy,detalles,auto,t.det,(plan&&plan.uniones)||[]);
+ const fijos=[];
+ for(const r of t.viejas){
+  const did=t.destino[r.id];if(!t.elegidas.has(r.id)||!did)continue;
+  const d=rutas.find(x=>String(x.id)===String(did));if(!d)continue;
+  const its=itemsDe(t.det,r);
+  fijos.push({origen_id:r.id,origen:r.name,fecha:r.deliverDate||'',destino_id:d.id,destino:d.name,item_ids:its.map(i=>i.id),trackings:its.map(i=>i.trackingNo),
+   zips:[...new Set(its.map(i=>Logica.zip5(i.zipCode)||Logica.zip5(i.address)).filter(Boolean))].sort(),n:its.length});
+ }
+ return {mover:p.mover.concat(fijos),sinDestino:p.sinDestino};
+}
 function pintarTraer(){
  const box=$('traer-res');
- if(!traer||!cargado||traer.fecha!==cargado.fecha||traer.ciudad!==cargado.ciudad){traer=null;box.innerHTML='';$('traer-buscar').textContent='Buscar rutas sin driver (7 días)';return;}
- const p=traer.plan;
- if(!p.rutasViejas.length){box.innerHTML='<p class="listo">✓ No hay rutas sin driver con paquetes en los 7 días anteriores.</p>';return;}
+ if(!traer||!cargado||traer.fecha!==cargado.fecha||traer.ciudad!==cargado.ciudad){traer=null;box.innerHTML='';pintarDias();return;}
+ const t=traer;
+ if(!t.viejas.length){box.innerHTML=`<p class="listo">✓ No hay rutas sin driver con paquetes en los ${t.dias} ${t.dias===1?'día':'días'} anteriores.</p>`;return;}
  const hoyEd=rutas.filter(r=>Logica.esEditable(r)&&r.id in detalles).sort((a,b)=>String(a.name).localeCompare(String(b.name)));
- const sueltos=p.sinDestino.reduce((s,g)=>s+g.items.length,0);
- box.innerHTML=`<p style="margin:12px 0 6px"><b>${num(p.rutasViejas.length)}</b> ${p.rutasViejas.length===1?'ruta':'rutas'} sin driver con <b>${num(p.total)}</b> paquetes. <b>${num(p.aMover)}</b> tienen ruta de este día con su código${sueltos?` y <b>${num(sueltos)}</b> no`:''}.</p>
-  <details class="mas"${p.rutasViejas.length<=6?' open':''}><summary>Rutas viejas sin driver</summary>${p.rutasViejas.map(r=>`<div class="fila-t"><span>${esc(r.nombre)}</span><b>${num(r.paquetes)}</b></div>`).join('')}</details>
-  ${p.mover.length?`<details class="mas" open><summary>A dónde va cada paquete</summary>${p.mover.map(m=>`<div class="fila-t"><span>${esc(m.origen)} <small>(${esc(fCh(m.fecha))})</small><br>→ <b>${esc(m.destino)}</b> · ${esc(m.zips.join(', '))}</span><b>${num(m.n)}</b></div>`).join('')}</details>`:''}
+ if(t.sueltos&&!hoyEd.some(r=>String(r.id)===String(t.sueltos)))t.sueltos='';
+ const p=planElegido(),sueltos=p.sinDestino.reduce((s,g)=>s+g.items.length,0);
+ const nEleg=t.viejas.filter(r=>t.elegidas.has(r.id)).length,pkEleg=t.viejas.filter(r=>t.elegidas.has(r.id)).reduce((s,r)=>s+itemsDe(t.det,r).length,0);
+ const ops=(sel)=>`<option value="">Por código postal (automático)</option>${hoyEd.map(r=>`<option value="${r.id}"${String(sel)===String(r.id)?' selected':''}>Todo a ${esc(r.name)}</option>`).join('')}`;
+ box.innerHTML=`<p style="margin:12px 0 4px"><b>${num(t.viejas.length)}</b> ${t.viejas.length===1?'ruta':'rutas'} sin driver en ${t.dias} ${t.dias===1?'día':'días'}. Elegidas: <b>${num(nEleg)}</b> con <b>${num(pkEleg)}</b> paquetes.</p>
+  <div class="todas"><button class="mini" id="traer-todas">Marcar todas</button><button class="mini" id="traer-ninguna">Quitar todas</button></div>
+  ${t.viejas.map(r=>{const on=t.elegidas.has(r.id);return `<div class="vieja${on?'':' off'}">
+   <label class="arriba"><input type="checkbox" data-vieja="${r.id}"${on?' checked':''}><span>${esc(r.name)} <small>(${esc(fCh(r.deliverDate))})</small></span><b>${num(itemsDe(t.det,r).length)}</b></label>
+   <select data-vdest="${r.id}" aria-label="A qué ruta van los paquetes de ${esc(r.name)}">${ops(t.destino[r.id]||'')}</select></div>`;}).join('')}
+  ${p.mover.length?`<details class="mas"><summary>A dónde va cada paquete</summary>${p.mover.map(m=>`<div class="fila-t"><span>${esc(m.origen)} <small>(${esc(fCh(m.fecha))})</small><br>→ <b>${esc(m.destino)}</b> · ${esc(m.zips.join(', '))}</span><b>${num(m.n)}</b></div>`).join('')}</details>`:''}
   ${sueltos?`<div class="sueltos"><b>Sin ruta de este día con su código (${num(sueltos)})</b><p class="sub" style="margin:2px 0 8px">${p.sinDestino.map(g=>`${esc(g.zip)}: ${num(g.items.length)}`).join(' · ')}</p>
-   <label class="campo">¿Qué hago con estos?<select id="traer-sueltos"><option value="">Dejarlos donde están</option>${hoyEd.map(r=>`<option value="${r.id}">Pasarlos a ${esc(r.name)}</option>`).join('')}</select></label></div>`:''}
-  <button id="traer-hacer" class="btn btn-pri btn-ancho" style="margin-top:10px">Pasar ${num(p.aMover)} paquetes a las rutas de este día</button>`;
- const btn=$('traer-hacer'),cuantos=()=>p.aMover+($('traer-sueltos')&&$('traer-sueltos').value?sueltos:0);
- if($('traer-sueltos'))$('traer-sueltos').onchange=()=>{btn.textContent=`Pasar ${num(cuantos())} paquetes a las rutas de este día`;btn.disabled=!cuantos();};
- btn.disabled=!cuantos();btn.onclick=hacerTraer;
+   <label class="campo">¿Qué hago con estos?<select id="traer-sueltos"><option value="">Dejarlos donde están</option>${hoyEd.map(r=>`<option value="${r.id}"${String(t.sueltos)===String(r.id)?' selected':''}>Pasarlos a ${esc(r.name)}</option>`).join('')}</select></label></div>`:''}
+  <button id="traer-hacer" class="btn btn-pri btn-ancho" style="margin-top:10px"></button>`;
+ const total=p.mover.reduce((s,m)=>s+m.n,0)+(t.sueltos?sueltos:0),btn=$('traer-hacer');
+ btn.textContent=total?`Pasar ${num(total)} paquetes a las rutas de este día`:'Elige al menos una ruta';btn.disabled=!total;btn.onclick=hacerTraer;
+ document.querySelectorAll('[data-vieja]').forEach(i=>i.onchange=()=>{const id=+i.dataset.vieja;i.checked?t.elegidas.add(id):t.elegidas.delete(id);pintarTraer();});
+ document.querySelectorAll('[data-vdest]').forEach(s=>s.onchange=()=>{t.destino[+s.dataset.vdest]=s.value;pintarTraer();});
+ $('traer-todas').onclick=()=>{t.viejas.forEach(r=>t.elegidas.add(r.id));pintarTraer();};
+ $('traer-ninguna').onclick=()=>{t.elegidas.clear();pintarTraer();};
+ if($('traer-sueltos'))$('traer-sueltos').onchange=()=>{t.sueltos=$('traer-sueltos').value;pintarTraer();};
 }
 async function hacerTraer(){
  if(!traer||trabajando)return;
- const p=traer.plan;let movs=[...p.mover];
- const v=$('traer-sueltos')?$('traer-sueltos').value:'';
- if(v){const d=rutas.find(r=>String(r.id)===v);if(d)movs=movs.concat(Logica.moverSueltos(p.sinDestino,d));}
+ const t=traer,p=planElegido();let movs=[...p.mover];
+ if(t.sueltos){const d=rutas.find(r=>String(r.id)===String(t.sueltos));if(d)movs=movs.concat(Logica.moverSueltos(p.sinDestino,d));}
  const n=movs.reduce((s,m)=>s+m.n,0);if(!n)return;
- if(!confirm(`¿Pasar ${n} paquetes de ${p.rutasViejas.length} rutas sin driver a las rutas de ${nombreFecha(traer.fecha)}?\n\nNo se borra ninguna ruta. Después puedes «Hacer todo» para dividir y nombrar.`))return;
+ const nR=new Set(movs.map(m=>m.origen_id)).size;
+ if(!confirm(`¿Pasar ${n} paquetes de ${nR} ${nR===1?'ruta':'rutas'} sin driver a las rutas de ${nombreFecha(t.fecha)}?\n\nNo se borra ninguna ruta.`))return;
  trabajando=true;
  const P=$('progreso');P.className='progreso';$('prog-titulo').textContent='Pasando paquetes en SpeedX…';$('prog-aviso').classList.remove('hidden');
  show('prog-cerrar',false);$('prog-barra').style.width='3%';
@@ -1423,7 +1482,7 @@ async function hacerTraer(){
  finally{trabajando=false;window.removeEventListener('beforeunload',salir);try{lock&&lock.release();}catch(e){}}
  $('prog-barra').style.width='100%';$('prog-aviso').classList.add('hidden');
  if(error){P.classList.add('con-error');$('prog-titulo').textContent='Se detuvo con un error';$('prog-paso').textContent=`${error} Se pasaron ${hechos} de ${n}. Lo que ya se movió quedó movido.`;}
- else{P.classList.add('listo-ok');$('prog-titulo').textContent='Terminado ✔';$('prog-paso').textContent=`Se pasaron ${hechos} paquetes. Ahora revisa el plan y usa «Hacer todo» para dividir y nombrar.`;}
+ else{P.classList.add('listo-ok');$('prog-titulo').textContent='Terminado ✔';$('prog-paso').textContent=`Se pasaron ${hechos} paquetes.`;}
  show('prog-cerrar',true);traer=null;
  cargar(true);
 }
@@ -1435,14 +1494,13 @@ let R=null,mapa=null,capas=null;
 const listaDrivers=()=>((estado&&estado.drivers)||[]).slice().sort((a,b)=>a.nombre.localeCompare(b.nombre,'es'));
 
 function pintarRepartir(){
- const pid=Object.fromEntries((plan.rutas||[]).map(p=>[p.id,p]));
  const rs=rutas.filter(r=>Logica.esEditable(r)&&detalles[r.id]&&(detalles[r.id].items||[]).length>0)
   .sort((a,b)=>String(a.name).localeCompare(String(b.name)));
  show('rep-sec',rs.length>0);
  $('rep-lista').innerHTML=rs.map(r=>{
-  const p=pid[r.id],pend=p&&p.accion!=='igual',x=partes(r.name),n=(detalles[r.id].items||[]).filter(i=>i.trackingNo).length;
+  const x=partes(r.name),n=(detalles[r.id].items||[]).filter(i=>i.trackingNo).length,ya=repartidas().has(String(r.id));
   return `<div class="rep-ruta"><div class="q"><b>${esc(x.lbl||corto(r.name))}</b><span>${esc(Logica.baseNombre(r.name))} · ${num(n)} paquetes</span></div>
-   ${pend?'<span class="pill p-amar">Primero «Hacer todo»</span>':`<button class="btn btn-azul" data-rep="${r.id}">Repartir</button>`}</div>`;}).join('');
+   ${ya?'<span class="pill p-verde">repartida</span>':''}<button class="btn btn-azul" data-rep="${r.id}">${ya?'Asignar':'Repartir'}</button></div>`;}).join('');
  document.querySelectorAll('[data-rep]').forEach(b=>b.onclick=()=>abrirRepartir(+b.dataset.rep));
 }
 
@@ -1461,7 +1519,7 @@ function cargarLeaflet(){
 function abrirRepartir(rid){
  const r=rutas.find(x=>x.id===rid);if(!r)return;
  const items=(detalles[rid].items||[]).filter(i=>i.trackingNo);
- R={rid,ruta:r,items,n:Math.min(2,items.length),cant:'parejo',forma:'ruta',cantidades:null,drivers:[],res:null,confirmar:false};
+ R={rid,ruta:r,items,n:repartidas().has(String(rid))?1:Math.min(2,items.length),cant:'parejo',forma:'ruta',cantidades:null,drivers:[],res:null,confirmar:false};
  const x=partes(r.name);
  $('rep-titulo').textContent=`Repartir ${x.lbl||corto(r.name)}`;
  $('rep-sub').textContent=`${r.name} · ${num(items.length)} paquetes`;
@@ -1555,7 +1613,7 @@ $('repartir').addEventListener('click',e=>{if(e.target===$('repartir'))$('repart
 $('rep-si').onclick=async()=>{
  if(!R||!R.res)return;
  if(!R.confirmar){R.confirmar=true;botonRep();return;}
- const A={...R,partes:R.res.partes.map((p,k)=>({...p,driver:(R.drivers[k]||'').trim()}))};
+ const A={...R,partes:R.res.partes.map((p,k)=>({...p,driver:(R.drivers[k]||'').trim()}))},fRep=cargado.fecha;
  $('repartir').close();
  trabajando=true;
  const P=$('progreso');P.className='progreso';$('prog-titulo').textContent='Repartiendo en SpeedX…';$('prog-aviso').classList.remove('hidden');
@@ -1579,6 +1637,9 @@ $('rep-si').onclick=async()=>{
    for(const s of r){const dd=await SX.detalle(s.id);conItems.push({...s,name:s.name||dd.routeName,trackings:(dd.items||[]).map(i=>i.trackingNo)});}
    subs=Logica.emparejar(A.partes,conItems);
   }else subs=[{id:A.rid,name:A.ruta.name}];
+  // se marcan YA, para que nada las vuelva a juntar aunque falte asignar algún driver
+  marcarRepartidas(fRep,[A.rid,...subs.filter(Boolean).map(s=>s.id)]);
+  try{await guardarEstado();}catch(e){avisos.push('No se pudo guardar la marca de repartida: '+e.message);}
   const ds=listaDrivers();
   for(let k=0;k<A.partes.length;k++){
    const p=A.partes[k],s=subs[k];
