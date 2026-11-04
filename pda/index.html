@@ -81,8 +81,15 @@ input:focus,select:focus,textarea:focus{border-color:var(--azul);outline:none}
 .ensenar .opc{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .ensenar .opc button{min-height:50px;border:0;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;background:rgba(255,255,255,.92);color:#101828}
 .ensenar .opc button.reset{grid-column:1/-1;background:var(--verde);color:#06281A}
+.ensenar .opc button.propia{background:#FFE9A8;color:#2A1F00}
+.nueva-cat{margin-top:10px;background:rgba(255,255,255,.12);border-radius:12px;padding:10px}
+.nueva-cat b{font-size:15px;margin-bottom:6px}
+.fila-nueva{display:flex;gap:8px}
+.fila-nueva input{flex:1;min-width:0;height:50px;border-radius:12px;border:0;padding:0 12px;font-size:17px;font-weight:600;background:#fff;color:#101828}
+.fila-nueva .crear{flex:none;min-height:50px;padding:0 16px;border:0;border-radius:12px;font-weight:800;font-size:16px;background:var(--amarillo);color:#0B1530;cursor:pointer}
+.fila-nueva .crear:disabled{opacity:.5}
 .ensenar label{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:14.5px;font-weight:600}
-.ensenar input{width:22px;height:22px}
+.ensenar input[type=checkbox]{width:22px;height:22px;flex:none}
 .acciones-ult{display:flex;gap:8px;margin-top:10px}
 .acciones-ult .mini{flex:1;background:rgba(0,0,0,.25);color:inherit;min-height:46px}
 .contadores{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}
@@ -330,9 +337,9 @@ const Fallas = (() => {
   function clasificar(msg, aprendidas = []) {
     const k = clave(msg);
     const a = aprendidas.find((x) => x.clave === k);
-    if (a) return { cat: a.cat || "other", resettable: !!a.resettable, aprendido: true, conocido: true };
-    for (const [cat, re] of REGLAS) if (re.test(String(msg || ""))) return { cat, resettable: false, aprendido: false, conocido: true };
-    return { cat: "other", resettable: false, aprendido: false, conocido: false };
+    if (a) return { cat: a.cat || "other", label: a.label || "", resettable: !!a.resettable, aprendido: true, conocido: true };
+    for (const [cat, re] of REGLAS) if (re.test(String(msg || ""))) return { cat, label: "", resettable: false, aprendido: false, conocido: true };
+    return { cat: "other", label: "", resettable: false, aprendido: false, conocido: false };
   }
   // choque al crear el lote de entrada (pasa cuando llegan dos al mismo tiempo): se reintenta solo
   const esChoque = (m) => /constraintviolation|could not execute statement|_idx\]|duplicate entry|deadlock|lock wait timeout/i.test(String(m || ""));
@@ -344,7 +351,9 @@ const Fallas = (() => {
     if (m) s = m[0];
     return s.replace(/[^A-Z0-9_-]/g, "");
   }
-  return { NOMBRE, clasificar, clave, esChoque, esRed, limpiarTracking };
+  /** Nombre que se muestra: la categoría propia si tiene, si no la de siempre. */
+  const nombre = (cat, label) => (label && String(label).trim()) || NOMBRE[cat] || "Otro error";
+  return { NOMBRE, clasificar, clave, esChoque, esRed, limpiarTracking, nombre };
 })();
 if (typeof module !== "undefined") module.exports = Fallas;
 </script>
@@ -368,6 +377,29 @@ class Err extends Error{constructor(m,x){super(m);Object.assign(this,x||{});}}
 let db=null,perfil=null,sxToken=store.get('pda_sx_token',''),sxUsuario=store.get('pda_sx_user','');
 let lecturas=[],dia=hoyEst(),vista='escanear',filtroHoy='reset',pendientes=[],caja=[],guias=[];
 let aprendidas=store.get('pda_reglas',[]).filter(a=>!/no permitida/i.test((a.clave||'')+' '+(a.ejemplo||'')));
+const nombreFalla=r=>Fallas.nombre(r.fail_cat,r.fail_label);
+// Las reglas viven en AFLEX (tabla return_pda_rules) para que no se pierdan; aquí queda una copia.
+async function cargarReglas(){
+ try{
+  const r=await db.from('return_pda_rules').select('*').order('updated_at');
+  if(r.error)return;
+  const enDb=new Set(r.data.map(x=>x.clave));
+  for(const a of aprendidas.filter(x=>!enDb.has(x.clave)))   // las que solo estaban en este PDA se suben una vez
+   try{const g=await rpc('return_pda_rule_save',{p_clave:a.clave,p_cat:a.cat||'other',p_label:a.label||'',p_resettable:!!a.resettable,p_ejemplo:a.ejemplo||''});r.data.push(g);}catch(e){}
+  aprendidas=r.data.filter(a=>!/no permitida/i.test((a.clave||'')+' '+(a.ejemplo||'')));store.set('pda_reglas',aprendidas);
+ }catch(e){}
+}
+async function guardarRegla(regla){
+ aprendidas=aprendidas.filter(x=>x.clave!==regla.clave).concat([regla]);store.set('pda_reglas',aprendidas);
+ try{await rpc('return_pda_rule_save',{p_clave:regla.clave,p_cat:regla.cat,p_label:regla.label||'',p_resettable:!!regla.resettable,p_ejemplo:regla.ejemplo||''});}catch(e){}
+}
+// categorías propias que ya existen (para ofrecerlas como botones)
+function categoriasPropias(){
+ const m=new Map();
+ for(const a of aprendidas)if(a.label&&!m.has(a.label.toLowerCase()))m.set(a.label.toLowerCase(),{label:a.label,cat:a.cat||'other',resettable:!!a.resettable});
+ for(const r of lecturas)if(r.fail_label&&!m.has(r.fail_label.toLowerCase()))m.set(r.fail_label.toLowerCase(),{label:r.fail_label,cat:r.fail_cat||'other',resettable:!!r.resettable});
+ return [...m.values()].sort((a,b)=>a.label.localeCompare(b.label,'es'));
+}
 
 // ---------- SpeedX (por la misma función del Divisor de rutas)
 async function fn(body){
@@ -459,7 +491,7 @@ $('login-aflex').onsubmit=async e=>{e.preventDefault();err('aflex-err','');const
 $('login-sx').onsubmit=async e=>{e.preventDefault();err('sx-err','');const b=e.target.querySelector('button');b.disabled=true;b.textContent='Entrando…';
  try{sxToken=await SX.login($('sx-usuario').value,$('sx-clave').value);sxUsuario=$('sx-usuario').value.trim();store.set('pda_sx_token',sxToken);store.set('pda_sx_user',sxUsuario);$('sx-clave').value='';despuesDeEntrar();}
  catch(x){if(!x.config)err('sx-err',x.message);}finally{b.disabled=false;b.textContent='Entrar a SpeedX';}};
-function despuesDeEntrar(){estadoCuentas();if(perfil&&sxToken){ir(vista);cargarLecturas();escuchar();procesarCola();}else mostrarLogin();}
+function despuesDeEntrar(){estadoCuentas();if(perfil&&sxToken){ir(vista);cargarReglas().then(()=>cargarLecturas());escuchar();procesarCola();}else mostrarLogin();}
 
 // ---------- sonidos
 let audio=null;
@@ -483,7 +515,7 @@ function enfocar(){if(vista==='escanear'&&!document.querySelector('dialog[open]'
 let tecla=null;
 $('scan').addEventListener('input',()=>{clearTimeout(tecla);const v=$('scan').value;if(Fallas.limpiarTracking(v).length>=12)tecla=setTimeout(()=>{if($('scan').value===v)recibir();},350);});   // PDA que no manda Enter
 $('form-scan').onsubmit=e=>{e.preventDefault();recibir();};
-document.addEventListener('click',e=>{if(vista==='escanear'&&!e.target.closest('input,select,textarea,button,dialog,a'))enfocar();});
+document.addEventListener('click',e=>{if(vista==='escanear'&&!e.target.closest('input,select,textarea,button,dialog,a,label,.ensenar'))enfocar();});
 function recibir(){
  clearTimeout(tecla);
  const t=Fallas.limpiarTracking($('scan').value);$('scan').value='';enfocar();
@@ -505,13 +537,13 @@ async function procesarCola(forzar){
      catch(e){
       if(e.sesion||e.config||e.red||e.permitida||Fallas.esRed(e.message)||/no permitida/i.test(e.message))throw e;
       const c=Fallas.clasificar(e.message,aprendidas);
-      it.dock={ok:false,sort:'',msg:e.message,cat:c.cat,resettable:c.resettable,conocido:c.conocido};
+      it.dock={ok:false,sort:'',msg:e.message,cat:c.cat,label:c.label||'',resettable:c.resettable,conocido:c.conocido};
      }
     }
     guardarCola();
    }
    const d=it.dock;
-   const out=await rpc('return_pda_receive',{p_tracking:it.tracking,p_dock_ok:d.ok,p_sort_code:d.sort||'',p_msg:d.ok?(d.msg||''):d.msg,p_fail_cat:d.ok?(d.cat||''):d.cat,p_resettable:d.ok?(d.resettable!==false):d.resettable});
+   const out=await rpc('return_pda_receive',{p_tracking:it.tracking,p_dock_ok:d.ok,p_sort_code:d.sort||'',p_msg:d.ok?(d.msg||''):d.msg,p_fail_cat:d.ok?(d.cat||''):d.cat,p_resettable:d.ok?(d.resettable!==false):d.resettable,p_fail_label:d.ok?'':(d.label||'')});
    cola.shift();guardarCola();
    unirLectura(out.read);
    avisar(out,d);
@@ -528,11 +560,11 @@ function avisar(out,d){
  const quien=r.driver?`${r.driver}${r.route_date?' · ruta del '+fCorta(r.route_date):''}`:'Sin driver en AFLEX';
  const aflexTxt={driver_scan:`Lo escaneó ${r.driver_scan_by||'el driver'} · ✓ retornado en AFLEX`,sin_escaneo:'⚠ El driver NO lo escaneó en AFLEX · se marcó retornado igual',ya_retornado:'Ya estaba retornado en AFLEX',no_en_aflex:'No está en AFLEX'}[r.aflex]||'';
  ultima=r;
- if(out.repetido&&d.yaHoy){mostrar({color:'azul',grande:'Ya lo recibiste hoy',trk:r.tracking,det:quien,msg:`Escaneado ${r.times} veces · ${r.resettable?'va a reset':'va a la caja: '+Fallas.NOMBRE[r.fail_cat]}`},'amarillo');pintarResumen();return;}
+ if(out.repetido&&d.yaHoy){mostrar({color:'azul',grande:'Ya lo recibiste hoy',trk:r.tracking,det:quien,msg:`Escaneado ${r.times} veces · ${r.resettable?'va a reset':'va a la caja: '+nombreFalla(r)}`},'amarillo');pintarResumen();return;}
  if(!r.resettable){
-  mostrar({color:'rojo',grande:'A LA CAJA · '+(Fallas.NOMBRE[r.fail_cat]||'Error'),trk:r.tracking,det:quien+(aflexTxt?' · '+aflexTxt:''),msg:'SpeedX: '+(r.speedx_msg||'—'),ensenar:d.conocido===false},'caja');
+  mostrar({color:'rojo',grande:'A LA CAJA · '+nombreFalla(r),trk:r.tracking,det:quien+(aflexTxt?' · '+aflexTxt:''),msg:'SpeedX: '+(r.speedx_msg||'—'),ensenar:d.conocido===false},'caja');
  }else if(!r.dock_ok){
-  mostrar({color:'naranja',grande:'Error que se resetea',trk:r.tracking,det:quien,msg:'SpeedX: '+(r.speedx_msg||'—')+' · va al Excel de Reset'},'amarillo');
+  mostrar({color:'naranja',grande:r.fail_label?'Reset · '+r.fail_label:'Error que se resetea',trk:r.tracking,det:quien,msg:'SpeedX: '+(r.speedx_msg||'—')+' · va al Excel de Reset'},'amarillo');
  }else if(r.aflex==='sin_escaneo'||r.aflex==='no_en_aflex'){
   mostrar({color:'amarillo',grande:'Left on dock ✓ · Revisar',trk:r.tracking,det:quien,msg:aflexTxt+(r.sort_code?' · '+r.sort_code:'')},'amarillo');
  }else{
@@ -546,21 +578,35 @@ function mostrar(o,sonido){
  el.innerHTML=`<div class="grande">${esc(o.grande)}</div>${o.trk?`<div class="trk">${esc(o.trk)}</div>`:''}${o.det?`<div class="det">${esc(o.det)}</div>`:''}${o.msg?`<div class="msg">${esc(o.msg)}</div>`:''}
   ${o.ensenar&&r?`<div class="ensenar"><b>¿Qué es este error? La app lo aprende.</b><div class="opc">
    <button class="reset" data-ens="reset">Se puede resetear</button>
-   ${Object.entries(Fallas.NOMBRE).map(([k,v])=>`<button data-ens="${k}">${esc(v)}</button>`).join('')}</div>
-   <label><input type="checkbox" id="ens-recordar" checked> Recordar para la próxima vez</label></div>`:''}
+   ${Object.entries(Fallas.NOMBRE).map(([k,v])=>`<button data-ens="${k}">${esc(v)}</button>`).join('')}
+   ${categoriasPropias().map(c=>`<button class="propia" data-propia="${esc(c.label)}">${esc(c.label)}${c.resettable?' (reset)':''}</button>`).join('')}</div>
+   <div class="nueva-cat"><b>¿Ninguna? Escribe una categoría nueva</b>
+    <div class="fila-nueva"><input id="ens-nueva" type="text" maxlength="60" placeholder="Ej. Retenido por SpeedX" autocomplete="off" autocapitalize="sentences"><button id="ens-crear" class="crear" disabled>Guardar</button></div>
+    <label><input type="checkbox" id="ens-nueva-reset"> Estos sí se pueden resetear</label></div>
+   <label><input type="checkbox" id="ens-recordar" checked> Recordar: los próximos errores así van solos a esa categoría</label></div>`:''}
   ${r&&o.trk===r.tracking&&!o.ensenar?`<div class="acciones-ult">${r.resettable?'<button class="mini" data-ult="damaged">Está dañado → caja</button>':'<button class="mini" data-ult="reset">Sí se puede resetear</button>'}</div>`:''}`;
  el.querySelectorAll('[data-ens]').forEach(b=>b.onclick=()=>ensenar(r,b.dataset.ens,$('ens-recordar').checked));
+ el.querySelectorAll('[data-propia]').forEach(b=>b.onclick=()=>{const c=categoriasPropias().find(x=>x.label===b.dataset.propia);if(c)ensenar(r,'propia',$('ens-recordar').checked,c.label,c.resettable);});
+ if($('ens-nueva')){
+  const inp=$('ens-nueva'),btn=$('ens-crear');
+  inp.oninput=()=>{btn.disabled=inp.value.trim().length<2;};
+  const crear=()=>{const t=inp.value.trim().replace(/\s+/g,' ');if(t.length<2)return;ensenar(r,'propia',$('ens-recordar').checked,t,$('ens-nueva-reset').checked);};
+  btn.onclick=crear;inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();e.stopPropagation();crear();}};
+  inp.onfocus=()=>{clearTimeout(tecla);};
+ }
  el.querySelectorAll('[data-ult]').forEach(b=>b.onclick=()=>reclasificar(r,b.dataset.ult==='reset'?'':'damaged',b.dataset.ult==='reset'));
  if(sonido)sonar(sonido);
 }
-async function ensenar(r,opcion,recordar){
- const reset=opcion==='reset',cat=reset?'other':opcion;
- if(recordar&&r.speedx_msg){const k=Fallas.clave(r.speedx_msg);aprendidas=aprendidas.filter(x=>x.clave!==k).concat([{clave:k,cat,resettable:reset,ejemplo:r.speedx_msg.slice(0,140)}]);store.set('pda_reglas',aprendidas);}
- await reclasificar(r,reset?(r.dock_ok?'':'other'):cat,reset);
+async function ensenar(r,opcion,recordar,label='',labelReset=false){
+ const propia=opcion==='propia',reset=propia?!!labelReset:opcion==='reset',cat=propia||reset?'other':opcion;
+ // una categoría propia que se llama igual que una de siempre se usa como la de siempre
+ if(propia){const igual=Object.entries(Fallas.NOMBRE).find(([,v])=>v.toLowerCase()===label.toLowerCase());if(igual&&!reset){label='';opcion=igual[0];return ensenar(r,opcion,recordar);}}
+ if(recordar&&r.speedx_msg)await guardarRegla({clave:Fallas.clave(r.speedx_msg),cat,label:propia?label:'',resettable:reset,ejemplo:r.speedx_msg.slice(0,140)});
+ await reclasificar(r,reset&&!propia?(r.dock_ok?'':'other'):cat,reset,propia?label:'');
 }
-async function reclasificar(r,cat,reset){
- try{const n=await rpc('return_pda_classify',{p_id:r.id,p_fail_cat:cat,p_resettable:!!reset});unirLectura(n);ultima=n;
-  mostrar(n.resettable?{color:'verde',grande:'Listo: va a Reset',trk:n.tracking,det:n.driver||''}:{color:'rojo',grande:'Listo: a la caja · '+Fallas.NOMBRE[n.fail_cat],trk:n.tracking,det:n.driver||''},n.resettable?'ok':'caja');pintarResumen();}
+async function reclasificar(r,cat,reset,label=''){
+ try{const n=await rpc('return_pda_classify',{p_id:r.id,p_fail_cat:cat,p_resettable:!!reset,p_fail_label:label||''});unirLectura(n);ultima=n;
+  mostrar(n.resettable?{color:'verde',grande:'Listo: va a Reset'+(n.fail_label?' · '+n.fail_label:''),trk:n.tracking,det:n.driver||''}:{color:'rojo',grande:'Listo: a la caja · '+nombreFalla(n),trk:n.tracking,det:n.driver||''},n.resettable?'ok':'caja');pintarResumen();}
  catch(e){mostrar({color:'rojo',grande:'No se pudo cambiar',det:e.message},'error');}
 }
 
@@ -583,7 +629,7 @@ function pintarResumen(){
  $('ultimos').innerHTML=hoy.slice(0,8).map(filaLectura).join('')||'<p class="vacio">Todavía no has escaneado nada hoy.</p>';
 }
 function filaLectura(r){
- const est=!r.resettable?`<span class="pill p-rojo">Caja · ${esc(Fallas.NOMBRE[r.fail_cat]||'Error')}</span>`:!r.dock_ok?'<span class="pill p-amar">Reset (error)</span>':'<span class="pill p-verde">Reset</span>';
+ const est=!r.resettable?`<span class="pill p-rojo">Caja · ${esc(nombreFalla(r))}</span>`:!r.dock_ok?`<span class="pill p-amar">Reset${r.fail_label?' · '+esc(r.fail_label):' (error)'}</span>`:'<span class="pill p-verde">Reset</span>';
  const af=r.aflex==='sin_escaneo'?' <span class="pill p-amar">sin escaneo</span>':r.aflex==='no_en_aflex'?' <span class="pill p-gris">no en AFLEX</span>':'';
  return `<div class="fila-p"><div class="t"><b>${esc(r.tracking)}</b><span>${esc(r.driver||'Sin driver')} · ${hora(r.read_at)}${r.times>1?` · ${r.times} veces`:''}${r.ctn?' · '+esc(r.ctn):''}${!r.dock_ok&&r.speedx_msg?' · '+esc(r.speedx_msg):''}</span></div>${est}${af}</div>`;
 }
@@ -600,8 +646,8 @@ function pintarHoy(){
  const rows=F[filtroHoy];
  let html='';
  if(filtroHoy==='caja'){
-  const por=new Map();for(const r of rows){const k=r.fail_cat||'other';if(!por.has(k))por.set(k,[]);por.get(k).push(r);}
-  html=[...por.entries()].map(([k,rs])=>`<div class="grupo"><h3>${esc(Fallas.NOMBRE[k])}<span class="pill p-rojo">${num(rs.length)}</span></h3><div class="lista">${rs.map(filaLectura).join('')}</div></div>`).join('');
+  const por=new Map();for(const r of rows){const k=nombreFalla(r);if(!por.has(k))por.set(k,[]);por.get(k).push(r);}
+  html=[...por.entries()].map(([k,rs])=>`<div class="grupo"><h3>${esc(k)}<span class="pill p-rojo">${num(rs.length)}</span></h3><div class="lista">${rs.map(filaLectura).join('')}</div></div>`).join('');
  }else html=`<div class="lista">${rows.map(filaLectura).join('')}</div>`;
  $('hoy-lista').innerHTML=rows.length?html:'<p class="vacio">No hay paquetes aquí.</p>';
  const cand=L.filter(r=>r.dock_ok&&r.resettable&&!r.ctn);
@@ -638,17 +684,17 @@ $('b-informe').onclick=async()=>{
   const X=await cargarExcel(),wb=new X.Workbook(),L=delDia().slice().sort((a,b)=>String(a.read_at).localeCompare(String(b.read_at)));
   let pend=[];try{pend=await rpc('return_pda_pending',{});}catch(e){}
   const C={verde:'FFD9F5E6',rojo:'FFFBE0DE',amar:'FFFFF3C4'};
-  const fila=(r,i)=>({cells:[i+1,hora(r.read_at),r.tracking,r.driver,r.area,r.route_date,AFX[r.aflex]||r.aflex,r.driver_scan_by,r.dock_ok?'Sí':'No',r.sort_code,r.speedx_msg,r.fail_cat?Fallas.NOMBRE[r.fail_cat]:'',r.resettable?'Reset':'Caja',r.ctn,r.reset_at?'Sí':'',r.times],color:!r.resettable?C.rojo:amarillo(r)?C.amar:C.verde});
+  const fila=(r,i)=>({cells:[i+1,hora(r.read_at),r.tracking,r.driver,r.area,r.route_date,AFX[r.aflex]||r.aflex,r.driver_scan_by,r.dock_ok?'Sí':'No',r.sort_code,r.speedx_msg,r.fail_cat||r.fail_label?nombreFalla(r):'',r.resettable?'Reset':'Caja',r.ctn,r.reset_at?'Sí':'',r.times],color:!r.resettable?C.rojo:amarillo(r)?C.amar:C.verde});
   const cols=[['#',6],['Hora',9],['Tracking',28],['Driver',24],['Área',10],['Fecha de ruta',13],['AFLEX',24],['Escaneó en AFLEX',22],['Left on dock',12],['Sort code',16],['Respuesta de SpeedX',44],['Falla',24],['Destino',10],['Contenedor',30],['Exportado a reset',10],['Veces',8]];
   const res=wb.addWorksheet('Resumen');res.columns=[{width:38},{width:14}];
   res.addRow([`Informe del PDA · Tuscaloosa · ${dia}`]).font={bold:true,size:14};res.addRow([`Hecho por ${perfil.full_name} · ${fechaHora(new Date())}`]);res.addRow([]);
   const cuenta=f=>L.filter(f).length;
   for(const [t,v] of [['Paquetes recibidos',L.length],['Entraron a Left on dock',cuenta(r=>r.dock_ok)],['Para reset',cuenta(enReset)],['A la caja (no salen más)',cuenta(enCaja)],['Sin escaneo del driver en AFLEX',cuenta(r=>r.aflex==='sin_escaneo')],['No están en AFLEX',cuenta(r=>r.aflex==='no_en_aflex')],['Metidos a contenedor',cuenta(r=>r.ctn)],['Faltan por retornar (ahora)',pend.length]])res.addRow([t,v]);
   res.addRow([]);res.addRow(['Caja por falla']).font={bold:true};
-  for(const [k,v] of Object.entries(Fallas.NOMBRE)){const n=cuenta(r=>enCaja(r)&&r.fail_cat===k);if(n)res.addRow([v,n]);}
+  {const m=new Map();for(const r of L.filter(enCaja))m.set(nombreFalla(r),(m.get(nombreFalla(r))||0)+1);for(const [k,n] of [...m.entries()].sort())res.addRow([k,n]);}
   hoja(wb,'Recibidos',cols,L.map(fila));
   hoja(wb,'Para reset',[['Tracking',28],['Driver',24],['Left on dock',12],['Respuesta de SpeedX',44]],L.filter(enReset).map(r=>[r.tracking,r.driver,r.dock_ok?'Sí':'No',r.speedx_msg]));
-  hoja(wb,'Caja por falla',[['Falla',24],['Tracking',28],['Driver',24],['Fecha de ruta',13],['Respuesta de SpeedX',44],['Hora',9]],L.filter(enCaja).sort((a,b)=>a.fail_cat.localeCompare(b.fail_cat)).map(r=>[Fallas.NOMBRE[r.fail_cat]||r.fail_cat,r.tracking,r.driver,r.route_date,r.speedx_msg,hora(r.read_at)]));
+  hoja(wb,'Caja por falla',[['Falla',24],['Tracking',28],['Driver',24],['Fecha de ruta',13],['Respuesta de SpeedX',44],['Hora',9]],L.filter(enCaja).sort((a,b)=>nombreFalla(a).localeCompare(nombreFalla(b))).map(r=>[nombreFalla(r),r.tracking,r.driver,r.route_date,r.speedx_msg,hora(r.read_at)]));
   hoja(wb,'Sin escaneo del driver',[['Tracking',28],['Driver',24],['Área',10],['Fecha de ruta',13],['AFLEX',24]],L.filter(amarillo).map(r=>({cells:[r.tracking,r.driver,r.area,r.route_date,AFX[r.aflex]],color:C.amar})));
   hoja(wb,'Faltan por retornar',[['Driver',24],['Tracking',28],['Área',10],['Fecha de ruta',13],['Estado',16],['Motivo',30],['Escaneado por el driver',22]],pend.map(p=>[p.driver,p.tracking,p.area,p.delivery_date,p.status,p.motivo,p.driver_scan?p.driver_scan_by:'']));
   await descargar(wb,`informe_pda_TCL_${dia}.xlsx`);
@@ -704,8 +750,8 @@ async function cargarCaja(){
   if(r.error)throw new Err(traducir(r.error.message));caja=r.data;
   const g=await db.from('return_pda_guides').select('*').order('created_at',{ascending:false}).limit(30);guias=g.data||[];
  }catch(e){$('caja-lista').innerHTML=`<p class="err">${esc(e.message)}</p>`;return;}
- const por=new Map();for(const r of caja){const k=r.fail_cat||'other';if(!por.has(k))por.set(k,[]);por.get(k).push(r);}
- $('caja-lista').innerHTML=caja.length?`<p class="sub"><b>${num(caja.length)}</b> paquetes en la caja.</p>`+[...por.entries()].map(([k,rs])=>`<div class="grupo"><h3>${esc(Fallas.NOMBRE[k])}<span class="pill p-rojo">${num(rs.length)}</span></h3><div class="lista">${rs.map(r=>`<div class="fila-p"><div class="t"><b>${esc(r.tracking)}</b><span>${esc(r.driver||'Sin driver')} · recibido ${esc(fCorta(r.day))}</span></div></div>`).join('')}</div></div>`).join(''):'<p class="vacio">La caja está vacía.</p>';
+ const por=new Map();for(const r of caja){const k=nombreFalla(r);if(!por.has(k))por.set(k,[]);por.get(k).push(r);}
+ $('caja-lista').innerHTML=caja.length?`<p class="sub"><b>${num(caja.length)}</b> paquetes en la caja.</p>`+[...por.entries()].map(([k,rs])=>`<div class="grupo"><h3>${esc(k)}<span class="pill p-rojo">${num(rs.length)}</span></h3><div class="lista">${rs.map(r=>`<div class="fila-p"><div class="t"><b>${esc(r.tracking)}</b><span>${esc(r.driver||'Sin driver')} · recibido ${esc(fCorta(r.day))}</span></div></div>`).join('')}</div></div>`).join(''):'<p class="vacio">La caja está vacía.</p>';
  $('b-guia').disabled=!caja.length;$('b-guia').textContent=caja.length?`Hacer guía para el camión (${num(caja.length)})`:'Hacer guía para el camión';
  $('guias').innerHTML=guias.map(g=>`<div class="fila-p"><div class="t"><b>Guía #${g.folio} · ${num(g.total)} paquetes</b><span>${esc(fechaHora(g.created_at))} · ${esc(g.truck_driver)}${g.plate?' · '+esc(g.plate):''}</span></div><button class="mini" data-guia="${g.id}">Imprimir</button></div>`).join('')||'<p class="vacio">Todavía no hay guías.</p>';
  document.querySelectorAll('[data-guia]').forEach(b=>b.onclick=()=>imprimirGuia(guias.find(g=>g.id===b.dataset.guia)));
@@ -719,10 +765,10 @@ $('guia-si').onclick=async()=>{
 };
 function imprimirGuia(g){
  if(!g)return;const its=g.items||[];
- const por={};for(const x of its)por[x.fail_cat]=(por[x.fail_cat]||0)+1;
+ const por={};for(const x of its){const k=Fallas.nombre(x.fail_cat,x.fail_label);por[k]=(por[k]||0)+1;}
  $('impresion').innerHTML=`<div class="cab"><div><h1>Guía de retornos a ${esc(g.destination||'Atlanta')}</h1><div>AFLEX · Warehouse Tuscaloosa (TCL)</div></div><div style="text-align:right"><b>Folio #${g.folio}</b><br>${esc(fechaHora(g.created_at))}</div></div>
-  <div class="res"><b>Total: ${num(its.length)} paquetes</b> · ${Object.entries(por).map(([k,n])=>`${esc(Fallas.NOMBRE[k]||k)}: ${n}`).join(' · ')}<br>Conductor: <b>${esc(g.truck_driver)}</b>${g.plate?` · Camión/placa: <b>${esc(g.plate)}</b>`:''} · Entrega: ${esc(g.actor_name)}${g.note?`<br>Nota: ${esc(g.note)}`:''}</div>
-  <table><thead><tr><th>#</th><th>Tracking</th><th>Motivo</th><th>Driver</th><th>Recibido</th></tr></thead><tbody>${its.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.tracking)}</td><td>${esc(Fallas.NOMBRE[x.fail_cat]||x.fail_cat)}</td><td>${esc(x.driver)}</td><td>${esc(fCorta(x.day))}</td></tr>`).join('')}</tbody></table>
+  <div class="res"><b>Total: ${num(its.length)} paquetes</b> · ${Object.entries(por).map(([k,n])=>`${esc(k)}: ${n}`).join(' · ')}<br>Conductor: <b>${esc(g.truck_driver)}</b>${g.plate?` · Camión/placa: <b>${esc(g.plate)}</b>`:''} · Entrega: ${esc(g.actor_name)}${g.note?`<br>Nota: ${esc(g.note)}`:''}</div>
+  <table><thead><tr><th>#</th><th>Tracking</th><th>Motivo</th><th>Driver</th><th>Recibido</th></tr></thead><tbody>${its.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.tracking)}</td><td>${esc(Fallas.nombre(x.fail_cat,x.fail_label))}</td><td>${esc(x.driver)}</td><td>${esc(fCorta(x.day))}</td></tr>`).join('')}</tbody></table>
   <div class="firmas"><div>Entregó (warehouse): ${esc(g.actor_name)}<br><br>Firma</div><div>Recibió (conductor): ${esc(g.truck_driver)}<br><br>Firma</div></div>
   <p style="margin-top:20px;font-size:9pt">El conductor confirma con su firma que recibió los ${num(its.length)} paquetes de esta lista.</p>`;
  setTimeout(()=>window.print(),100);
@@ -736,8 +782,8 @@ $('aj-salir-aflex').onclick=async()=>{await db.auth.signOut();perfil=null;$('d-a
 $('aj-salir-sx').onclick=()=>{sxToken='';store.del('pda_sx_token');$('d-ajustes').close();mostrarLogin();estadoCuentas();};
 $('aj-config').onclick=()=>{$('d-ajustes').close();mostrarConfig();};
 function pintarReglas(){
- $('aj-reglas').innerHTML=aprendidas.map((a,i)=>`<div class="fila-p"><div class="t"><b>${a.resettable?'Se resetea':esc(Fallas.NOMBRE[a.cat])}</b><span>${esc(a.ejemplo||a.clave)}</span></div><button class="mini" data-olv="${i}">Olvidar</button></div>`).join('')||'<p class="vacio">Ninguno todavía.</p>';
- document.querySelectorAll('[data-olv]').forEach(b=>b.onclick=()=>{aprendidas.splice(+b.dataset.olv,1);store.set('pda_reglas',aprendidas);pintarReglas();});
+ $('aj-reglas').innerHTML=aprendidas.map((a,i)=>`<div class="fila-p"><div class="t"><b>${esc(a.label||(a.resettable?'Se resetea':Fallas.NOMBRE[a.cat]||'Otro error'))}${a.label&&a.resettable?' · se resetea':''}</b><span>${esc(a.ejemplo||a.clave)}</span></div><button class="mini" data-olv="${i}">Olvidar</button></div>`).join('')||'<p class="vacio">Ninguno todavía.</p>';
+ document.querySelectorAll('[data-olv]').forEach(b=>b.onclick=async()=>{const a=aprendidas[+b.dataset.olv];aprendidas.splice(+b.dataset.olv,1);store.set('pda_reglas',aprendidas);pintarReglas();try{await rpc('return_pda_rule_delete',{p_clave:a.clave});}catch(e){}});
 }
 document.querySelectorAll('dialog').forEach(d=>{d.addEventListener('click',e=>{if(e.target===d)d.close();});d.addEventListener('close',enfocar);});
 
@@ -757,7 +803,7 @@ async function iniciar(){
  try{await cargarPerfil();}catch(e){perfil=null;err('aflex-err',e.message);}
  estadoCuentas();pintarCola();
  if(!perfil||!sxToken)return mostrarLogin();
- ir('escanear');await cargarLecturas(dia);escuchar();procesarCola();
+ ir('escanear');await cargarReglas();await cargarLecturas(dia);escuchar();procesarCola();
 }
 iniciar();
 </script>
