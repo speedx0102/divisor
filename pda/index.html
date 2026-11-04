@@ -370,7 +370,7 @@ if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceW
 class Err extends Error{constructor(m,x){super(m);Object.assign(this,x||{});}}
 let db=null,perfil=null,sxToken=store.get('pda_sx_token',''),sxUsuario=store.get('pda_sx_user','');
 let lecturas=[],dia=hoyEst(),vista='escanear',filtroHoy='reset',pendientes=[],caja=[],guias=[];
-let aprendidas=store.get('pda_reglas',[]);
+let aprendidas=store.get('pda_reglas',[]).filter(a=>!/no permitida/i.test((a.clave||'')+' '+(a.ejemplo||'')));
 
 // ---------- SpeedX (por la misma función del Divisor de rutas)
 async function fn(body){
@@ -381,6 +381,7 @@ async function fn(body){
  catch(e){throw new Err('Sin conexión. Revisa el internet del PDA.',{red:true});}
  const j=await r.json().catch(()=>({error:'El servidor respondió algo que no se entiende (HTTP '+r.status+').',red:true}));
  if(r.status===403&&j.clave){mostrarConfig('La clave de acceso no es correcta.');throw new Err(j.error,{config:true});}
+ if(/no permitida/i.test(j.error||''))throw new Err('Tu función divisor-rutas de Supabase todavía no deja hacer Left on dock ni Contenedor. Hay que actualizarla; los paquetes esperan aquí.',{permitida:true});
  if(r.status===401&&j.sesion){sxToken='';store.del('pda_sx_token');estadoCuentas();throw new Err('La sesión de SpeedX venció. Vuelve a entrar a SpeedX.',{sesion:true});}
  if(!r.ok||j.error)throw new Err(String(j.error||('HTTP '+r.status)).replace(/^SpeedX:\s*/,''),{red:!!j.red||r.status>=500&&!j.error,speedx:true});
  return j;
@@ -499,7 +500,7 @@ async function procesarCola(forzar){
     else{
      try{const d=await conReintento(()=>SX.leftOnDock(it.tracking))||{};it.dock={ok:true,sort:d.sortCode||'',msg:[d.sortCode,d.address].filter(Boolean).join(' · '),cat:'',resettable:true};}
      catch(e){
-      if(e.sesion||e.config||e.red||Fallas.esRed(e.message))throw e;
+      if(e.sesion||e.config||e.red||e.permitida||Fallas.esRed(e.message)||/no permitida/i.test(e.message))throw e;
       const c=Fallas.clasificar(e.message,aprendidas);
       it.dock={ok:false,sort:'',msg:e.message,cat:c.cat,resettable:c.resettable,conocido:c.conocido};
      }
@@ -514,8 +515,9 @@ async function procesarCola(forzar){
   }
  }catch(e){
   if(e.sesion)mostrar({color:'rojo',grande:'SpeedX: vuelve a entrar',det:e.message+' Los paquetes escaneados esperan aquí.'},'error');
+  else if(e.permitida)mostrar({color:'azul',grande:'Falta actualizar la función',det:e.message},'error');
   else if(!e.config)mostrar({color:'azul',grande:'En espera',det:e.message+' Se reintenta solo; no vuelvas a escanear.'},'error');
-  setTimeout(()=>procesarCola(),15000);
+  setTimeout(()=>procesarCola(),e.permitida?60000:15000);
  }finally{trabajandoCola=false;pintarCola();estadoCuentas();}
 }
 function avisar(out,d){
