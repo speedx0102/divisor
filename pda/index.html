@@ -1,0 +1,761 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B1530">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="AFLEX PDA">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="iconos/icon-192.png">
+<link rel="apple-touch-icon" href="iconos/icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<title>AFLEX PDA</title>
+<style>
+:root{
+ --fondo:#0B1530;--hoja:#16244A;--hoja2:#1C2A4F;--tinta:#F2F5FB;--tinta2:#AEB9D1;--linea:#2A3A63;
+ --azul:#5B8CFF;--amarillo:#FFD23F;--verde:#4FD39B;--rojo:#FF6B6B;--naranja:#FFA51F;
+ --suave:cubic-bezier(.2,.8,.2,1);color-scheme:dark;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--fondo);color:var(--tinta);font:16px/1.4 Barlow,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--amarillo);outline-offset:2px}
+.hidden{display:none!important}
+h1,h2,h3{margin:0;line-height:1.15}
+.sub{color:var(--tinta2);font-size:15px;margin:4px 0 12px}
+b.num,.num{font-variant-numeric:tabular-nums}
+
+/* barra */
+.barra{position:sticky;top:0;z-index:10;background:var(--fondo);display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top)) 14px 8px}
+.marca{flex:1;font-weight:700;font-size:21px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.marca span{opacity:.6}
+.chip-estado{display:flex;align-items:center;gap:6px;height:40px;padding:0 12px;border-radius:12px;background:var(--hoja2);font-weight:700;font-size:14px;border:0;cursor:pointer}
+.punto{width:10px;height:10px;border-radius:50%;background:var(--verde)}
+.punto.mal{background:var(--rojo)}.punto.espera{background:var(--amarillo)}
+.redondo{flex:none;width:46px;height:46px;border:0;border-radius:14px;background:var(--hoja2);display:grid;place-items:center;cursor:pointer;transition:transform .15s var(--suave)}
+.redondo svg{width:24px;height:24px}
+main{max-width:640px;margin:0 auto;padding:6px 14px calc(96px + env(safe-area-inset-bottom))}
+
+.hoja{background:var(--hoja);border-radius:22px;padding:16px;margin-bottom:12px}
+.btn{border:0;border-radius:16px;min-height:56px;padding:12px 18px;font-weight:700;font-size:18px;cursor:pointer;transition:transform .15s var(--suave),opacity .2s}
+.btn:active:not(:disabled),.redondo:active,.tab:active,.mini:active{transform:scale(.96)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn-pri{background:var(--amarillo);color:#0B1530}
+.btn-azul{background:var(--azul);color:#0B1530}
+.btn-suave{background:var(--hoja2);color:var(--tinta)}
+.btn-rojo{background:var(--rojo);color:#2A0606}
+.btn-ancho{width:100%}
+.fila{display:flex;gap:10px;margin-top:12px}.fila .btn{flex:1}
+.mini{border:0;background:var(--hoja2);color:var(--tinta);border-radius:12px;padding:10px 14px;font-weight:700;font-size:15px;cursor:pointer;transition:transform .15s var(--suave)}
+label.campo{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600;color:var(--tinta2);margin-bottom:12px}
+input[type=text],input[type=password],input[type=email],input[type=url],input[type=date],select,textarea{width:100%;background:var(--fondo);border:1.5px solid var(--linea);border-radius:14px;padding:13px 14px;font-size:17px;color:var(--tinta)}
+input:focus,select:focus,textarea:focus{border-color:var(--azul);outline:none}
+.err{background:#3A1714;color:#FF9A8E;border-radius:12px;padding:12px 14px;margin:10px 0;font-weight:600}
+.ok-txt{color:var(--verde);font-weight:600}
+.vacio{color:var(--tinta2);text-align:center;padding:26px 8px;margin:0}
+
+/* escanear */
+.entrada{display:flex;gap:8px;margin-bottom:12px}
+.entrada input{flex:1;min-width:0;font-size:20px;font-weight:700;letter-spacing:.02em;height:64px;border-radius:18px;background:var(--hoja);border:2.5px solid var(--azul)}
+.entrada .btn{min-height:64px;padding:0 18px}
+.cola{color:var(--tinta2);font-size:14px;margin:-4px 0 10px;min-height:1.2em}
+.resultado{border-radius:24px;padding:18px;min-height:200px;display:flex;flex-direction:column;gap:6px;background:var(--hoja);transition:background-color .25s}
+.resultado .grande{font:700 38px/1.02 "Barlow Condensed",Barlow,sans-serif;letter-spacing:.01em}
+.resultado .trk{font:700 22px/1.1 "Barlow Condensed",Barlow,sans-serif;word-break:break-all;opacity:.9}
+.resultado .det{font-size:16px;font-weight:600;opacity:.9}
+.resultado .msg{font-size:14.5px;opacity:.85;word-break:break-word}
+.resultado.verde{background:#0F7A4E;color:#fff}
+.resultado.amarillo{background:#E0B400;color:#1A1400}
+.resultado.rojo{background:#C62E2E;color:#fff}
+.resultado.naranja{background:#D9720A;color:#1A0E00}
+.resultado.azul{background:#2B4FB8;color:#fff}
+.resultado.nuevo{animation:latir .45s var(--suave)}
+@keyframes latir{0%{transform:scale(.97);opacity:.6}60%{transform:scale(1.01);opacity:1}100%{transform:none}}
+.ensenar{margin-top:10px;background:rgba(0,0,0,.22);border-radius:16px;padding:12px}
+.ensenar b{display:block;margin-bottom:8px;font-size:16px}
+.ensenar .opc{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ensenar .opc button{min-height:50px;border:0;border-radius:12px;font-weight:700;font-size:15px;cursor:pointer;background:rgba(255,255,255,.92);color:#101828}
+.ensenar .opc button.reset{grid-column:1/-1;background:var(--verde);color:#06281A}
+.ensenar label{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:14.5px;font-weight:600}
+.ensenar input{width:22px;height:22px}
+.acciones-ult{display:flex;gap:8px;margin-top:10px}
+.acciones-ult .mini{flex:1;background:rgba(0,0,0,.25);color:inherit;min-height:46px}
+.contadores{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:12px 0}
+.contadores button{border:0;border-radius:16px;background:var(--hoja);padding:10px 6px;text-align:center;cursor:pointer;color:var(--tinta)}
+.contadores b{display:block;font:700 30px/1 "Barlow Condensed",Barlow,sans-serif}
+.contadores span{font-size:12.5px;color:var(--tinta2);font-weight:600}
+.c-verde b{color:var(--verde)}.c-rojo b{color:var(--rojo)}.c-amar b{color:var(--amarillo)}
+
+/* listas */
+.lista{display:flex;flex-direction:column;gap:6px}
+.fila-p{display:flex;align-items:center;gap:10px;background:var(--hoja2);border-radius:14px;padding:10px 12px;animation:subir .3s var(--suave) both}
+.fila-p .t{flex:1;min-width:0}
+.fila-p .t b{display:block;font-size:15.5px;word-break:break-all}
+.fila-p .t span{display:block;color:var(--tinta2);font-size:13.5px}
+.pill{display:inline-block;border-radius:999px;padding:3px 9px;font-size:12.5px;font-weight:800;white-space:nowrap}
+.p-verde{background:#123426;color:var(--verde)}.p-rojo{background:#3A1714;color:#FF9A8E}.p-amar{background:#3A3110;color:#F1C94A}.p-azul{background:#1A2A4D;color:#9DB9FF}.p-gris{background:var(--hoja);color:var(--tinta2)}
+.grupo{margin-bottom:12px}
+.grupo h3{display:flex;justify-content:space-between;align-items:center;font-size:17px;margin:4px 2px 8px}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px;background:var(--hoja);border-radius:16px;padding:5px;margin-bottom:12px}
+.seg button{border:0;background:none;border-radius:12px;padding:10px 4px;font-weight:700;font-size:15px;color:var(--tinta2);cursor:pointer;line-height:1.1;transition:background-color .2s,color .2s}
+.seg button small{display:block;font-size:12px;font-weight:700;opacity:.8;margin-top:2px}
+.seg button[aria-pressed=true]{background:var(--amarillo);color:#0B1530}
+.herr{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.herr .btn{min-height:60px;font-size:16px}
+.buscar{margin-bottom:10px}
+
+/* barra de abajo */
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:9;background:var(--hoja);display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:8px 8px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -8px 24px rgba(0,0,0,.35)}
+.tab{border:0;background:none;border-radius:14px;padding:8px 2px;display:flex;flex-direction:column;align-items:center;gap:3px;font-weight:700;font-size:13px;color:var(--tinta2);cursor:pointer;transition:background-color .2s,color .2s,transform .15s var(--suave)}
+.tab svg{width:26px;height:26px}
+.tab[aria-current=page]{background:var(--amarillo);color:#0B1530}
+.vista.entra{animation:entra .3s var(--suave) both}
+@keyframes entra{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes subir{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* hojas */
+dialog{border:0;padding:0;background:transparent;max-width:none;max-height:none;width:100%;height:100%;margin:0}
+dialog::backdrop{background:rgba(5,10,25,.6)}
+dialog .panel{position:absolute;left:0;right:0;bottom:0;margin:0 auto;max-width:560px;background:var(--hoja);border-radius:22px 22px 0 0;padding:10px 18px calc(18px + env(safe-area-inset-bottom));max-height:92vh;overflow:auto}
+dialog[open] .panel{animation:hoja .3s var(--suave) both}
+@keyframes hoja{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+dialog .agarre{width:44px;height:5px;border-radius:3px;background:var(--linea);margin:0 auto 14px}
+dialog h2{font-size:22px;margin-bottom:8px}
+.check{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:600;margin:6px 0 10px}
+.check input{width:24px;height:24px}
+.prog{height:10px;border-radius:999px;background:var(--fondo);overflow:hidden;margin:10px 0}
+.prog i{display:block;height:100%;width:0;background:var(--amarillo);transition:width .3s}
+.bienvenida{text-align:center;padding-top:20px}
+.bienvenida img{width:84px;height:84px;border-radius:22px}
+.bienvenida h1{font-size:26px;margin:12px 0 4px}
+.cuenta{display:flex;align-items:center;gap:10px;background:var(--hoja2);border-radius:14px;padding:12px;margin-bottom:8px;text-align:left}
+.cuenta .t{flex:1;min-width:0}.cuenta .t b{display:block}.cuenta .t span{color:var(--tinta2);font-size:14px}
+
+/* guía para imprimir */
+#impresion{display:none}
+@media print{
+ html,body{background:#fff!important}
+ body *{visibility:hidden!important}
+ #impresion,#impresion *{visibility:visible!important}
+ #impresion{display:block!important;position:absolute;left:0;top:0;width:100%;background:#fff;color:#000;font:11pt/1.35 Arial,sans-serif;padding:0}
+ @page{size:letter;margin:14mm}
+}
+#impresion h1{font-size:18pt;margin:0 0 4px}
+#impresion .cab{display:flex;justify-content:space-between;gap:20px;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:10px}
+#impresion table{width:100%;border-collapse:collapse;font-size:9.5pt}
+#impresion th,#impresion td{border:1px solid #999;padding:3px 5px;text-align:left}
+#impresion th{background:#eee}
+#impresion .res{margin:8px 0 12px}
+#impresion .firmas{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:36px;page-break-inside:avoid}
+#impresion .firmas div{border-top:1px solid #000;padding-top:4px;font-size:10pt}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<header class="barra">
+ <div class="marca" id="marca">AFLEX <span>PDA</span></div>
+ <button id="estado-chip" class="chip-estado hidden" aria-label="Estado de las cuentas"><span class="punto" id="punto"></span><span id="estado-txt">Listo</span></button>
+ <button id="abrir-ajustes" class="redondo hidden" aria-label="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+</header>
+
+<main>
+ <!-- conexión (una vez) -->
+ <section id="config" class="hidden bienvenida">
+  <img src="iconos/icon-192.png" alt="">
+  <h1>Conectar el PDA</h1>
+  <p class="sub">Solo se hace una vez. Son los mismos datos que usas en el Divisor de rutas para entrar a SpeedX.</p>
+  <form id="config-form" class="hoja" style="text-align:left">
+   <label class="campo">Dirección de la función (SpeedX)<input id="cfg-url" type="url" inputmode="url" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="https://xxxx.supabase.co/functions/v1/divisor-rutas" required></label>
+   <label class="campo">Clave de acceso<input id="cfg-clave" type="password" autocomplete="off" required></label>
+   <details style="margin-bottom:12px"><summary style="cursor:pointer;color:#9DB9FF;font-weight:700">AFLEX Tuscaloosa (ya viene puesto)</summary>
+    <label class="campo" style="margin-top:10px">Project URL de AFLEX<input id="cfg-aflex-url" type="url" autocapitalize="none" spellcheck="false"></label>
+    <label class="campo">Publishable key de AFLEX<input id="cfg-aflex-key" type="text" autocapitalize="none" spellcheck="false"></label>
+   </details>
+   <button class="btn btn-pri btn-ancho" type="submit">Conectar</button>
+   <div id="config-err" class="err hidden"></div>
+  </form>
+ </section>
+
+ <!-- entrar -->
+ <section id="login" class="hidden bienvenida">
+  <img src="iconos/icon-192.png" alt="">
+  <h1>Entrar</h1>
+  <p class="sub">Se necesitan las dos cuentas: AFLEX (para marcar retornados) y SpeedX POS (para Left on dock).</p>
+  <form id="login-aflex" class="hoja" style="text-align:left">
+   <h3 style="margin-bottom:10px">1 · AFLEX Tuscaloosa <span id="aflex-ok" class="pill p-verde hidden">✓ dentro</span></h3>
+   <div id="aflex-campos">
+    <label class="campo">Correo<input id="af-correo" type="email" autocomplete="username" autocapitalize="none" required></label>
+    <label class="campo">Contraseña<input id="af-clave" type="password" autocomplete="current-password" required></label>
+    <button class="btn btn-azul btn-ancho" type="submit">Entrar a AFLEX</button>
+   </div>
+   <div id="aflex-err" class="err hidden"></div>
+  </form>
+  <form id="login-sx" class="hoja" style="text-align:left">
+   <h3 style="margin-bottom:10px">2 · SpeedX POS <span id="sx-ok" class="pill p-verde hidden">✓ dentro</span></h3>
+   <div id="sx-campos">
+    <label class="campo">Usuario de SpeedX (Tuscaloosa)<input id="sx-usuario" type="text" autocomplete="off" autocapitalize="none" autocorrect="off" required></label>
+    <label class="campo">Contraseña<input id="sx-clave" type="password" autocomplete="off" required></label>
+    <button class="btn btn-azul btn-ancho" type="submit">Entrar a SpeedX</button>
+   </div>
+   <div id="sx-err" class="err hidden"></div>
+  </form>
+  <button id="cambiar-config" class="mini" type="button">Cambiar la conexión</button>
+ </section>
+
+ <!-- ESCANEAR -->
+ <section id="v-escanear" class="vista hidden">
+  <form id="form-scan" class="entrada" autocomplete="off">
+   <input id="scan" type="text" inputmode="text" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="Escanea el paquete…" aria-label="Tracking del paquete">
+   <button class="btn btn-pri" type="submit" aria-label="Recibir">OK</button>
+  </form>
+  <div class="cola" id="cola" aria-live="polite"></div>
+  <div id="resultado" class="resultado" aria-live="assertive">
+   <div class="grande">Listo para escanear</div>
+   <div class="det">Cada paquete entra a Left on dock y se marca retornado en AFLEX.</div>
+  </div>
+  <div class="contadores">
+   <button data-ir-hoy="todos"><b id="n-todos">0</b><span>Recibidos</span></button>
+   <button data-ir-hoy="reset" class="c-verde"><b id="n-reset">0</b><span>Para reset</span></button>
+   <button data-ir-hoy="caja" class="c-rojo"><b id="n-caja">0</b><span>A la caja</span></button>
+   <button data-ir-hoy="amarillo" class="c-amar"><b id="n-amar">0</b><span>Sin escaneo</span></button>
+  </div>
+  <div class="hoja"><h3 style="margin-bottom:8px">Últimos escaneados</h3><div class="lista" id="ultimos"></div></div>
+ </section>
+
+ <!-- HOY -->
+ <section id="v-hoy" class="vista hidden">
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+   <h2 style="flex:1;font-size:24px" id="hoy-titulo">Hoy</h2>
+   <input id="hoy-fecha" type="date" style="width:auto" aria-label="Día">
+  </div>
+  <div class="seg" id="hoy-seg">
+   <button data-f="reset">Reset<small id="s-reset">0</small></button>
+   <button data-f="caja">Caja<small id="s-caja">0</small></button>
+   <button data-f="amarillo">Sin escaneo<small id="s-amar">0</small></button>
+   <button data-f="todos">Todos<small id="s-todos">0</small></button>
+  </div>
+  <div class="herr">
+   <button id="b-reset" class="btn btn-pri">Excel para Reset</button>
+   <button id="b-ctn" class="btn btn-azul">Meter a contenedor</button>
+   <button id="b-informe" class="btn btn-suave" style="grid-column:1/-1">Descargar informe del día</button>
+  </div>
+  <div id="hoy-lista"></div>
+ </section>
+
+ <!-- POR RETORNAR -->
+ <section id="v-pendientes" class="vista hidden">
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px"><h2 style="flex:1;font-size:24px">Faltan por retornar</h2><button id="b-recargar-p" class="mini">Actualizar</button></div>
+  <p class="sub" id="pend-resumen">Cargando…</p>
+  <input id="pend-buscar" class="buscar" type="text" placeholder="Buscar tracking o driver…" aria-label="Buscar">
+  <div id="pend-lista"></div>
+ </section>
+
+ <!-- CAJA / ATLANTA -->
+ <section id="v-caja" class="vista hidden">
+  <h2 style="font-size:24px;margin-bottom:4px">Caja para Atlanta</h2>
+  <p class="sub">Lo que realmente tienes en el warehouse y no puede volver a salir a delivery. Sale en la guía del camión.</p>
+  <button id="b-guia" class="btn btn-pri btn-ancho" style="margin-bottom:12px">Hacer guía para el camión</button>
+  <div id="caja-lista"></div>
+  <div class="hoja" style="margin-top:12px"><h3 style="margin-bottom:8px">Guías anteriores</h3><div class="lista" id="guias"></div></div>
+ </section>
+</main>
+
+<nav class="tabs hidden" id="tabs">
+ <button class="tab" data-v="escanear" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 7V4h3M18 4h3v3M21 17v3h-3M6 20H3v-3M7 8v8M10 8v8M13 8v8M17 8v8"/></svg>Escanear</button>
+ <button class="tab" data-v="hoy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 5h11M9 12h11M9 19h11M4 5h.01M4 12h.01M4 19h.01"/></svg>Hoy</button>
+ <button class="tab" data-v="pendientes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Por retornar</button>
+ <button class="tab" data-v="caja"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/></svg>Caja</button>
+</nav>
+
+<!-- contenedor -->
+<dialog id="d-ctn"><div class="panel">
+ <div class="agarre"></div>
+ <h2>Meter a contenedor</h2>
+ <p class="sub" id="ctn-sub"></p>
+ <label class="campo">Número del contenedor (escanea la etiqueta)<input id="ctn-num" type="text" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="CTN-…"></label>
+ <button id="ctn-revisar" class="btn btn-suave btn-ancho">Revisar contenedor</button>
+ <p id="ctn-info" class="sub" style="margin-top:10px"></p>
+ <label class="check"><input id="ctn-completar" type="checkbox"> Completar el contenedor al terminar</label>
+ <div class="prog hidden" id="ctn-prog"><i id="ctn-barra"></i></div>
+ <p id="ctn-estado" class="sub"></p>
+ <div id="ctn-err" class="err hidden"></div>
+ <div class="fila"><button id="ctn-no" class="btn btn-suave">Cerrar</button><button id="ctn-si" class="btn btn-pri" disabled>Meter</button></div>
+</div></dialog>
+
+<!-- guía -->
+<dialog id="d-guia"><div class="panel">
+ <div class="agarre"></div>
+ <h2>Guía para el camión</h2>
+ <p class="sub" id="guia-sub"></p>
+ <label class="campo">Conductor del camión<input id="guia-conductor" type="text" autocapitalize="words" required></label>
+ <label class="campo">Placa o número del camión<input id="guia-placa" type="text" autocapitalize="characters"></label>
+ <label class="campo">Nota (opcional)<input id="guia-nota" type="text"></label>
+ <div id="guia-err" class="err hidden"></div>
+ <div class="fila"><button id="guia-no" class="btn btn-suave">Cancelar</button><button id="guia-si" class="btn btn-pri">Hacer guía</button></div>
+</div></dialog>
+
+<!-- ajustes -->
+<dialog id="d-ajustes"><div class="panel">
+ <div class="agarre"></div>
+ <h2>Ajustes</h2>
+ <div class="cuenta"><div class="t"><b>AFLEX</b><span id="aj-aflex">—</span></div><button id="aj-salir-aflex" class="mini">Salir</button></div>
+ <div class="cuenta"><div class="t"><b>SpeedX</b><span id="aj-sx">—</span></div><button id="aj-salir-sx" class="mini">Salir</button></div>
+ <label class="check"><input id="aj-sonido" type="checkbox" checked> Sonidos al escanear</label>
+ <h3 style="margin:14px 0 6px">Errores aprendidos</h3>
+ <p class="sub">Lo que le enseñaste a la app con «¿Qué es este error?».</p>
+ <div class="lista" id="aj-reglas"></div>
+ <div class="fila"><button id="aj-config" class="btn btn-suave">Cambiar conexión</button><button id="aj-cerrar" class="btn btn-pri">Listo</button></div>
+</div></dialog>
+
+<div id="impresion" aria-hidden="true"></div>
+
+<script src="vendor/supabase.min.js"></script>
+<script>
+/* ===================== Lógica (sin red): fallas de SpeedX ===================== */
+const Fallas = (() => {
+  const NOMBRE = { attempts: "Más de 3 intentos", rejected: "Cliente rechazó", delivered: "Duplicado / ya entregado",
+    other_city: "Otra ciudad", damaged: "Dañado", other: "Otro error" };
+  // Primero las que no pueden volver a salir. El orden importa.
+  const REGLAS = [
+    ["attempts", /(more than|over|exceed\w*|max(imum)?|reached)\s*(the\s*)?(\d+\s*)?(times|attempts?|tries|deliver\w*)|attempt\w*\s*(more than|over|exceed\w*|limit|max)|(3|three)\s*(times|attempts?)|intent(o|ado)s?\s*(m[aá]s|3)|limit\w*\s*(of\s*)?(delivery\s*)?attempt/i],
+    ["rejected", /reject|refus|declin|rechaz/i],
+    ["delivered", /(^|[^n])\bdelivered\b|already\s+(been\s+)?(delivered|signed)|\bsigned\b|duplicat|entregad|\bPOD\b/i],
+    ["other_city", /geo|other\s+(city|station|facility|dsp|center|centre|warehouse)|(not|doesn'?t|does not)\s+belong|wrong\s+(station|facility|city|dsp|warehouse)|different\s+(station|facility|city|dsp)|out\s+of\s+(area|range|zone|service)|not\s+in\s+(this|your|the\s+current)\s+(station|facility|area)|otra\s+ciudad|ubicaci/i],
+    ["damaged", /damag|da[ñn]ad/i],
+  ];
+  const clave = (m) => String(m || "").toLowerCase().replace(/^speedx:\s*/, "").replace(/[a-z]*\d[\da-z-]{5,}/gi, "#").replace(/\d+/g, "#").replace(/\s+/g, " ").trim().slice(0, 160);
+  /** {cat, resettable, aprendido, conocido}. aprendidas = [{clave, cat, resettable}] */
+  function clasificar(msg, aprendidas = []) {
+    const k = clave(msg);
+    const a = aprendidas.find((x) => x.clave === k);
+    if (a) return { cat: a.cat || "other", resettable: !!a.resettable, aprendido: true, conocido: true };
+    for (const [cat, re] of REGLAS) if (re.test(String(msg || ""))) return { cat, resettable: false, aprendido: false, conocido: true };
+    return { cat: "other", resettable: false, aprendido: false, conocido: false };
+  }
+  // choque al crear el lote de entrada (pasa cuando llegan dos al mismo tiempo): se reintenta solo
+  const esChoque = (m) => /constraintviolation|could not execute statement|_idx\]|duplicate entry|deadlock|lock wait timeout/i.test(String(m || ""));
+  // problema de red o del servidor: no es una falla del paquete, se reintenta más tarde
+  const esRed = (m) => /sin conexi|http\s*5\d\d|timeout|tiempo de espera|failed to fetch|network|respondi[oó] algo que no se entiende/i.test(String(m || ""));
+  function limpiarTracking(t) {
+    let s = String(t || "").toUpperCase().trim();
+    const m = s.match(/SPX[A-Z]{3}\d{6,}/) || s.match(/[A-Z]{2,6}\d{8,}/);
+    if (m) s = m[0];
+    return s.replace(/[^A-Z0-9_-]/g, "");
+  }
+  return { NOMBRE, clasificar, clave, esChoque, esRed, limpiarTracking };
+})();
+if (typeof module !== "undefined") module.exports = Fallas;
+</script>
+<script>
+/* ===================== App ===================== */
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num=n=>Number(n||0).toLocaleString('es-MX');
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}},del(k){try{localStorage.removeItem(k);}catch(e){}}};
+const show=(id,on)=>$(id).classList.toggle('hidden',!on);
+const err=(id,m)=>{$(id).textContent=m||'';show(id,!!m);};
+const TZ='America/Chicago';
+const AFLEX_TCL={url:'https://iefchordssbirarlwwfv.supabase.co',key:'sb_publishable_Eo0oEW0Lz1Za-kUSO3XLVw_oMxzlbMa'};
+const hoyEst=()=>new Intl.DateTimeFormat('en-CA',{timeZone:TZ,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+const hora=t=>t?new Date(t).toLocaleTimeString('es-MX',{timeZone:TZ,hour:'2-digit',minute:'2-digit'}):'';
+const fechaHora=t=>t?new Date(t).toLocaleString('es-MX',{timeZone:TZ,day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+const fCorta=f=>f?new Date(f+'T12:00:00Z').toLocaleDateString('es-MX',{day:'numeric',month:'short',timeZone:'UTC'}):'';
+if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
+
+class Err extends Error{constructor(m,x){super(m);Object.assign(this,x||{});}}
+let db=null,perfil=null,sxToken=store.get('pda_sx_token',''),sxUsuario=store.get('pda_sx_user','');
+let lecturas=[],dia=hoyEst(),vista='escanear',filtroHoy='reset',pendientes=[],caja=[],guias=[];
+let aprendidas=store.get('pda_reglas',[]);
+
+// ---------- SpeedX (por la misma función del Divisor de rutas)
+async function fn(body){
+ const url=store.get('funcion',''),clave=store.get('acceso','');
+ if(!url||!clave){mostrarConfig();throw new Err('Falta conectar el PDA.',{config:true});}
+ let r;
+ try{r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','x-divisor-clave':clave},body:JSON.stringify(body)});}
+ catch(e){throw new Err('Sin conexión. Revisa el internet del PDA.',{red:true});}
+ const j=await r.json().catch(()=>({error:'El servidor respondió algo que no se entiende (HTTP '+r.status+').',red:true}));
+ if(r.status===403&&j.clave){mostrarConfig('La clave de acceso no es correcta.');throw new Err(j.error,{config:true});}
+ if(r.status===401&&j.sesion){sxToken='';store.del('pda_sx_token');estadoCuentas();throw new Err('La sesión de SpeedX venció. Vuelve a entrar a SpeedX.',{sesion:true});}
+ if(!r.ok||j.error)throw new Err(String(j.error||('HTTP '+r.status)).replace(/^SpeedX:\s*/,''),{red:!!j.red||r.status>=500&&!j.error,speedx:true});
+ return j;
+}
+const sx=async(metodo,ruta,params,cuerpo)=>(await fn({accion:'speedx',metodo,ruta,params,cuerpo,token:sxToken})).datos;
+const SX={
+ async login(u,c){const d=await fn({accion:'speedx',metodo:'POST',ruta:'/pos-exchange-api/login/login',params:null,cuerpo:{loginName:u.trim(),passwd:c,autoLogin:true,facilityCode:'LAX',verifyCode:'8888'},token:''});const t=d&&d.datos&&d.datos.authToken;if(!t)throw new Err('SpeedX no aceptó el usuario o la contraseña.');return t;},
+ leftOnDock:t=>sx('POST','/pos-exchange-api/web/return/parcel/new/scan',null,{trackingNumber:t,type:'RETURN_TO_DISTRIBUTION_CENTER'}),
+ contenedor:n=>sx('GET','/pos-exchange-api/web/pos-container/info',{containerNo:n}),
+ meter:(n,t)=>sx('POST','/pos-exchange-api/web/pos-container/scan-parcel',{containerNo:n,trackingNumber:t}),
+ completar:n=>sx('POST','/pos-exchange-api/web/pos-container/close',{containerNo:n}),
+};
+// reintenta solo el choque de SpeedX al crear el lote de entrada
+async function conReintento(hacer){
+ for(let vez=0;;vez++){
+  try{return await hacer();}
+  catch(e){if(Fallas.esChoque(e.message)&&vez<4){await new Promise(ok=>setTimeout(ok,600*(vez+1)));continue;}throw e;}
+ }
+}
+
+// ---------- AFLEX
+function conectarAflex(){
+ const c=store.get('pda_aflex',AFLEX_TCL);
+ db=supabase.createClient(c.url,c.key,{auth:{persistSession:true,autoRefreshToken:true,storageKey:'pda-aflex-auth'}});
+}
+async function rpc(nombre,args){const r=await db.rpc(nombre,args);if(r.error)throw new Err(traducir(r.error.message));return r.data;}
+function traducir(m){m=String(m||'');if(/return_pda_|schema cache|Could not find the function/i.test(m))return 'Falta instalar en AFLEX el archivo 47_pda_warehouse.sql (Supabase de Tuscaloosa → SQL Editor).';if(/JWT|token|session/i.test(m))return 'La sesión de AFLEX venció. Vuelve a entrar.';if(/fetch|network/i.test(m))return 'Sin conexión con AFLEX. Revisa el internet.';return m;}
+async function cargarPerfil(){
+ const {data:{session}}=await db.auth.getSession();
+ if(!session){perfil=null;return null;}
+ const r=await db.from('return_profiles').select('id,full_name,role,access').eq('id',session.user.id).single();
+ if(r.error)throw new Err(traducir(r.error.message));
+ perfil=r.data;
+ if(perfil.access!=='active'||!['admin','warehouse'].includes(perfil.role)){const n=perfil.full_name;perfil=null;await db.auth.signOut();throw new Err(`${n}: esta cuenta no es de warehouse ni administrador. Usa una cuenta de warehouse.`);}
+ return perfil;
+}
+
+// ---------- pantallas
+function pantalla(cual){for(const s of ['config','login'])show(s,s===cual);const app=cual==='app';for(const v of ['escanear','hoy','pendientes','caja'])show('v-'+v,app&&v===vista);show('tabs',app);show('estado-chip',app);show('abrir-ajustes',app);}
+function mostrarConfig(msg){pantalla('config');$('cfg-url').value=store.get('funcion','');const c=store.get('pda_aflex',AFLEX_TCL);$('cfg-aflex-url').value=c.url;$('cfg-aflex-key').value=c.key;err('config-err',msg||'');}
+function mostrarLogin(){pantalla('login');show('aflex-ok',!!perfil);show('aflex-campos',!perfil);show('sx-ok',!!sxToken);show('sx-campos',!sxToken);if(!perfil)$('af-correo').focus();else if(!sxToken)$('sx-usuario').focus();}
+function ir(v){
+ if(!perfil||!sxToken){mostrarLogin();return;}
+ vista=v;pantalla('app');
+ document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-current',t.dataset.v===v?'page':'false'));
+ const el=$('v-'+v);el.classList.remove('entra');void el.offsetWidth;el.classList.add('entra');
+ $('marca').innerHTML=v==='escanear'?'AFLEX <span>PDA</span>':{hoy:'Recibidos',pendientes:'Por retornar',caja:'Caja Atlanta'}[v];
+ if(v==='escanear')enfocar();
+ if(v==='hoy')pintarHoy();
+ if(v==='pendientes')cargarPendientes();
+ if(v==='caja')cargarCaja();
+}
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>ir(t.dataset.v));
+document.querySelectorAll('[data-ir-hoy]').forEach(b=>b.onclick=()=>{filtroHoy=b.dataset.irHoy;dia=hoyEst();$('hoy-fecha').value=dia;ir('hoy');});
+function estadoCuentas(){
+ const p=$('punto'),t=$('estado-txt');
+ if(!perfil||!sxToken){p.className='punto mal';t.textContent=!sxToken?'Entrar a SpeedX':'Entrar a AFLEX';return;}
+ const n=cola.length;p.className='punto'+(n?' espera':'');t.textContent=n?`${n} en espera`:'Listo';
+}
+$('estado-chip').onclick=()=>{if(!perfil||!sxToken)mostrarLogin();else if(cola.length)procesarCola(true);};
+
+// ---------- conexión y entrar
+$('config-form').onsubmit=e=>{e.preventDefault();
+ store.set('funcion',$('cfg-url').value.trim());store.set('acceso',$('cfg-clave').value.trim());
+ const u=$('cfg-aflex-url').value.trim().replace(/\/+$/,'')||AFLEX_TCL.url,k=$('cfg-aflex-key').value.trim()||AFLEX_TCL.key;
+ store.set('pda_aflex',{url:u,key:k});$('cfg-clave').value='';conectarAflex();iniciar();};
+$('cambiar-config').onclick=()=>mostrarConfig();
+$('login-aflex').onsubmit=async e=>{e.preventDefault();err('aflex-err','');const b=e.target.querySelector('button');b.disabled=true;b.textContent='Entrando…';
+ try{const r=await db.auth.signInWithPassword({email:$('af-correo').value.trim(),password:$('af-clave').value});if(r.error)throw new Err(/invalid/i.test(r.error.message)?'Correo o contraseña incorrectos.':traducir(r.error.message));
+  $('af-clave').value='';await cargarPerfil();despuesDeEntrar();}
+ catch(x){err('aflex-err',x.message);}finally{b.disabled=false;b.textContent='Entrar a AFLEX';}};
+$('login-sx').onsubmit=async e=>{e.preventDefault();err('sx-err','');const b=e.target.querySelector('button');b.disabled=true;b.textContent='Entrando…';
+ try{sxToken=await SX.login($('sx-usuario').value,$('sx-clave').value);sxUsuario=$('sx-usuario').value.trim();store.set('pda_sx_token',sxToken);store.set('pda_sx_user',sxUsuario);$('sx-clave').value='';despuesDeEntrar();}
+ catch(x){if(!x.config)err('sx-err',x.message);}finally{b.disabled=false;b.textContent='Entrar a SpeedX';}};
+function despuesDeEntrar(){estadoCuentas();if(perfil&&sxToken){ir(vista);cargarLecturas();escuchar();procesarCola();}else mostrarLogin();}
+
+// ---------- sonidos
+let audio=null;
+function sonar(tipo){
+ if(!store.get('pda_sonido',true))return;
+ try{
+  audio=audio||new (window.AudioContext||window.webkitAudioContext)();
+  const notas={ok:[[1046,.09],[1568,.13]],amarillo:[[880,.1],[0,.05],[880,.1],[0,.05],[880,.12]],caja:[[220,.45]],error:[[330,.15],[0,.05],[220,.3]]}[tipo]||[[660,.1]];
+  let t=audio.currentTime;
+  for(const [f,d] of notas){if(f){const o=audio.createOscillator(),g=audio.createGain();o.type=tipo==='caja'||tipo==='error'?'square':'sine';o.frequency.value=f;g.gain.setValueAtTime(.18,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(audio.destination);o.start(t);o.stop(t+d);}t+=d;}
+ }catch(e){}
+ try{navigator.vibrate&&navigator.vibrate(tipo==='ok'?60:tipo==='amarillo'?[80,60,80]:[300,80,300]);}catch(e){}
+}
+
+// ---------- escanear
+const cola=store.get('pda_cola',[]);   // [{tracking, dock:{ok,sort,msg,cat,resettable}|null}]
+let trabajandoCola=false,ultima=null;
+function guardarCola(){store.set('pda_cola',cola);pintarCola();estadoCuentas();}
+function pintarCola(){const n=cola.length;$('cola').textContent=n?`${n} paquete${n===1?'':'s'} en espera (${trabajandoCola?'procesando…':'sin internet o SpeedX; se reintenta solo'})`:'';}
+function enfocar(){if(vista==='escanear'&&!document.querySelector('dialog[open]'))setTimeout(()=>$('scan').focus({preventScroll:true}),30);}
+let tecla=null;
+$('scan').addEventListener('input',()=>{clearTimeout(tecla);const v=$('scan').value;if(Fallas.limpiarTracking(v).length>=12)tecla=setTimeout(()=>{if($('scan').value===v)recibir();},350);});   // PDA que no manda Enter
+$('form-scan').onsubmit=e=>{e.preventDefault();recibir();};
+document.addEventListener('click',e=>{if(vista==='escanear'&&!e.target.closest('input,select,textarea,button,dialog,a'))enfocar();});
+function recibir(){
+ clearTimeout(tecla);
+ const t=Fallas.limpiarTracking($('scan').value);$('scan').value='';enfocar();
+ if(t.length<8){if(t)mostrar({color:'rojo',grande:'No se leyó bien',trk:t,det:'Vuelve a escanear el código.'},'error');return;}
+ if(cola.some(x=>x.tracking===t))return;
+ cola.push({tracking:t,dock:null});guardarCola();procesarCola();
+}
+async function procesarCola(forzar){
+ if(trabajandoCola||!cola.length||!perfil||!sxToken)return;
+ trabajandoCola=true;pintarCola();
+ try{
+  while(cola.length){
+   const it=cola[0];
+   const previa=lecturas.find(r=>r.tracking===it.tracking&&r.day===hoyEst());
+   if(!it.dock){
+    if(previa&&previa.dock_ok)it.dock={ok:true,sort:previa.sort_code,msg:'',cat:previa.fail_cat,resettable:previa.resettable,yaHoy:true};
+    else{
+     try{const d=await conReintento(()=>SX.leftOnDock(it.tracking))||{};it.dock={ok:true,sort:d.sortCode||'',msg:[d.sortCode,d.address].filter(Boolean).join(' · '),cat:'',resettable:true};}
+     catch(e){
+      if(e.sesion||e.config||e.red||Fallas.esRed(e.message))throw e;
+      const c=Fallas.clasificar(e.message,aprendidas);
+      it.dock={ok:false,sort:'',msg:e.message,cat:c.cat,resettable:c.resettable,conocido:c.conocido};
+     }
+    }
+    guardarCola();
+   }
+   const d=it.dock;
+   const out=await rpc('return_pda_receive',{p_tracking:it.tracking,p_dock_ok:d.ok,p_sort_code:d.sort||'',p_msg:d.ok?(d.msg||''):d.msg,p_fail_cat:d.ok?(d.cat||''):d.cat,p_resettable:d.ok?(d.resettable!==false):d.resettable});
+   cola.shift();guardarCola();
+   unirLectura(out.read);
+   avisar(out,d);
+  }
+ }catch(e){
+  if(e.sesion)mostrar({color:'rojo',grande:'SpeedX: vuelve a entrar',det:e.message+' Los paquetes escaneados esperan aquí.'},'error');
+  else if(!e.config)mostrar({color:'azul',grande:'En espera',det:e.message+' Se reintenta solo; no vuelvas a escanear.'},'error');
+  setTimeout(()=>procesarCola(),15000);
+ }finally{trabajandoCola=false;pintarCola();estadoCuentas();}
+}
+function avisar(out,d){
+ const r=out.read,p=out.paquete||{};
+ const quien=r.driver?`${r.driver}${r.route_date?' · ruta del '+fCorta(r.route_date):''}`:'Sin driver en AFLEX';
+ const aflexTxt={driver_scan:`Lo escaneó ${r.driver_scan_by||'el driver'} · ✓ retornado en AFLEX`,sin_escaneo:'⚠ El driver NO lo escaneó en AFLEX · se marcó retornado igual',ya_retornado:'Ya estaba retornado en AFLEX',no_en_aflex:'No está en AFLEX'}[r.aflex]||'';
+ ultima=r;
+ if(out.repetido&&d.yaHoy){mostrar({color:'azul',grande:'Ya lo recibiste hoy',trk:r.tracking,det:quien,msg:`Escaneado ${r.times} veces · ${r.resettable?'va a reset':'va a la caja: '+Fallas.NOMBRE[r.fail_cat]}`},'amarillo');pintarResumen();return;}
+ if(!r.resettable){
+  mostrar({color:'rojo',grande:'A LA CAJA · '+(Fallas.NOMBRE[r.fail_cat]||'Error'),trk:r.tracking,det:quien+(aflexTxt?' · '+aflexTxt:''),msg:'SpeedX: '+(r.speedx_msg||'—'),ensenar:d.conocido===false},'caja');
+ }else if(!r.dock_ok){
+  mostrar({color:'naranja',grande:'Error que se resetea',trk:r.tracking,det:quien,msg:'SpeedX: '+(r.speedx_msg||'—')+' · va al Excel de Reset'},'amarillo');
+ }else if(r.aflex==='sin_escaneo'||r.aflex==='no_en_aflex'){
+  mostrar({color:'amarillo',grande:'Left on dock ✓ · Revisar',trk:r.tracking,det:quien,msg:aflexTxt+(r.sort_code?' · '+r.sort_code:'')},'amarillo');
+ }else{
+  mostrar({color:'verde',grande:'Left on dock ✓',trk:r.tracking,det:quien,msg:aflexTxt+(r.sort_code?' · '+r.sort_code:'')},'ok');
+ }
+ pintarResumen();
+}
+function mostrar(o,sonido){
+ const el=$('resultado');el.className='resultado '+(o.color||'');void el.offsetWidth;el.classList.add('nuevo');
+ const r=ultima;
+ el.innerHTML=`<div class="grande">${esc(o.grande)}</div>${o.trk?`<div class="trk">${esc(o.trk)}</div>`:''}${o.det?`<div class="det">${esc(o.det)}</div>`:''}${o.msg?`<div class="msg">${esc(o.msg)}</div>`:''}
+  ${o.ensenar&&r?`<div class="ensenar"><b>¿Qué es este error? La app lo aprende.</b><div class="opc">
+   <button class="reset" data-ens="reset">Se puede resetear</button>
+   ${Object.entries(Fallas.NOMBRE).map(([k,v])=>`<button data-ens="${k}">${esc(v)}</button>`).join('')}</div>
+   <label><input type="checkbox" id="ens-recordar" checked> Recordar para la próxima vez</label></div>`:''}
+  ${r&&o.trk===r.tracking&&!o.ensenar?`<div class="acciones-ult">${r.resettable?'<button class="mini" data-ult="damaged">Está dañado → caja</button>':'<button class="mini" data-ult="reset">Sí se puede resetear</button>'}</div>`:''}`;
+ el.querySelectorAll('[data-ens]').forEach(b=>b.onclick=()=>ensenar(r,b.dataset.ens,$('ens-recordar').checked));
+ el.querySelectorAll('[data-ult]').forEach(b=>b.onclick=()=>reclasificar(r,b.dataset.ult==='reset'?'':'damaged',b.dataset.ult==='reset'));
+ if(sonido)sonar(sonido);
+}
+async function ensenar(r,opcion,recordar){
+ const reset=opcion==='reset',cat=reset?'other':opcion;
+ if(recordar&&r.speedx_msg){const k=Fallas.clave(r.speedx_msg);aprendidas=aprendidas.filter(x=>x.clave!==k).concat([{clave:k,cat,resettable:reset,ejemplo:r.speedx_msg.slice(0,140)}]);store.set('pda_reglas',aprendidas);}
+ await reclasificar(r,reset?(r.dock_ok?'':'other'):cat,reset);
+}
+async function reclasificar(r,cat,reset){
+ try{const n=await rpc('return_pda_classify',{p_id:r.id,p_fail_cat:cat,p_resettable:!!reset});unirLectura(n);ultima=n;
+  mostrar(n.resettable?{color:'verde',grande:'Listo: va a Reset',trk:n.tracking,det:n.driver||''}:{color:'rojo',grande:'Listo: a la caja · '+Fallas.NOMBRE[n.fail_cat],trk:n.tracking,det:n.driver||''},n.resettable?'ok':'caja');pintarResumen();}
+ catch(e){mostrar({color:'rojo',grande:'No se pudo cambiar',det:e.message},'error');}
+}
+
+// ---------- lecturas del día
+function unirLectura(r){if(!r)return;const i=lecturas.findIndex(x=>x.id===r.id);if(i>=0)lecturas[i]=r;else lecturas.unshift(r);lecturas.sort((a,b)=>String(b.read_at).localeCompare(String(a.read_at)));}
+async function cargarLecturas(d=dia){
+ if(!db||!perfil)return;
+ const out=[];let desde=0;
+ while(true){const r=await db.from('return_pda_reads').select('*').eq('day',d).order('read_at',{ascending:false}).range(desde,desde+999);if(r.error){$('cola').textContent=traducir(r.error.message);break;}out.push(...r.data);if(r.data.length<1000)break;desde+=1000;}
+ if(d===hoyEst()||d===dia){lecturas=out;}
+ pintarResumen();if(vista==='hoy')pintarHoy();
+ return out;
+}
+const enReset=r=>r.resettable;
+const enCaja=r=>!r.resettable;
+const amarillo=r=>r.aflex==='sin_escaneo'||r.aflex==='no_en_aflex';
+function pintarResumen(){
+ const h=hoyEst(),hoy=lecturas.filter(r=>r.day===h);
+ $('n-todos').textContent=num(hoy.length);$('n-reset').textContent=num(hoy.filter(enReset).length);$('n-caja').textContent=num(hoy.filter(enCaja).length);$('n-amar').textContent=num(hoy.filter(amarillo).length);
+ $('ultimos').innerHTML=hoy.slice(0,8).map(filaLectura).join('')||'<p class="vacio">Todavía no has escaneado nada hoy.</p>';
+}
+function filaLectura(r){
+ const est=!r.resettable?`<span class="pill p-rojo">Caja · ${esc(Fallas.NOMBRE[r.fail_cat]||'Error')}</span>`:!r.dock_ok?'<span class="pill p-amar">Reset (error)</span>':'<span class="pill p-verde">Reset</span>';
+ const af=r.aflex==='sin_escaneo'?' <span class="pill p-amar">sin escaneo</span>':r.aflex==='no_en_aflex'?' <span class="pill p-gris">no en AFLEX</span>':'';
+ return `<div class="fila-p"><div class="t"><b>${esc(r.tracking)}</b><span>${esc(r.driver||'Sin driver')} · ${hora(r.read_at)}${r.times>1?` · ${r.times} veces`:''}${r.ctn?' · '+esc(r.ctn):''}${!r.dock_ok&&r.speedx_msg?' · '+esc(r.speedx_msg):''}</span></div>${est}${af}</div>`;
+}
+
+// ---------- HOY
+$('hoy-fecha').onchange=async()=>{dia=$('hoy-fecha').value||hoyEst();await cargarLecturas(dia);};
+document.querySelectorAll('#hoy-seg [data-f]').forEach(b=>b.onclick=()=>{filtroHoy=b.dataset.f;pintarHoy();});
+function delDia(){return lecturas.filter(r=>r.day===dia);}
+function pintarHoy(){
+ $('hoy-fecha').value=dia;$('hoy-titulo').textContent=dia===hoyEst()?'Hoy':fCorta(dia);
+ const L=delDia(),F={reset:L.filter(enReset),caja:L.filter(enCaja),amarillo:L.filter(amarillo),todos:L};
+ $('s-reset').textContent=num(F.reset.length);$('s-caja').textContent=num(F.caja.length);$('s-amar').textContent=num(F.amarillo.length);$('s-todos').textContent=num(L.length);
+ document.querySelectorAll('#hoy-seg [data-f]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.f===filtroHoy)));
+ const rows=F[filtroHoy];
+ let html='';
+ if(filtroHoy==='caja'){
+  const por=new Map();for(const r of rows){const k=r.fail_cat||'other';if(!por.has(k))por.set(k,[]);por.get(k).push(r);}
+  html=[...por.entries()].map(([k,rs])=>`<div class="grupo"><h3>${esc(Fallas.NOMBRE[k])}<span class="pill p-rojo">${num(rs.length)}</span></h3><div class="lista">${rs.map(filaLectura).join('')}</div></div>`).join('');
+ }else html=`<div class="lista">${rows.map(filaLectura).join('')}</div>`;
+ $('hoy-lista').innerHTML=rows.length?html:'<p class="vacio">No hay paquetes aquí.</p>';
+ const cand=L.filter(r=>r.dock_ok&&r.resettable&&!r.ctn);
+ $('b-ctn').textContent=`Meter a contenedor (${num(cand.length)})`;$('b-ctn').disabled=!cand.length;
+ $('b-reset').textContent=`Excel para Reset (${num(F.reset.length)})`;$('b-reset').disabled=!F.reset.length;
+}
+
+// ---------- Excel (ExcelJS se carga solo cuando hace falta)
+let excelLib=null;
+function cargarExcel(){if(window.ExcelJS)return Promise.resolve(window.ExcelJS);if(excelLib)return excelLib;excelLib=new Promise((ok,mal)=>{const s=document.createElement('script');s.src='vendor/exceljs.min.js';s.onload=()=>ok(window.ExcelJS);s.onerror=()=>{excelLib=null;mal(new Error('No se pudo cargar el Excel.'));};document.head.appendChild(s);});return excelLib;}
+async function descargar(wb,nombre){const buf=await wb.xlsx.writeBuffer();const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=nombre;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},3000);}
+function hoja(wb,nombre,cols,filas,colorDe){
+ const ws=wb.addWorksheet(nombre.slice(0,31),{views:[{state:'frozen',ySplit:1}]});
+ ws.columns=cols.map(([h,w])=>({header:h,width:w||18}));
+ ws.getRow(1).font={bold:true,color:{argb:'FFFFFFFF'}};ws.getRow(1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF0B1530'}};
+ for(const f of filas){const row=ws.addRow(f.cells||f);if(f.color)row.eachCell(c=>c.fill={type:'pattern',pattern:'solid',fgColor:{argb:f.color}});}
+ ws.autoFilter={from:{row:1,column:1},to:{row:1,column:cols.length}};
+ return ws;
+}
+$('b-reset').onclick=async()=>{
+ const b=$('b-reset'),rows=delDia().filter(enReset);if(!rows.length)return;b.disabled=true;
+ try{
+  const X=await cargarExcel(),wb=new X.Workbook();
+  const ws=wb.addWorksheet('Sheet1');ws.getColumn(1).width=30;ws.addRow(['Tracking Number']);
+  for(const r of rows)ws.addRow([r.tracking]);
+  await descargar(wb,`reset_status_${dia}.xlsx`);
+  try{await rpc('return_pda_mark',{p_rows:rows.map(r=>({id:r.id})),p_reset:true});await cargarLecturas(dia);}catch(e){}
+ }catch(e){alert(e.message);}finally{b.disabled=false;}
+};
+const AFX={driver_scan:'Escaneado por el driver',sin_escaneo:'SIN escaneo del driver',ya_retornado:'Ya estaba retornado',no_en_aflex:'No está en AFLEX'};
+$('b-informe').onclick=async()=>{
+ const b=$('b-informe');b.disabled=true;b.textContent='Preparando…';
+ try{
+  const X=await cargarExcel(),wb=new X.Workbook(),L=delDia().slice().sort((a,b)=>String(a.read_at).localeCompare(String(b.read_at)));
+  let pend=[];try{pend=await rpc('return_pda_pending',{});}catch(e){}
+  const C={verde:'FFD9F5E6',rojo:'FFFBE0DE',amar:'FFFFF3C4'};
+  const fila=(r,i)=>({cells:[i+1,hora(r.read_at),r.tracking,r.driver,r.area,r.route_date,AFX[r.aflex]||r.aflex,r.driver_scan_by,r.dock_ok?'Sí':'No',r.sort_code,r.speedx_msg,r.fail_cat?Fallas.NOMBRE[r.fail_cat]:'',r.resettable?'Reset':'Caja',r.ctn,r.reset_at?'Sí':'',r.times],color:!r.resettable?C.rojo:amarillo(r)?C.amar:C.verde});
+  const cols=[['#',6],['Hora',9],['Tracking',28],['Driver',24],['Área',10],['Fecha de ruta',13],['AFLEX',24],['Escaneó en AFLEX',22],['Left on dock',12],['Sort code',16],['Respuesta de SpeedX',44],['Falla',24],['Destino',10],['Contenedor',30],['Exportado a reset',10],['Veces',8]];
+  const res=wb.addWorksheet('Resumen');res.columns=[{width:38},{width:14}];
+  res.addRow([`Informe del PDA · Tuscaloosa · ${dia}`]).font={bold:true,size:14};res.addRow([`Hecho por ${perfil.full_name} · ${fechaHora(new Date())}`]);res.addRow([]);
+  const cuenta=f=>L.filter(f).length;
+  for(const [t,v] of [['Paquetes recibidos',L.length],['Entraron a Left on dock',cuenta(r=>r.dock_ok)],['Para reset',cuenta(enReset)],['A la caja (no salen más)',cuenta(enCaja)],['Sin escaneo del driver en AFLEX',cuenta(r=>r.aflex==='sin_escaneo')],['No están en AFLEX',cuenta(r=>r.aflex==='no_en_aflex')],['Metidos a contenedor',cuenta(r=>r.ctn)],['Faltan por retornar (ahora)',pend.length]])res.addRow([t,v]);
+  res.addRow([]);res.addRow(['Caja por falla']).font={bold:true};
+  for(const [k,v] of Object.entries(Fallas.NOMBRE)){const n=cuenta(r=>enCaja(r)&&r.fail_cat===k);if(n)res.addRow([v,n]);}
+  hoja(wb,'Recibidos',cols,L.map(fila));
+  hoja(wb,'Para reset',[['Tracking',28],['Driver',24],['Left on dock',12],['Respuesta de SpeedX',44]],L.filter(enReset).map(r=>[r.tracking,r.driver,r.dock_ok?'Sí':'No',r.speedx_msg]));
+  hoja(wb,'Caja por falla',[['Falla',24],['Tracking',28],['Driver',24],['Fecha de ruta',13],['Respuesta de SpeedX',44],['Hora',9]],L.filter(enCaja).sort((a,b)=>a.fail_cat.localeCompare(b.fail_cat)).map(r=>[Fallas.NOMBRE[r.fail_cat]||r.fail_cat,r.tracking,r.driver,r.route_date,r.speedx_msg,hora(r.read_at)]));
+  hoja(wb,'Sin escaneo del driver',[['Tracking',28],['Driver',24],['Área',10],['Fecha de ruta',13],['AFLEX',24]],L.filter(amarillo).map(r=>({cells:[r.tracking,r.driver,r.area,r.route_date,AFX[r.aflex]],color:C.amar})));
+  hoja(wb,'Faltan por retornar',[['Driver',24],['Tracking',28],['Área',10],['Fecha de ruta',13],['Estado',16],['Motivo',30],['Escaneado por el driver',22]],pend.map(p=>[p.driver,p.tracking,p.area,p.delivery_date,p.status,p.motivo,p.driver_scan?p.driver_scan_by:'']));
+  await descargar(wb,`informe_pda_TCL_${dia}.xlsx`);
+ }catch(e){alert(e.message);}finally{b.disabled=false;b.textContent='Descargar informe del día';}
+};
+
+// ---------- contenedor
+let ctnListo=null;
+$('b-ctn').onclick=()=>{ctnListo=null;const n=delDia().filter(r=>r.dock_ok&&r.resettable&&!r.ctn).length;$('ctn-sub').textContent=`${num(n)} paquetes de Left on dock que todavía no están en un contenedor.`;$('ctn-info').textContent='';$('ctn-estado').textContent='';err('ctn-err','');show('ctn-prog',false);$('ctn-si').disabled=true;$('ctn-si').textContent='Meter';$('d-ctn').showModal();setTimeout(()=>$('ctn-num').focus(),50);};
+$('ctn-no').onclick=()=>$('d-ctn').close();
+$('ctn-num').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();$('ctn-revisar').click();}};
+$('ctn-revisar').onclick=async()=>{
+ const n=$('ctn-num').value.trim().toUpperCase();err('ctn-err','');
+ if(!/^CTN-[A-Z0-9-]{6,80}$/.test(n)){err('ctn-err','Escribe o escanea el número tal como sale en la etiqueta (CTN-…).');return;}
+ try{const d=await SX.contenedor(n)||{};ctnListo=n;$('ctn-info').textContent=`${d.containerNo||n} · ${d.status||''} ${d.destination?'· destino '+d.destination:''}`;const k=delDia().filter(r=>r.dock_ok&&r.resettable&&!r.ctn).length;$('ctn-si').disabled=!k;$('ctn-si').textContent=`Meter ${num(k)}`;}
+ catch(e){ctnListo=null;$('ctn-si').disabled=true;err('ctn-err',e.message);}
+};
+$('ctn-si').onclick=async()=>{
+ if(!ctnListo)return;const n=ctnListo,rows=delDia().filter(r=>r.dock_ok&&r.resettable&&!r.ctn);if(!rows.length)return;
+ const b=$('ctn-si');b.disabled=true;show('ctn-prog',true);let ok=0,mal=0;const marcas=[];
+ for(let i=0;i<rows.length;i++){
+  const r=rows[i];$('ctn-estado').textContent=`${i+1} de ${rows.length} · ${r.tracking}`;
+  try{await conReintento(()=>SX.meter(n,r.tracking));ok++;marcas.push({id:r.id,ctn:n,ctn_ok:true,ctn_msg:''});}
+  catch(e){if(e.sesion||e.config){err('ctn-err',e.message);break;}mal++;marcas.push({id:r.id,ctn_msg:e.message});}
+  $('ctn-barra').style.width=Math.round((i+1)/rows.length*100)+'%';
+ }
+ try{if(marcas.length)await rpc('return_pda_mark',{p_rows:marcas,p_reset:false});}catch(e){err('ctn-err',e.message);}
+ if($('ctn-completar').checked&&ok){try{await SX.completar(n);}catch(e){err('ctn-err','Se metieron, pero no se pudo completar el contenedor: '+e.message);}}
+ $('ctn-estado').innerHTML=`<span class="ok-txt">${num(ok)} metidos en ${esc(n)}</span>${mal?` · <b>${num(mal)} con error</b> (salen en el informe)`:''}`;
+ b.textContent='Listo';await cargarLecturas(dia);
+};
+
+// ---------- POR RETORNAR
+$('b-recargar-p').onclick=()=>cargarPendientes();
+$('pend-buscar').oninput=()=>pintarPendientes();
+async function cargarPendientes(){
+ $('pend-resumen').textContent='Cargando…';
+ try{pendientes=await rpc('return_pda_pending',{})||[];pintarPendientes();}catch(e){$('pend-resumen').textContent=e.message;}
+}
+function pintarPendientes(){
+ const q=$('pend-buscar').value.trim().toLowerCase();
+ const rows=pendientes.filter(p=>!q||`${p.tracking} ${p.driver}`.toLowerCase().includes(q));
+ const esperando=pendientes.filter(p=>p.driver_scan).length;
+ $('pend-resumen').innerHTML=`<b>${num(pendientes.length)}</b> paquetes faltan por retornar · <b>${num(esperando)}</b> ya los escaneó el driver y esperan warehouse.`;
+ const por=new Map();for(const p of rows){const k=p.driver||'SIN DRIVER';if(!por.has(k))por.set(k,[]);por.get(k).push(p);}
+ $('pend-lista').innerHTML=[...por.entries()].sort((a,b)=>b[1].length-a[1].length).map(([d,ps])=>`<div class="grupo"><h3>${esc(d)}<span class="pill p-azul">${num(ps.length)}</span></h3><div class="lista">${ps.slice(0,200).map(p=>{const due=p.due_at&&new Date(p.due_at)<new Date();return `<div class="fila-p"><div class="t"><b>${esc(p.tracking)}</b><span>Ruta del ${esc(fCorta(p.delivery_date))}${p.motivo?' · '+esc(p.motivo):''}</span></div>${p.driver_scan?'<span class="pill p-verde">escaneado</span>':''}${due?'<span class="pill p-rojo">vencido</span>':''}</div>`;}).join('')}</div></div>`).join('')||'<p class="vacio">No falta nada por retornar.</p>';
+}
+
+// ---------- CAJA y guías
+async function cargarCaja(){
+ try{
+  const r=await db.from('return_pda_reads').select('*').eq('resettable',false).is('shipped_at',null).order('fail_cat').order('read_at');
+  if(r.error)throw new Err(traducir(r.error.message));caja=r.data;
+  const g=await db.from('return_pda_guides').select('*').order('created_at',{ascending:false}).limit(30);guias=g.data||[];
+ }catch(e){$('caja-lista').innerHTML=`<p class="err">${esc(e.message)}</p>`;return;}
+ const por=new Map();for(const r of caja){const k=r.fail_cat||'other';if(!por.has(k))por.set(k,[]);por.get(k).push(r);}
+ $('caja-lista').innerHTML=caja.length?`<p class="sub"><b>${num(caja.length)}</b> paquetes en la caja.</p>`+[...por.entries()].map(([k,rs])=>`<div class="grupo"><h3>${esc(Fallas.NOMBRE[k])}<span class="pill p-rojo">${num(rs.length)}</span></h3><div class="lista">${rs.map(r=>`<div class="fila-p"><div class="t"><b>${esc(r.tracking)}</b><span>${esc(r.driver||'Sin driver')} · recibido ${esc(fCorta(r.day))}</span></div></div>`).join('')}</div></div>`).join(''):'<p class="vacio">La caja está vacía.</p>';
+ $('b-guia').disabled=!caja.length;$('b-guia').textContent=caja.length?`Hacer guía para el camión (${num(caja.length)})`:'Hacer guía para el camión';
+ $('guias').innerHTML=guias.map(g=>`<div class="fila-p"><div class="t"><b>Guía #${g.folio} · ${num(g.total)} paquetes</b><span>${esc(fechaHora(g.created_at))} · ${esc(g.truck_driver)}${g.plate?' · '+esc(g.plate):''}</span></div><button class="mini" data-guia="${g.id}">Imprimir</button></div>`).join('')||'<p class="vacio">Todavía no hay guías.</p>';
+ document.querySelectorAll('[data-guia]').forEach(b=>b.onclick=()=>imprimirGuia(guias.find(g=>g.id===b.dataset.guia)));
+}
+$('b-guia').onclick=()=>{$('guia-sub').textContent=`${num(caja.length)} paquetes salen de la caja y en AFLEX pasan a «Retornado a Atlanta».`;err('guia-err','');$('d-guia').showModal();};
+$('guia-no').onclick=()=>$('d-guia').close();
+$('guia-si').onclick=async()=>{
+ const b=$('guia-si');err('guia-err','');b.disabled=true;
+ try{const g=await rpc('return_pda_ship',{p_ids:caja.map(r=>r.id),p_truck_driver:$('guia-conductor').value,p_plate:$('guia-placa').value,p_note:$('guia-nota').value});$('d-guia').close();await cargarCaja();imprimirGuia(g);}
+ catch(e){err('guia-err',e.message);}finally{b.disabled=false;}
+};
+function imprimirGuia(g){
+ if(!g)return;const its=g.items||[];
+ const por={};for(const x of its)por[x.fail_cat]=(por[x.fail_cat]||0)+1;
+ $('impresion').innerHTML=`<div class="cab"><div><h1>Guía de retornos a ${esc(g.destination||'Atlanta')}</h1><div>AFLEX · Warehouse Tuscaloosa (TCL)</div></div><div style="text-align:right"><b>Folio #${g.folio}</b><br>${esc(fechaHora(g.created_at))}</div></div>
+  <div class="res"><b>Total: ${num(its.length)} paquetes</b> · ${Object.entries(por).map(([k,n])=>`${esc(Fallas.NOMBRE[k]||k)}: ${n}`).join(' · ')}<br>Conductor: <b>${esc(g.truck_driver)}</b>${g.plate?` · Camión/placa: <b>${esc(g.plate)}</b>`:''} · Entrega: ${esc(g.actor_name)}${g.note?`<br>Nota: ${esc(g.note)}`:''}</div>
+  <table><thead><tr><th>#</th><th>Tracking</th><th>Motivo</th><th>Driver</th><th>Recibido</th></tr></thead><tbody>${its.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.tracking)}</td><td>${esc(Fallas.NOMBRE[x.fail_cat]||x.fail_cat)}</td><td>${esc(x.driver)}</td><td>${esc(fCorta(x.day))}</td></tr>`).join('')}</tbody></table>
+  <div class="firmas"><div>Entregó (warehouse): ${esc(g.actor_name)}<br><br>Firma</div><div>Recibió (conductor): ${esc(g.truck_driver)}<br><br>Firma</div></div>
+  <p style="margin-top:20px;font-size:9pt">El conductor confirma con su firma que recibió los ${num(its.length)} paquetes de esta lista.</p>`;
+ setTimeout(()=>window.print(),100);
+}
+
+// ---------- ajustes
+$('abrir-ajustes').onclick=()=>{$('aj-aflex').textContent=perfil?`${perfil.full_name} (${perfil.role})`:'Sin entrar';$('aj-sx').textContent=sxToken?sxUsuario||'Dentro':'Sin entrar';$('aj-sonido').checked=store.get('pda_sonido',true);pintarReglas();$('d-ajustes').showModal();};
+$('aj-cerrar').onclick=()=>{$('d-ajustes').close();enfocar();};
+$('aj-sonido').onchange=()=>store.set('pda_sonido',$('aj-sonido').checked);
+$('aj-salir-aflex').onclick=async()=>{await db.auth.signOut();perfil=null;$('d-ajustes').close();mostrarLogin();estadoCuentas();};
+$('aj-salir-sx').onclick=()=>{sxToken='';store.del('pda_sx_token');$('d-ajustes').close();mostrarLogin();estadoCuentas();};
+$('aj-config').onclick=()=>{$('d-ajustes').close();mostrarConfig();};
+function pintarReglas(){
+ $('aj-reglas').innerHTML=aprendidas.map((a,i)=>`<div class="fila-p"><div class="t"><b>${a.resettable?'Se resetea':esc(Fallas.NOMBRE[a.cat])}</b><span>${esc(a.ejemplo||a.clave)}</span></div><button class="mini" data-olv="${i}">Olvidar</button></div>`).join('')||'<p class="vacio">Ninguno todavía.</p>';
+ document.querySelectorAll('[data-olv]').forEach(b=>b.onclick=()=>{aprendidas.splice(+b.dataset.olv,1);store.set('pda_reglas',aprendidas);pintarReglas();});
+}
+document.querySelectorAll('dialog').forEach(d=>{d.addEventListener('click',e=>{if(e.target===d)d.close();});d.addEventListener('close',enfocar);});
+
+// ---------- tiempo real
+let canal=null;
+function escuchar(){
+ if(canal||!db)return;
+ try{canal=db.channel('pda-reads').on('postgres_changes',{event:'*',schema:'public',table:'return_pda_reads'},p=>{if(p.new&&p.new.id&&p.new.day===dia){unirLectura(p.new);pintarResumen();if(vista==='hoy')pintarHoy();}}).subscribe();}catch(e){}
+ setInterval(()=>{if(perfil&&!document.hidden&&vista!=='escanear')cargarLecturas(dia);},20000);
+}
+window.addEventListener('online',()=>procesarCola());
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){procesarCola();if(dia!==hoyEst()&&vista==='escanear'){dia=hoyEst();}cargarLecturas(dia);}});
+
+// ---------- inicio
+async function iniciar(){
+ if(!store.get('funcion','')||!store.get('acceso',''))return mostrarConfig();
+ if(!db)conectarAflex();
+ try{await cargarPerfil();}catch(e){perfil=null;err('aflex-err',e.message);}
+ estadoCuentas();pintarCola();
+ if(!perfil||!sxToken)return mostrarLogin();
+ ir('escanear');await cargarLecturas(dia);escuchar();procesarCola();
+}
+iniciar();
+</script>
+</body>
+</html>

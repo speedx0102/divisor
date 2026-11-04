@@ -1,0 +1,17 @@
+{
+  "name": "AFLEX PDA · Warehouse Tuscaloosa",
+  "short_name": "AFLEX PDA",
+  "description": "Recibir retornos con el PDA: Left on dock en SpeedX, retornado en AFLEX, reset, caja y guía a Atlanta.",
+  "lang": "es",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B1530",
+  "theme_color": "#0B1530",
+  "icons": [
+    { "src": "iconos/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "iconos/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "iconos/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
