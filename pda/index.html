@@ -217,6 +217,7 @@ dialog h2{font-size:22px;margin-bottom:8px}
    <input id="scan" type="text" inputmode="text" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="Escanea el paquete…" aria-label="Tracking del paquete">
    <button class="btn btn-pri" type="submit" aria-label="Recibir">OK</button>
   </form>
+  <button id="b-lista" class="mini" type="button" style="width:100%;margin:8px 0 0">Pegar una lista de trackings</button>
   <div class="cola" id="cola" aria-live="polite"></div>
   <div id="resultado" class="resultado" aria-live="assertive">
    <div class="grande">Listo para escanear</div>
@@ -289,6 +290,15 @@ dialog h2{font-size:22px;margin-bottom:8px}
  <p id="ctn-estado" class="sub"></p>
  <div id="ctn-err" class="err hidden"></div>
  <div class="fila"><button id="ctn-no" class="btn btn-suave">Cerrar</button><button id="ctn-si" class="btn btn-pri" disabled>Meter</button></div>
+</div></dialog>
+
+<dialog id="d-lista"><div class="panel">
+ <div class="agarre"></div>
+ <h2>Pegar una lista</h2>
+ <p class="sub">Cada tracking pasa por lo mismo que si lo escanearas: <b>entra a Left on dock en SpeedX</b>, se marca retornado en AFLEX y se acomoda en su categoría (más de 3 intentos, cliente rechazó, otra ciudad, dañado, para reset…). Úsalo solo con paquetes que ya están en el almacén.</p>
+ <textarea id="lista-txt" rows="8" spellcheck="false" autocapitalize="characters" autocorrect="off" placeholder="SPXTCL0000000000000001&#10;SPXTCL0000000000000002&#10;…" style="width:100%;font:inherit;border-radius:12px;padding:10px;border:1px solid var(--linea,#ccc);background:var(--hoja2);color:var(--tinta)"></textarea>
+ <p class="sub" id="lista-n">0 trackings</p>
+ <div class="fila"><button id="lista-no" class="btn btn-suave">Cerrar</button><button id="lista-si" class="btn btn-pri" disabled>Recibir</button></div>
 </div></dialog>
 
 <!-- guía -->
@@ -495,8 +505,9 @@ function despuesDeEntrar(){estadoCuentas();if(perfil&&sxToken){ir(vista);cargarR
 
 // ---------- sonidos
 let audio=null;
+let silencio=false;   // mientras se procesa una lista pegada: sin un sonido por paquete
 function sonar(tipo){
- if(!store.get('pda_sonido',true))return;
+ if(silencio||!store.get('pda_sonido',true))return;
  try{
   audio=audio||new (window.AudioContext||window.webkitAudioContext)();
   const notas={ok:[[1046,.09],[1568,.13]],amarillo:[[880,.1],[0,.05],[880,.1],[0,.05],[880,.12]],caja:[[220,.45]],error:[[330,.15],[0,.05],[220,.3]]}[tipo]||[[660,.1]];
@@ -516,6 +527,19 @@ let tecla=null;
 $('scan').addEventListener('input',()=>{clearTimeout(tecla);const v=$('scan').value;if(Fallas.limpiarTracking(v).length>=12)tecla=setTimeout(()=>{if($('scan').value===v)recibir();},350);});   // PDA que no manda Enter
 $('form-scan').onsubmit=e=>{e.preventDefault();recibir();};
 document.addEventListener('click',e=>{if(vista==='escanear'&&!e.target.closest('input,select,textarea,button,dialog,a,label,.ensenar'))enfocar();});
+// ---------- pegar una lista: cada tracking entra a la misma cola que un escaneo
+function trackingsDe(texto){const vistos=new Set(),out=[];for(const p of String(texto||'').split(/[\s,;|]+/)){const t=Fallas.limpiarTracking(p);if(t.length>=12&&/\d{6}/.test(t)&&!vistos.has(t)){vistos.add(t);out.push(t);}}return out;}
+$('b-lista').onclick=()=>{$('lista-txt').value='';$('lista-n').textContent='0 trackings';$('lista-si').disabled=true;$('d-lista').showModal();setTimeout(()=>$('lista-txt').focus(),50);};
+$('lista-txt').oninput=()=>{const n=trackingsDe($('lista-txt').value).length;$('lista-n').textContent=`${num(n)} tracking${n===1?'':'s'}`;$('lista-si').disabled=!n;};
+$('lista-no').onclick=()=>$('d-lista').close();
+$('lista-si').onclick=()=>{
+ const ts=trackingsDe($('lista-txt').value).filter(t=>!cola.some(x=>x.tracking===t));
+ if(!ts.length){$('d-lista').close();return;}
+ for(const t of ts)cola.push({tracking:t,dock:null});
+ silencio=true;guardarCola();$('d-lista').close();
+ mostrar({color:'azul',grande:`${num(ts.length)} en la cola`,det:'Se procesan uno por uno. Al terminar, mira «Hoy» para verlos por categoría.'},'ok');
+ procesarCola();
+};
 function recibir(){
  clearTimeout(tecla);
  const t=Fallas.limpiarTracking($('scan').value);$('scan').value='';enfocar();
@@ -553,7 +577,8 @@ async function procesarCola(forzar){
   else if(e.permitida)mostrar({color:'azul',grande:'Falta instalar la función',det:e.message},'error');
   else if(!e.config)mostrar({color:'azul',grande:'En espera',det:e.message+' Se reintenta solo; no vuelvas a escanear.'},'error');
   setTimeout(()=>procesarCola(),e.permitida?60000:15000);
- }finally{trabajandoCola=false;pintarCola();estadoCuentas();}
+ }finally{trabajandoCola=false;pintarCola();estadoCuentas();
+  if(silencio&&!cola.length){silencio=false;sonar('ok');}}
 }
 function avisar(out,d){
  const r=out.read,p=out.paquete||{};
