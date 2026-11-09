@@ -339,6 +339,13 @@ dialog.hist-dlg .panel{position:static;transform:none;top:auto;bottom:auto;left:
    <button id="buscar-ant" class="btn btn-pri btn-ancho" style="margin-top:12px">Buscar paquetes de días anteriores</button>
   </div>
 
+  <div class="hoja" id="fails-sec">
+   <h3>Scan fails de los drivers</h3>
+   <p class="sub">Busca qué paquetes quiso escanear cada driver en el <b>día de las rutas</b> (abajo) y le dio error («Paquete inválido», missort, ruta de otro día). Usa la ciudad de arriba. Revisa paquete por paquete en SpeedX, así que tarda varios minutos.</p>
+   <label class="dia">Buscar en rutas de<select id="fails-dias"><option value="1">hoy y ayer</option><option value="3" selected>hoy y 3 días antes</option><option value="5">hoy y 5 días antes</option><option value="7">hoy y 7 días antes</option></select></label>
+   <button id="buscar-fails" class="btn btn-pri btn-ancho" style="margin-top:12px">Buscar scan fails</button>
+  </div>
+
   <div class="hoja">
    <h3>O pega tus trackings</h3>
    <p class="sub">Pégalos como vengan (WhatsApp, Excel, uno por línea o con comas) o carga un archivo. Se acomodan por su último escaneo real en SpeedX.</p>
@@ -787,6 +794,9 @@ const Errores = (() => {
   const PILL = { missort: "p-azul", pend_reset: "p-amar", not_in_route: "p-rojo", not_in_route_antes: "p-rojo", otro_fail: "p-rojo", refused: "p-amar", attempts: "p-amar",
     damaged: "p-rojo", geocode: "p-amar", other_city: "p-azul", entregado: "p-verde", sin_error: "p-verde", no_encontrado: "" };
   const ESTACIONES = new Set(["HSV", "BHM", "MEM", "TCL", "BNA"]);
+  const ESTADO_CIUDAD = { HSV: "AL", BHM: "AL", TCL: "AL", BNA: "TN" };   // MEM no: Memphis reparte también en MS y AR
+  /** «99 Lafayette Dr, Syosset, NY 11791» -> "NY" */
+  const estadoDeDireccion = (d) => { const m = String(d || "").match(/,\s*([A-Za-z]{2})\.?\s+\d{5}(?:-\d{4})?\s*$/); return m ? m[1].toUpperCase() : ""; };
 
   const RE_DANADO = /damag|da[ñn]ad|broken|crushed|leak(ing|ed)?\b/i;
   const RE_RECHAZO = /refus|reject|declin|rechaz/i;
@@ -821,6 +831,9 @@ const Errores = (() => {
     const cod = (String(opciones.tracking || "").toUpperCase().match(/^SPX([A-Z]{3})/) || [])[1];
     const miCiudad = String(opciones.ciudad || "").toUpperCase().slice(0, 3);
     if (cod && miCiudad && ESTACIONES.has(cod) && cod !== miCiudad) return con("other_city", null, "Otra ciudad · es de " + cod);
+    // Dirección de otro estado (ej. etiqueta SPXTCL con dirección de Syosset, NY)
+    const edo = estadoDeDireccion(opciones.direccion), esperado = ESTADO_CIUDAD[miCiudad];
+    if (edo && esperado && edo !== esperado) return con("other_city", null, "Otra ciudad · dirección en " + edo);
     const oc = ultimoQue((e) => RE_OTRA_CIUDAD.test(nota(e)));
     if (oc) return con("other_city", oc, "Otra ciudad");
 
@@ -885,7 +898,61 @@ const Errores = (() => {
       ...cs.filter((c) => c.paquetes.length).map((c) => ({ nombre: nombreHoja(c.titulo), filas: [cab, ...c.rutas.flatMap((g) => g.paquetes).map((r) => fila(r, c.titulo))] }))];
   }
 
-  return { TITULO, clasificar, cajas, hojasExcel, RESET };
+  /**
+   * Scan fails de personas en el día: quién quiso escanear el paquete y le dio error.
+   * -> [{driver, veces, primera, ultima, tipo, tipoTxt, dueno, rutaOrig, nota}] (uno por driver)
+   */
+  const TIPO_FALLA = { missort: "Missort (paquete de otro driver)", propia_antes: "Su ruta de otro día (pendiente por resetear)",
+    propia_hoy: "Su ruta de hoy", sin_ruta: "No está en ninguna ruta (paquete inválido)", otro: "Otro error" };
+  function fallasDelDia(logs, dia, almacenLista) {
+    const alm = new Set((almacenLista || ["dominguez"]).map((s) => String(s).replace(/\s+/g, " ").trim().toLowerCase()));
+    const por = new Map();
+    for (const e of Estados.ordenar(logs)) {
+      if (Estados.tipoDe(e) !== "LOADING_SCAN_FAIL" || Estados.categoria(e, alm) !== "persona") continue;
+      const f = fh(e);
+      if (f.fecha !== dia) continue;
+      const driver = quien(e), k = driver.toLowerCase();
+      const x = por.get(k) || { driver, veces: 0, primera: f.hora, ultima: f.hora, ev: e };
+      x.veces++; x.ultima = f.hora; x.ev = e; por.set(k, x);
+    }
+    return [...por.values()].map((x) => {
+      const msg = nota(x.ev);
+      const dueno = (msg.match(/originalDriver:\s*\[\s*([^\]]*?)\s*\]/i) || [])[1] || "";
+      const rutaOrig = (msg.match(/originalRoute:\s*\[\s*([^\]]*?)\s*\]/i) || [])[1] || "";
+      let tipo = "otro";
+      if (dueno && dueno.toLowerCase() !== x.driver.toLowerCase()) tipo = "missort";
+      else if (dueno) { const fr = Paquetes.fechaRuta(rutaOrig); tipo = fr && fr < dia ? "propia_antes" : "propia_hoy"; }
+      else if (RE_NOT_IN_ROUTE.test(msg)) tipo = "sin_ruta";
+      return { driver: x.driver, veces: x.veces, primera: x.primera, ultima: x.ultima, tipo, tipoTxt: TIPO_FALLA[tipo], dueno, rutaOrig, nota: msg.slice(0, 300) };
+    });
+  }
+  /** Una caja por driver que escaneó (más fallas primero); dentro, agrupado por el error que le dio. */
+  function cajasPorDriver(resultados) {
+    const por = new Map();
+    for (const r of resultados) for (const f of r.fallas || []) {
+      const k = f.driver.toLowerCase();
+      if (!por.has(k)) por.set(k, { driver: f.driver, items: [] });
+      por.get(k).items.push({ ...r, operador: `${f.veces} ${f.veces === 1 ? "vez" : "veces"}${f.dueno && f.tipo === "missort" ? " · es de " + f.dueno : ""}`,
+        fecha: "", hora: f.primera === f.ultima ? f.ultima : f.primera + "–" + f.ultima, falla: f });
+    }
+    const orden = Object.keys(TIPO_FALLA);
+    return [...por.values()].sort((a, b) => b.items.length - a.items.length || a.driver.localeCompare(b.driver)).map((d) => {
+      const g = new Map();
+      for (const p of d.items) { if (!g.has(p.falla.tipo)) g.set(p.falla.tipo, []); g.get(p.falla.tipo).push(p); }
+      return { clave: "drv", titulo: d.driver, paquetes: d.items, reiniciar: false, otroDia: 0,
+        rutas: [...g.entries()].sort((a, b) => orden.indexOf(a[0]) - orden.indexOf(b[0])).map(([t, ps]) => ({ ruta: TIPO_FALLA[t], fecha: "", otroDia: false, paquetes: ps })) };
+    });
+  }
+  function hojasPorDriver(resultados, dia) {
+    const filas = [["Driver que escaneó", "Tracking", "Veces hoy", "Primera", "Última", "Error que le dio", "Dueño de la ruta", "Ruta original", "Categoría actual", "Detalle actual", "Nota de SpeedX"]];
+    for (const c of cajasPorDriver(resultados)) for (const p of c.paquetes) {
+      const f = p.falla;
+      filas.push([f.driver, p.tracking, f.veces, f.primera, f.ultima, f.tipoTxt, f.dueno, f.rutaOrig, TITULO[p.caja] || p.caja, p.estadoTxt, f.nota]);
+    }
+    return [{ nombre: "Por driver", filas }, ...hojasExcel(resultados, dia)];
+  }
+
+  return { TITULO, clasificar, cajas, hojasExcel, RESET, fallasDelDia, cajasPorDriver, hojasPorDriver, estadoDeDireccion };
 })();
 if (typeof module !== "undefined") module.exports = Errores;
 </script>
@@ -1000,13 +1067,14 @@ async function rutasDe(fecha,c){
  return out;
 }
 const diaAntes=(f,n)=>{const d=new Date(f+'T12:00:00Z');d.setUTCDate(d.getUTCDate()-n);return d.toISOString().slice(0,10);};
-async function estadosLista(trackings,fecha,hasta){   // «Lista de parcelas»: estado rápido (DELIVERED, FAILED_ATTEMPT…) entre dos fechas
+const INFO=new Map();   // tracking -> {direccion, ultimo (ms)} de la «Lista de parcelas»
+async function estadosLista(trackings,fecha,hasta,avance){   // «Lista de parcelas»: estado rápido (DELIVERED, FAILED_ATTEMPT…) entre dos fechas
  const out={};
  for(let i=0;i<trackings.length&&!parar;i+=100){
-  const lote=trackings.slice(i,i+100);
+  const lote=trackings.slice(i,i+100);if(avance)avance(i,trackings.length);
   for(let page=1;page<=20;page++){
    const d=await sxReq('POST','/dms-api/parcels/search',{page:String(page),size:'100'},{trackingNos:lote,deliverDateStart:fecha,deliverDateEnd:hasta||fecha});
-   const c=(d&&d.content)||[];for(const x of c){const t=String(x.trackingNo||'').toUpperCase();if(t)out[t]=String(x.status||'');}
+   const c=(d&&d.content)||[];for(const x of c){const t=String(x.trackingNo||'').toUpperCase();if(t){out[t]=String(x.status||'');INFO.set(t,{direccion:String(x.address||''),ultimo:+x.lastEventTime||0});}}
    if(page>=(+(d&&d.totalPages)||1)||!c.length)break;
   }
  }
@@ -1039,6 +1107,35 @@ $('buscar-ant').onclick=async()=>{
  await procesar(items.filter(x=>x.estadoSpeedX!=='DELIVERED'),{anterior:true,extra:rapidos,almacen});
 };
 
+// ---------- scan fails del día: todos los paquetes de las rutas de hoy y días antes -> Operation Log -> LOADING_SCAN_FAIL de hoy
+$('buscar-fails').onclick=async()=>{
+ if(trabajando)return;
+ trabajando=true;parar=false;contar();err('err','');show('estado-sec',true);show('cargando',true);$('detener').disabled=false;$('avance').style.width='0%';
+ diaR=$('dia').value||hoyISO();const almacen=cuentasAlmacen();const N=+$('fails-dias').value||3,c=ciudad;
+ const lista=new Map();let fatal=null;
+ try{
+  for(let d=0;d<=N&&!parar;d++){
+   const f=diaAntes(diaR,d);$('cargando-txt').textContent=`Leyendo rutas de ${c} del ${Estados.fCorta(f)}…`;
+   const rs=(await rutasDe(f,c)).filter(r=>(r.total||r.parcelCount||0)>0);
+   const pend=[...rs],det={};let h=0;
+   const w=async()=>{while(pend.length&&!parar){const r=pend.shift();det[r.id]=await sxReq('GET','/dms-api/route/detail',{routeId:String(r.id),plaintext:'false'});h++;$('cargando-txt').textContent=`Leyendo rutas del ${Estados.fCorta(f)}… ${h} de ${rs.length}`;}};
+   await Promise.all([w(),w(),w(),w()]);
+   for(const r of rs)for(const i of ((det[r.id]||{}).items||[])){const t=String(i.trackingNo||'').toUpperCase();if(t&&!lista.has(t))lista.set(t,{tracking:t,origen:{ruta:String(r.name||''),fecha:f}});}
+  }
+  // estado y última actualización: los entregados antes de hoy no se pudieron escanear hoy, no se revisan
+  const ts=[...lista.keys()];
+  const st=await estadosLista(ts,diaAntes(diaR,N+30),diaR,(i,n)=>{$('cargando-txt').textContent=`Revisando estados en SpeedX… ${num(i)} de ${num(n)}`;});
+  for(const t of ts){const x=lista.get(t);x.estadoSpeedX=st[t]||'';const inf=INFO.get(t);
+   if(x.estadoSpeedX==='DELIVERED'&&inf&&inf.ultimo&&Paquetes.fechaHora(inf.ultimo).fecha<diaR)lista.delete(t);}
+ }catch(x){fatal=x;}
+ trabajando=false;
+ if(fatal){show('cargando',false);if(!fatal.sesion&&!fatal.config)err('err',fatal.message);contar();return;}
+ const items=[...lista.values()];
+ if(!items.length){show('cargando',false);err('err',`No hay paquetes en rutas de ${c} de esos días.`);contar();return;}
+ await procesar(items,{fails:true,almacen});
+ if(!parar&&!R.length&&!$('err').textContent)err('err',`Revisé ${num(items.length)} paquetes: ningún driver tuvo scan fail el ${Estados.fCorta(diaR)}.`);
+};
+
 // ---------- revisar en SpeedX (Operation Log de cada tracking, como el robot)
 const A_LA_VEZ=3;
 async function operationLog(t){
@@ -1064,8 +1161,9 @@ async function revisarErrores(ts){
  trabajando=false;
  await procesar(ts.map(t=>({tracking:t,estadoSpeedX:st[t]||''})),{anterior:false,errores:true,almacen:cuentasAlmacen()});
 }
-let modoAnt=false,modoErr=false;const LOGS=new Map();
-async function procesar(items,{anterior,errores=false,extra=[],almacen}){
+let modoAnt=false,modoErr=false,modoFails=false;const LOGS=new Map();
+async function procesar(items,{anterior,errores=false,fails=false,extra=[],almacen}){
+ if(fails)errores=true;
  trabajando=true;contar();err('err','');show('estado-sec',true);show('cargando',true);$('detener').disabled=false;
  store.set('est_almacen',$('almacen').value);
  const total=items.length+extra.length,res=new Array(items.length);let hechos=0,i=0,fatal=null;
@@ -1074,10 +1172,14 @@ async function procesar(items,{anterior,errores=false,extra=[],almacen}){
  async function trabajador(){
   while(!parar&&!fatal&&i<items.length){
    const k=i++,x=items[k],t=x.tracking;
-   try{const logs=await operationLog(t);LOGS.set(t,logs);
-    res[k]={tracking:t,...(errores?Errores.clasificar(logs,{dia:diaR,almacen,estadoSpeedX:x.estadoSpeedX,tracking:t,ciudad}):anterior?Estados.clasificarAnterior(logs,{dia:diaR,almacen,origen:x.origen,estadoSpeedX:x.estadoSpeedX}):Estados.clasificar(logs,{dia:diaR,almacen,estadoSpeedX:x.estadoSpeedX}))};}
+   try{const logs=await operationLog(t);
+    const fallas=fails?Errores.fallasDelDia(logs,diaR,almacen):null;
+    if(fails&&!fallas.length){hechos++;avance();continue;}   // nadie le dio scan fail ese día
+    LOGS.set(t,logs);
+    res[k]={tracking:t,...(fallas?{fallas}:{}),...(errores?Errores.clasificar(logs,{dia:diaR,almacen,estadoSpeedX:x.estadoSpeedX,tracking:t,ciudad,direccion:(INFO.get(t)||{}).direccion}):anterior?Estados.clasificarAnterior(logs,{dia:diaR,almacen,origen:x.origen,estadoSpeedX:x.estadoSpeedX}):Estados.clasificar(logs,{dia:diaR,almacen,estadoSpeedX:x.estadoSpeedX}))};}
    catch(e){
     if(e.sesion||e.config||e.red){fatal=e;break;}
+    if(fails){hechos++;avance();continue;}   // en la búsqueda de scan fails, un paquete sin historial no se muestra
     res[k]={tracking:t,caja:'no_encontrado',estado:'no_encontrado',estadoTxt:'No encontrado',evento:'',operador:'',fecha:'',hora:'',ruta:x.origen?x.origen.ruta:'',fechaRuta:x.origen?x.origen.fecha:'',nota:e.message};
    }
    hechos++;avance();
@@ -1085,7 +1187,7 @@ async function procesar(items,{anterior,errores=false,extra=[],almacen}){
  }
  try{
   await Promise.all(Array.from({length:Math.min(A_LA_VEZ,Math.max(1,items.length))},trabajador));
-  R=[...extra,...res.filter(Boolean)];modoAnt=anterior;modoErr=errores;
+  R=[...extra,...res.filter(Boolean)];modoAnt=anterior;modoErr=errores;modoFails=fails;
   if(errores){for(const r of R)if(r.caja==='no_encontrado')r.pillCls='';guardarResultados(R);}
   if(fatal&&!fatal.sesion&&!fatal.config||fatal&&fatal.permitida)err('err',fatal.message+(R.length?` Se acomodaron ${num(R.length)} de ${num(total)}.`:''));
   else if(parar&&R.length<total)err('err',`Detenido: se acomodaron ${num(R.length)} de ${num(total)}.`);
@@ -1103,15 +1205,15 @@ const paqHTML=p=>`<div class="paq"><span class="t">${esc(p.tracking)} ${LOGS.has
  <span class="d">${p.operador?esc(p.operador)+' · ':''}${p.hora?esc(Estados.fCorta(p.fecha))+' '+esc(p.hora):''}${p.rutaUltima&&p.rutaUltima!==p.ruta?' · ahora en '+esc(p.rutaUltima):''}${p.estado==='no_encontrado'&&p.nota?' · '+esc(p.nota):''}${p.antes?` · <b>antes: ${esc(p.antes)}</b>`:''}</span></div>`;
 let CS=[];
 function pintar(){
- const cs=CS=modoErr?Errores.cajas(R,diaR):Estados.cajas(R,diaR);show('res',true);show('final',true);
+ const cs=CS=modoFails?Errores.cajasPorDriver(R):modoErr?Errores.cajas(R,diaR):Estados.cajas(R,diaR);show('res',true);show('final',true);
  $('cajitas').innerHTML=cs.map((c,k)=>`<button class="cajita ${clase(c.clave)}" data-ir="${k}"><b>${num(c.paquetes.length)}</b><span>${esc(c.titulo)}</span></button>`).join('');
  document.querySelectorAll('[data-ir]').forEach(b=>b.onclick=()=>{const el=$('caja-'+b.dataset.ir);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});});
- const reset=cs.filter(c=>c.reiniciar).flatMap(c=>c.paquetes.map(p=>p.tracking));
+ const reset=modoFails?R.filter(p=>Errores.RESET.has(p.caja)).map(p=>p.tracking):cs.filter(c=>c.reiniciar).flatMap(c=>c.paquetes.map(p=>p.tracking));
  $('copiar-reset').textContent=modoErr?`Copiar not in route + pendientes (${num(reset.length)}) para resetear`:modoAnt?`Copiar los ${num(reset.length)} que hay que reiniciar y meter al batch de hoy`:`Copiar fail + en blanco (${num(reset.length)}) para resetear`;$('copiar-reset').disabled=!reset.length;
  $('copiar-reset').onclick=e=>copiar(reset.join('\n'),e.currentTarget);
  $('cajas').innerHTML=cs.map((c,k)=>!c.paquetes.length?'':`<div class="hoja caja ${clase(c.clave)}" id="caja-${k}">
   <div class="caja-h"><h3>${esc(c.titulo)}</h3><span class="n">${num(c.paquetes.length)}</span><button class="mini" data-copiar="${k}">Copiar</button></div>
-  <p class="sub" style="margin:4px 0 0">${num(c.rutas.length)} ${c.rutas.length===1?'ruta':'rutas'}${c.otroDia?` · <b>${num(c.otroDia)}</b> de rutas de otro día`:''}</p>
+  <p class="sub" style="margin:4px 0 0">${modoFails?`${num(c.paquetes.length)} ${c.paquetes.length===1?'paquete le dio error':'paquetes le dieron error'}`:`${num(c.rutas.length)} ${c.rutas.length===1?'ruta':'rutas'}`}${c.otroDia?` · <b>${num(c.otroDia)}</b> de rutas de otro día`:''}</p>
   ${c.rutas.map((g,j)=>`<details class="ruta"${c.rutas.length<=3?' open':''}><summary><span class="rn">${esc(g.ruta||'Sin ruta')}${g.otroDia?`<span class="otro-dia">${esc(Estados.fCorta(g.fecha))} · otro día</span>`:''}</span><span class="rc">${num(g.paquetes.length)}</span><button class="mini" data-copiar-r="${k}:${j}">Copiar</button></summary>
    ${g.paquetes.slice(0,MAX_VISIBLES).map(paqHTML).join('')}${g.paquetes.length>MAX_VISIBLES?`<div class="mas">…y ${num(g.paquetes.length-MAX_VISIBLES)} más (en «Copiar» y en el Excel).</div>`:''}</details>`).join('')}</div>`).join('');
  document.querySelectorAll('[data-copiar]').forEach(b=>b.onclick=()=>copiar(cs[+b.dataset.copiar].paquetes.map(p=>p.tracking).join('\n'),b));
@@ -1119,7 +1221,7 @@ function pintar(){
  document.querySelectorAll('[data-copiar-r]').forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();const [k,j]=b.dataset.copiarR.split(':').map(Number);copiar(cs[k].rutas[j].paquetes.map(p=>p.tracking).join('\n'),b);});
  const n=k=>(cs.find(c=>c.clave===k)||{paquetes:[]}).paquetes.length;
  const cambiaron=R.filter(p=>p.antes).length;
- $('final-txt').innerHTML=modoErr?`<b>${num(R.length)}</b> paquetes · <b>${num(R.filter(p=>!['entregado','sin_error','no_encontrado'].includes(p.caja)).length)}</b> con error${cambiaron?` · <b>${num(cambiaron)}</b> cambiaron de categoría`:''}`:modoAnt?`<b>${num(R.length)}</b> paquetes de días anteriores · <b>${num(reset.length)}</b> para reiniciar`:`<b>${num(R.length)}</b> paquetes · <b>${num(n('success'))}</b> escaneados · <b>${num(n('fail'))}</b> fail · <b>${num(n('blanco'))}</b> en blanco`;
+ $('final-txt').innerHTML=modoFails?`<b>${num(cs.length)}</b> drivers · <b>${num(R.length)}</b> paquetes con scan fail el ${esc(Estados.fCorta(diaR))}`:modoErr?`<b>${num(R.length)}</b> paquetes · <b>${num(R.filter(p=>!['entregado','sin_error','no_encontrado'].includes(p.caja)).length)}</b> con error${cambiaron?` · <b>${num(cambiaron)}</b> cambiaron de categoría`:''}`:modoAnt?`<b>${num(R.length)}</b> paquetes de días anteriores · <b>${num(reset.length)}</b> para reiniciar`:`<b>${num(R.length)}</b> paquetes · <b>${num(n('success'))}</b> escaneados · <b>${num(n('fail'))}</b> fail · <b>${num(n('blanco'))}</b> en blanco`;
 }
 function verHistorial(t){
  const evs=Estados.explicar(LOGS.get(t)||[],{almacen:cuentasAlmacen()});
@@ -1139,8 +1241,8 @@ async function copiar(texto,boton){
 // ---------- Excel
 $('excel').onclick=async()=>{
  if(!R.length)return;const b=$('excel');b.disabled=true;
- const nombre=(modoErr?`Errores_${ciudad}_`:modoAnt?`Dias_anteriores_${ciudad}_`:'Escaneos_')+diaR;
- const hojas=()=>modoErr?Errores.hojasExcel(R,diaR):Estados.hojasExcel(R,diaR);
+ const nombre=(modoFails?`Scan_fails_${ciudad}_`:modoErr?`Errores_${ciudad}_`:modoAnt?`Dias_anteriores_${ciudad}_`:'Escaneos_')+diaR;
+ const hojas=()=>modoFails?Errores.hojasPorDriver(R,diaR):modoErr?Errores.hojasExcel(R,diaR):Estados.hojasExcel(R,diaR);
  try{
   const X=await cargarXLSX();const wb=X.utils.book_new();
   for(const h of hojas()){const ws=X.utils.aoa_to_sheet(h.filas);ws['!cols']=h.filas[0].map((_,i)=>({wch:Math.min(48,Math.max(10,...h.filas.map(f=>String(f[i]??'').length)))}));X.utils.book_append_sheet(wb,ws,h.nombre);}
