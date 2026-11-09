@@ -356,7 +356,7 @@ dialog.hist-dlg .panel{position:static;transform:none;top:auto;bottom:auto;left:
    <div class="seg2" id="modos" role="group" aria-label="Acomodar por">
     <button data-modo="escaneo">Escaneo</button><button data-modo="errores">Tipo de error</button>
    </div>
-   <p class="sub hidden" id="modo-err-txt" style="margin:8px 0 0">Parcel not in route (hoy), cliente rechazó, delivery más de 3 veces, dañados, geocode y otra ciudad. Ciudad: <b id="modo-ciudad"></b> (cámbiala arriba). Los trackings se guardan en este teléfono para volver a revisarlos.</p>
+   <p class="sub hidden" id="modo-err-txt" style="margin:8px 0 0">Parcel not in route (hoy), pendientes por resetear, missort, cliente rechazó, delivery más de 3 veces, dañados, geocode y otra ciudad. Ciudad: <b id="modo-ciudad"></b> (cámbiala arriba). Los trackings se guardan en este teléfono para volver a revisarlos.</p>
    <button id="revisar" class="btn btn-azul btn-ancho" style="margin-top:12px" disabled>Acomodar con SpeedX</button>
   </div>
 
@@ -778,13 +778,13 @@ const Errores = (() => {
   const TITULO = {
     not_in_route: "Parcel not in route · hoy", not_in_route_antes: "Parcel not in route · días anteriores",
     refused: "Cliente rechazó", attempts: "Delivery más de 3 veces", damaged: "Dañados", geocode: "Geocode",
-    other_city: "Otra ciudad", otro_fail: "Otro scan fail", entregado: "Entregados", sin_error: "Sin error",
+    other_city: "Otra ciudad", missort: "Missort", pend_reset: "Pendientes por resetear", otro_fail: "Otro scan fail", entregado: "Entregados", sin_error: "Sin error",
     no_encontrado: "No encontrados",
   };
-  const FIJAS = ["not_in_route", "refused", "attempts", "damaged", "geocode", "other_city"];
+  const FIJAS = ["not_in_route", "pend_reset", "missort", "refused", "attempts", "damaged", "geocode", "other_city"];
   const RESTO = ["not_in_route_antes", "otro_fail", "sin_error", "entregado", "no_encontrado"];
-  const RESET = new Set(["not_in_route", "not_in_route_antes"]);
-  const PILL = { not_in_route: "p-rojo", not_in_route_antes: "p-rojo", otro_fail: "p-rojo", refused: "p-amar", attempts: "p-amar",
+  const RESET = new Set(["not_in_route", "not_in_route_antes", "pend_reset"]);
+  const PILL = { missort: "p-azul", pend_reset: "p-amar", not_in_route: "p-rojo", not_in_route_antes: "p-rojo", otro_fail: "p-rojo", refused: "p-amar", attempts: "p-amar",
     damaged: "p-rojo", geocode: "p-amar", other_city: "p-azul", entregado: "p-verde", sin_error: "p-verde", no_encontrado: "" };
   const ESTACIONES = new Set(["HSV", "BHM", "MEM", "TCL", "BNA"]);
 
@@ -848,7 +848,17 @@ const Errores = (() => {
         const hoy = !opciones.dia || f === opciones.dia;
         return con(hoy ? "not_in_route" : "not_in_route_antes", ev, "Not in route · " + Estados.fCorta(f));
       }
-      return con("otro_fail", ev, "Scan fail · " + (msg.match(/\[([^\]]+)\]\s*$/) || [, "otro"])[1]);
+      // «originalRoute:[ 1106-001-batch10451:B 01 ], originalFleet:[…], originalDriver:[ Fabiana Rincon ]»
+      const dueno = (msg.match(/originalDriver:\s*\[\s*([^\]]*?)\s*\]/i) || [])[1] || "";
+      const rutaOrig = (msg.match(/originalRoute:\s*\[\s*([^\]]*?)\s*\]/i) || [])[1] || "";
+      if (dueno) {
+        const k = (s) => String(s).replace(/\s+/g, " ").trim().toLowerCase();
+        if (k(dueno) !== k(quien(ev))) return { ...con("missort", ev, "Missort · es de " + dueno), ruta: rutaOrig || b.ruta };
+        const fr = Paquetes.fechaRuta(rutaOrig, opciones.hoy || new Date());
+        if (fr && opciones.dia && fr < opciones.dia)
+          return { ...con("pend_reset", ev, "Ruta del " + Estados.fCorta(fr) + " · falta resetear"), ruta: rutaOrig, fechaRuta: fr, otroDia: true };
+      }
+      return con("otro_fail", ev, dueno ? "Scan fail · su propia ruta de hoy" : "Scan fail · " + (msg.match(/\[([^\]]+)\]\s*$/) || [, "otro"])[1]);
     }
     return { ...con("sin_error", null, b.estadoTxt), ruta: b.ruta };
   }
@@ -1085,7 +1095,7 @@ async function procesar(items,{anterior,errores=false,extra=[],almacen}){
 }
 
 // ---------- pintar
-const CLASE_ERR={not_in_route:'mal',not_in_route_antes:'mal',otro_fail:'mal',damaged:'mal',refused:'gris',attempts:'reini',geocode:'gris',other_city:'diac',entregado:'nada',sin_error:'nada'};
+const CLASE_ERR={missort:'diac',pend_reset:'reini',not_in_route:'mal',not_in_route_antes:'mal',otro_fail:'mal',damaged:'mal',refused:'gris',attempts:'reini',geocode:'gris',other_city:'diac',entregado:'nada',sin_error:'nada'};
 const clase=k=>modoErr&&CLASE_ERR[k]?CLASE_ERR[k]:k==='success'?'ok':k==='fail'?'mal':k==='blanco'?'gris':['a_undelivered','a_no_salio','a_sin_resultado'].includes(k)?'reini':['a_hoy','a_entregado','reiniciado'].includes(k)?'nada':'';
 const pill=r=>r.pillCls!==undefined?r.pillCls:['a_hoy','a_entregado'].includes(r.caja)?'p-verde':['a_undelivered','a_sin_resultado'].includes(r.caja)?'p-rojo':r.caja==='a_no_salio'?'p-amar':r.estado==='success'||r.estado==='entregado'?'p-verde':r.estado==='fail'?'p-rojo':r.estado==='blanco'?'p-amar':'p-azul';
 const MAX_VISIBLES=150;
@@ -1097,7 +1107,7 @@ function pintar(){
  $('cajitas').innerHTML=cs.map((c,k)=>`<button class="cajita ${clase(c.clave)}" data-ir="${k}"><b>${num(c.paquetes.length)}</b><span>${esc(c.titulo)}</span></button>`).join('');
  document.querySelectorAll('[data-ir]').forEach(b=>b.onclick=()=>{const el=$('caja-'+b.dataset.ir);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});});
  const reset=cs.filter(c=>c.reiniciar).flatMap(c=>c.paquetes.map(p=>p.tracking));
- $('copiar-reset').textContent=modoErr?`Copiar parcel not in route (${num(reset.length)}) para resetear`:modoAnt?`Copiar los ${num(reset.length)} que hay que reiniciar y meter al batch de hoy`:`Copiar fail + en blanco (${num(reset.length)}) para resetear`;$('copiar-reset').disabled=!reset.length;
+ $('copiar-reset').textContent=modoErr?`Copiar not in route + pendientes (${num(reset.length)}) para resetear`:modoAnt?`Copiar los ${num(reset.length)} que hay que reiniciar y meter al batch de hoy`:`Copiar fail + en blanco (${num(reset.length)}) para resetear`;$('copiar-reset').disabled=!reset.length;
  $('copiar-reset').onclick=e=>copiar(reset.join('\n'),e.currentTarget);
  $('cajas').innerHTML=cs.map((c,k)=>!c.paquetes.length?'':`<div class="hoja caja ${clase(c.clave)}" id="caja-${k}">
   <div class="caja-h"><h3>${esc(c.titulo)}</h3><span class="n">${num(c.paquetes.length)}</span><button class="mini" data-copiar="${k}">Copiar</button></div>
