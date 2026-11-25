@@ -63,6 +63,27 @@ input:focus,select:focus,textarea:focus{border-color:var(--azul);outline:none}
 .entrada{display:flex;gap:8px;margin-bottom:12px}
 .entrada input{flex:1;min-width:0;font-size:20px;font-weight:700;letter-spacing:.02em;height:64px;border-radius:18px;background:var(--hoja);border:2.5px solid var(--azul)}
 .entrada .btn{min-height:64px;padding:0 18px}
+.entrada .teclado{padding:0 12px}.entrada .teclado svg{width:26px;height:26px}.entrada .teclado[aria-pressed=true]{background:var(--azul);color:#0B1530}
+.fila-mini{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0 0}
+/* consulta: cambios en SpeedX POS y tickets del portal */
+.consulta{margin-top:10px;background:rgba(0,0,0,.24);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px;font-size:15px}
+.consulta .c-t{font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;opacity:.8}
+.consulta .aviso-c{background:#FFD23F;color:#1A1400;border-radius:12px;padding:8px 10px;font-weight:700}
+.consulta .tk{background:rgba(255,255,255,.12);border-radius:12px;padding:8px 10px}
+.consulta .tk b{display:block}.consulta .tk small{display:block;opacity:.85}
+.consulta .ev{font-size:13.5px;opacity:.9;border-left:3px solid rgba(255,255,255,.35);padding-left:8px}
+.consulta .ev.cambio{border-left-color:#FFD23F;opacity:1}
+.rtsBox{background:#fff;color:#0B1530;border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.rtsBox .bolsa{font:800 26px/1 "Barlow Condensed",Barlow,sans-serif;letter-spacing:.02em}
+.rtsBox .av{background:#FFE3E0;color:#7A1010;border-radius:10px;padding:6px 8px;font-weight:700;font-size:14px}
+.rtsBox button{min-height:48px;border:0;border-radius:12px;background:#0B1530;color:#fff;font-weight:800;font-size:16px;cursor:pointer}
+.rtsBox .ok{color:#0F7A4E;font-weight:800}
+.bolsaRts{background:var(--hoja);border-radius:20px;padding:14px;margin-bottom:12px;border-left:8px solid var(--c,#888)}
+.bolsaRts h3{display:flex;justify-content:space-between;align-items:center;font-size:19px}
+.bolsaRts .que{color:var(--tinta2);font-size:14px;margin:4px 0 10px}
+.bolsaRts .acc{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.bolsaRts .acc .btn{min-height:50px;font-size:15px}
+.rtsCheck{display:flex;align-items:flex-start;gap:10px;font-weight:600;margin:8px 0}.rtsCheck input{width:24px;height:24px;flex:none}
 .cola{color:var(--tinta2);font-size:14px;margin:-4px 0 10px;min-height:1.2em}
 .resultado{border-radius:24px;padding:18px;min-height:200px;display:flex;flex-direction:column;gap:6px;background:var(--hoja);transition:background-color .25s}
 .resultado .grande{font:700 38px/1.02 "Barlow Condensed",Barlow,sans-serif;letter-spacing:.01em}
@@ -101,7 +122,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--azul);outline:none}
 /* listas */
 .lista{display:flex;flex-direction:column;gap:6px}
 .fila-p{display:flex;align-items:center;gap:10px;background:var(--hoja2);border-radius:14px;padding:10px 12px;animation:subir .3s var(--suave) both}
-.fila-p .t{flex:1;min-width:0}
+.fila-p{flex-wrap:wrap}.fila-p .t{flex:1 1 190px;min-width:0}
 .fila-p .t b{display:block;font-size:15.5px;word-break:break-all}
 .fila-p .t span{display:block;color:var(--tinta2);font-size:13.5px}
 .pill{display:inline-block;border-radius:999px;padding:3px 9px;font-size:12.5px;font-weight:800;white-space:nowrap}
@@ -117,7 +138,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--azul);outline:none}
 .buscar{margin-bottom:10px}
 
 /* barra de abajo */
-.tabs{position:fixed;left:0;right:0;bottom:0;z-index:9;background:var(--hoja);display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:8px 8px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -8px 24px rgba(0,0,0,.35)}
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:9;background:var(--hoja);display:grid;grid-template-columns:repeat(5,1fr);gap:3px;padding:8px 6px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -8px 24px rgba(0,0,0,.35)}
 .tab{border:0;background:none;border-radius:14px;padding:8px 2px;display:flex;flex-direction:column;align-items:center;gap:3px;font-weight:700;font-size:13px;color:var(--tinta2);cursor:pointer;transition:background-color .2s,color .2s,transform .15s var(--suave)}
 .tab svg{width:26px;height:26px}
 .tab[aria-current=page]{background:var(--amarillo);color:#0B1530}
@@ -214,10 +235,11 @@ dialog h2{font-size:22px;margin-bottom:8px}
  <!-- ESCANEAR -->
  <section id="v-escanear" class="vista hidden">
   <form id="form-scan" class="entrada" autocomplete="off">
-   <input id="scan" type="text" inputmode="text" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="Escanea el paquete…" aria-label="Tracking del paquete">
+   <input id="scan" type="text" inputmode="none" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="Escanea el paquete…" aria-label="Tracking del paquete">
+   <button id="b-teclado" class="btn btn-suave teclado" type="button" aria-label="Escribir con el teclado" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg></button>
    <button class="btn btn-pri" type="submit" aria-label="Recibir">OK</button>
   </form>
-  <button id="b-lista" class="mini" type="button" style="width:100%;margin:8px 0 0">Pegar una lista de trackings</button>
+  <div class="fila-mini"><button id="b-consultar" class="mini" type="button">Consultar paquete</button><button id="b-lista" class="mini" type="button">Pegar una lista</button></div>
   <div class="cola" id="cola" aria-live="polite"></div>
   <div id="resultado" class="resultado" aria-live="assertive">
    <div class="grande">Listo para escanear</div>
@@ -261,6 +283,15 @@ dialog h2{font-size:22px;margin-bottom:8px}
  </section>
 
  <!-- CAJA / ATLANTA -->
+ <section id="v-rts" class="vista hidden">
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px"><h2 style="flex:1;font-size:24px">RTS · Hub Atlanta</h2><button id="rts-recargar" class="mini">Actualizar</button></div>
+  <p class="sub" id="rts-resumen">Cada paquete que escaneas se revisa solo (Paso 0 del manual) y cae en su bolsa.</p>
+  <div id="rts-bolsas"></div>
+  <div class="hoja"><h3 style="margin-bottom:8px">Lotes BULK de Unintended Returns de hoy</h3><p class="sub" style="margin-top:0">Se cierran el mismo día que salen al Hub.</p><div class="lista" id="rts-ur"></div></div>
+  <div class="hoja"><h3 style="margin-bottom:8px">Antes de cargar el camión</h3><div id="rts-check"></div>
+   <button id="rts-camion" class="btn btn-pri btn-ancho" style="margin-top:10px" disabled>El camión salió a Atlanta</button></div>
+ </section>
+
  <section id="v-caja" class="vista hidden">
   <h2 style="font-size:24px;margin-bottom:4px">Caja para Atlanta</h2>
   <p class="sub">Lo que realmente tienes en el warehouse y no puede volver a salir a delivery. Sale en la guía del camión.</p>
@@ -274,6 +305,7 @@ dialog h2{font-size:22px;margin-bottom:8px}
  <button class="tab" data-v="escanear" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 7V4h3M18 4h3v3M21 17v3h-3M6 20H3v-3M7 8v8M10 8v8M13 8v8M17 8v8"/></svg>Escanear</button>
  <button class="tab" data-v="hoy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 5h11M9 12h11M9 19h11M4 5h.01M4 12h.01M4 19h.01"/></svg>Hoy</button>
  <button class="tab" data-v="pendientes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Por retornar</button>
+ <button class="tab" data-v="rts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h13v10H3zM16 10h4l1 3v4h-5"/><circle cx="7" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/></svg>RTS</button>
  <button class="tab" data-v="caja"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/></svg>Caja</button>
 </nav>
 
@@ -313,12 +345,42 @@ dialog h2{font-size:22px;margin-bottom:8px}
  <div class="fila"><button id="guia-no" class="btn btn-suave">Cancelar</button><button id="guia-si" class="btn btn-pri">Hacer guía</button></div>
 </div></dialog>
 
+<!-- consultar un paquete (sin meterlo a Left on dock) -->
+<dialog id="d-consulta"><div class="panel">
+ <div class="agarre"></div>
+ <h2>Consultar paquete</h2>
+ <p class="sub">Solo consulta: no lo mete a Left on dock. Muestra si en SpeedX POS cambió algo y sus tickets del portal.</p>
+ <form id="form-consulta" class="entrada" autocomplete="off">
+  <input id="cons-trk" type="text" inputmode="none" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="Escanea o escribe…" aria-label="Tracking a consultar">
+  <button id="cons-teclado" class="btn btn-suave teclado" type="button" aria-label="Escribir con el teclado" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg></button>
+  <button class="btn btn-pri" type="submit">Ver</button>
+ </form>
+ <div id="cons-res" class="resultado azul" style="min-height:0"><div class="det">Escanea un paquete.</div></div>
+ <div class="fila"><button id="cons-cerrar" class="btn btn-suave">Cerrar</button></div>
+</div></dialog>
+
+<!-- entrar al portal de managers -->
+<dialog id="d-portal"><div class="panel">
+ <div class="agarre"></div>
+ <h2>Portal AFLEX Managers</h2>
+ <p class="sub">Con tu cuenta del portal, el PDA te avisa si SpeedX POS cambió algo del paquete (dirección, datos, reprogramado) y te muestra sus tickets.</p>
+ <form id="form-portal" autocomplete="off">
+  <label class="campo">Dirección del portal<input id="pt-url" type="url" autocapitalize="none" spellcheck="false"></label>
+  <label class="campo">Ciudad<select id="pt-ciudad"><option value="TCL">Tuscaloosa</option><option value="HSV">Huntsville</option></select></label>
+  <label class="campo">Correo<input id="pt-correo" type="email" autocomplete="username" autocapitalize="none"></label>
+  <label class="campo">Contraseña<input id="pt-clave" type="password" autocomplete="current-password"></label>
+  <div id="pt-err" class="err hidden"></div>
+  <div class="fila"><button type="button" id="pt-no" class="btn btn-suave">Cerrar</button><button type="submit" class="btn btn-pri">Entrar</button></div>
+ </form>
+</div></dialog>
+
 <!-- ajustes -->
 <dialog id="d-ajustes"><div class="panel">
  <div class="agarre"></div>
  <h2>Ajustes</h2>
  <div class="cuenta"><div class="t"><b>AFLEX</b><span id="aj-aflex">—</span></div><button id="aj-salir-aflex" class="mini">Salir</button></div>
  <div class="cuenta"><div class="t"><b>SpeedX</b><span id="aj-sx">—</span></div><button id="aj-salir-sx" class="mini">Salir</button></div>
+ <div class="cuenta"><div class="t"><b>Portal de managers</b><span id="aj-portal">—</span></div><button id="aj-portal-b" class="mini">Entrar</button></div>
  <label class="check"><input id="aj-sonido" type="checkbox" checked> Sonidos al escanear</label>
  <h3 style="margin:14px 0 6px">Errores aprendidos</h3>
  <p class="sub">Lo que le enseñaste a la app con «¿Qué es este error?».</p>
@@ -464,7 +526,7 @@ async function cargarPerfil(){
 }
 
 // ---------- pantallas
-function pantalla(cual){for(const s of ['config','login'])show(s,s===cual);const app=cual==='app';for(const v of ['escanear','hoy','pendientes','caja'])show('v-'+v,app&&v===vista);show('tabs',app);show('estado-chip',app);show('abrir-ajustes',app);}
+function pantalla(cual){for(const s of ['config','login'])show(s,s===cual);const app=cual==='app';for(const v of ['escanear','hoy','pendientes','rts','caja'])show('v-'+v,app&&v===vista);show('tabs',app);show('estado-chip',app);show('abrir-ajustes',app);}
 function mostrarConfig(msg){pantalla('config');const c=store.get('pda_aflex',AFLEX_TCL);$('cfg-aflex-url').value=c.url;$('cfg-aflex-key').value=c.key;err('config-err',msg||'');}
 function mostrarLogin(){pantalla('login');show('aflex-ok',!!perfil);show('aflex-campos',!perfil);show('sx-ok',!!sxToken);show('sx-campos',!sxToken);if(!perfil)$('af-correo').focus();else if(!sxToken)$('sx-usuario').focus();}
 function ir(v){
@@ -472,11 +534,12 @@ function ir(v){
  vista=v;pantalla('app');
  document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-current',t.dataset.v===v?'page':'false'));
  const el=$('v-'+v);el.classList.remove('entra');void el.offsetWidth;el.classList.add('entra');
- $('marca').innerHTML=v==='escanear'?'AFLEX <span>PDA</span>':{hoy:'Recibidos',pendientes:'Por retornar',caja:'Caja Atlanta'}[v];
+ $('marca').innerHTML=v==='escanear'?'AFLEX <span>PDA</span>':{hoy:'Recibidos',pendientes:'Por retornar',rts:'RTS',caja:'Caja Atlanta'}[v];
  if(v==='escanear')enfocar();
  if(v==='hoy')pintarHoy();
  if(v==='pendientes')cargarPendientes();
  if(v==='caja')cargarCaja();
+ if(v==='rts')cargarRts();
 }
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>ir(t.dataset.v));
 document.querySelectorAll('[data-ir-hoy]').forEach(b=>b.onclick=()=>{filtroHoy=b.dataset.irHoy;dia=hoyEst();$('hoy-fecha').value=dia;ir('hoy');});
@@ -523,6 +586,9 @@ let trabajandoCola=false,ultima=null;
 function guardarCola(){store.set('pda_cola',cola);pintarCola();estadoCuentas();}
 function pintarCola(){const n=cola.length;$('cola').textContent=n?`${n} paquete${n===1?'':'s'} en espera (${trabajandoCola?'procesando…':'sin internet o SpeedX; se reintenta solo'})`:'';}
 function enfocar(){if(vista==='escanear'&&!document.querySelector('dialog[open]'))setTimeout(()=>$('scan').focus({preventScroll:true}),30);}
+// El lector del PDA escribe sin teclado en pantalla (inputmode=none). El botón ⌨ lo abre solo cuando se quiere teclear.
+function modoTeclado(on){const s=$('scan');s.setAttribute('inputmode',on?'text':'none');$('b-teclado').setAttribute('aria-pressed',String(on));s.blur();setTimeout(()=>s.focus({preventScroll:true}),40);}
+$('b-teclado').onclick=()=>modoTeclado($('scan').getAttribute('inputmode')==='none');
 let tecla=null;
 $('scan').addEventListener('input',()=>{clearTimeout(tecla);const v=$('scan').value;if(Fallas.limpiarTracking(v).length>=12)tecla=setTimeout(()=>{if($('scan').value===v)recibir();},350);});   // PDA que no manda Enter
 $('form-scan').onsubmit=e=>{e.preventDefault();recibir();};
@@ -542,7 +608,9 @@ $('lista-si').onclick=()=>{
 };
 function recibir(){
  clearTimeout(tecla);
- const t=Fallas.limpiarTracking($('scan').value);$('scan').value='';enfocar();
+ const t=Fallas.limpiarTracking($('scan').value);$('scan').value='';
+ if($('scan').getAttribute('inputmode')!=='none')modoTeclado(false);   // se cierra el teclado para ver el resultado
+ enfocar();
  if(t.length<8){if(t)mostrar({color:'rojo',grande:'No se leyó bien',trk:t,det:'Vuelve a escanear el código.'},'error');return;}
  if(cola.some(x=>x.tracking===t))return;
  cola.push({tracking:t,dock:null});guardarCola();procesarCola();
@@ -571,6 +639,7 @@ async function procesarCola(forzar){
    cola.shift();guardarCola();
    unirLectura(out.read);
    avisar(out,d);
+   if(!silencio)consultar(it.tracking);
   }
  }catch(e){
   if(e.sesion)mostrar({color:'rojo',grande:'SpeedX: vuelve a entrar',det:e.message+' Los paquetes escaneados esperan aquí.'},'error');
@@ -621,6 +690,8 @@ function mostrar(o,sonido){
  }
  el.querySelectorAll('[data-ult]').forEach(b=>b.onclick=()=>reclasificar(r,b.dataset.ult==='reset'?'':'damaged',b.dataset.ult==='reset'));
  if(sonido)sonar(sonido);
+ if(o.trk&&consultas.has(o.trk))pintarConsulta(o.trk);
+ if(!o.ensenar)requestAnimationFrame(()=>{const b=el.getBoundingClientRect();if(b.top<60||b.top>innerHeight*0.45)window.scrollTo({top:Math.max(0,scrollY+b.top-120),behavior:'smooth'});});
 }
 async function ensenar(r,opcion,recordar,label='',labelReset=false){
  const propia=opcion==='propia',reset=propia?!!labelReset:opcion==='reset',cat=propia||reset?'other':opcion;
@@ -633,6 +704,184 @@ async function reclasificar(r,cat,reset,label=''){
  try{const n=await rpc('return_pda_classify',{p_id:r.id,p_fail_cat:cat,p_resettable:!!reset,p_fail_label:label||''});unirLectura(n);ultima=n;
   mostrar(n.resettable?{color:'verde',grande:'Listo: va a Reset'+(n.fail_label?' · '+n.fail_label:''),trk:n.tracking,det:n.driver||''}:{color:'rojo',grande:'Listo: a la caja · '+nombreFalla(n),trk:n.tracking,det:n.driver||''},n.resettable?'ok':'caja');pintarResumen();}
  catch(e){mostrar({color:'rojo',grande:'No se pudo cambiar',det:e.message},'error');}
+}
+
+// ---------- consulta en el portal de managers: cambios en SpeedX POS + tickets
+const PORTAL_URL='https://aflex-portal.aflex124578.workers.dev';
+let portal=store.get('pda_portal',{url:PORTAL_URL,ciudad:'TCL',token:'',nombre:''});
+const consultas=new Map();   // tracking -> {cargando}|{datos}|{error}
+function pintarPortal(){if($('aj-portal')){$('aj-portal').textContent=portal.token?`${portal.nombre||'Dentro'} · ${portal.ciudad}`:'Sin entrar: no avisa cambios ni tickets';$('aj-portal-b').textContent=portal.token?'Salir':'Entrar';}}
+async function portalApi(ruta,cuerpo){
+ if(!portal.token)throw new Err('Entra al portal de managers (Ajustes) para ver cambios y tickets.',{portal:true});
+ let r;
+ try{r=await fetch(portal.url.replace(/\/+$/,'')+'/api'+ruta,{method:cuerpo?'POST':'GET',headers:{Authorization:'Bearer '+portal.token,'Content-Type':'application/json'},body:cuerpo?JSON.stringify(cuerpo):undefined});}
+ catch(e){throw new Err('Sin conexión con el portal.');}
+ const j=await r.json().catch(()=>({}));
+ if(r.status===401){portal.token='';store.set('pda_portal',portal);pintarPortal();throw new Err('La sesión del portal venció. Entra otra vez en Ajustes.',{portal:true});}
+ if(j.error)throw new Err(j.error);
+ return j;
+}
+async function consultar(t,forzar){
+ if(!portal.token){consultas.set(t,{error:'',sinPortal:true});pintarConsulta(t);return;}
+ const v=consultas.get(t);if(v&&!forzar&&(v.cargando||v.datos))return pintarConsulta(t);
+ consultas.set(t,{cargando:true});pintarConsulta(t);
+ const lr=lecturas.find(x=>x.tracking===t);
+ try{consultas.set(t,{datos:await portalApi('/ciudad/'+portal.ciudad+'/pda-consulta',{tracking:t,cat:lr?.fail_cat||'',label:lr?.fail_label||'',msg:lr?.speedx_msg||''})});}
+ catch(e){consultas.set(t,{error:e.message,sinPortal:!!e.portal});}
+ pintarConsulta(t);
+}
+const fh=n=>n?fechaHora(new Date(Number(n))):'';
+function htmlConsulta(t){
+ const c=consultas.get(t);if(!c)return '';
+ if(c.sinPortal)return `<div class="consulta"><span class="c-t">SpeedX POS y tickets</span><span>${esc(c.error||'Entra al portal de managers en Ajustes para ver si SpeedX cambió algo y sus tickets.')}</span></div>`;
+ if(c.cargando)return '<div class="consulta"><span class="c-t">SpeedX POS y tickets</span><span>Consultando…</span></div>';
+ if(c.error)return `<div class="consulta"><span class="c-t">SpeedX POS y tickets</span><span>${esc(c.error)}</span></div>`;
+ const d=c.datos,tk=d.tickets||{},hoja=tk.hoja||[],aud=tk.auditoria||[],notas=tk.notas||[];
+ const nuevos=(d.cambios||[]).filter(x=>x.despuesDelFallo),otros=(d.cambios||[]).filter(x=>!x.despuesDelFallo);
+ const pend=hoja.filter(x=>x.estado==='pendiente');
+ let s='<div class="consulta">'+htmlRts(t,d)+'<span class="c-t">SpeedX POS</span>';
+ if(d.errorSx)s+=`<span>${esc(d.errorSx)}</span>`;
+ if(d.rts?.estado)s+=`<div class="ev">Label Status: <b>${esc(d.rts.estado)}</b>${d.rts.tipo?' · Tipo '+esc(d.rts.tipo):''}${d.rts.cliente?' · '+esc(d.rts.cliente):''}</div>`;
+ else if(nuevos.length)s+=`<div class="aviso-c">⚠ SpeedX cambió algo después del intento fallido</div>`;
+ else if(otros.length)s+='<span>Tiene cambios en SpeedX (antes del último fallo).</span>';
+ else s+='<span>Sin cambios en SpeedX POS.</span>';
+ for(const e of [...nuevos,...otros].slice(0,4))s+=`<div class="ev cambio"><b>${esc(e.tipo||'Cambio')}</b> · ${esc(fh(e.en))}${e.quien?' · '+esc(e.quien):''}${e.nota?'<br>'+esc(e.nota):''}</div>`;
+ const dir=Object.entries(d.datos||{}).filter(([k])=>/address|addr|street|city|zip|postal|unit|apt/i.test(k)).map(([,v])=>v);
+ if(dir.length)s+=`<div class="ev">Dirección en SpeedX: ${esc([...new Set(dir)].slice(0,4).join(', '))}</div>`;
+ if(d.ultimoFallo)s+=`<div class="ev">Último fallo: ${esc(d.ultimoFallo.nota||d.ultimoFallo.tipo)} · ${esc(fh(d.ultimoFallo.en))}</div>`;
+ s+='<span class="c-t" style="margin-top:4px">Tickets del portal</span>';
+ if(!hoja.length&&!aud.length&&!notas.length)s+='<span>Sin tickets.</span>';
+ if(pend.length)s+=`<div class="aviso-c">Ticket pendiente: revisa antes de mandarlo</div>`;
+ for(const x of hoja.slice(0,3))s+=`<div class="tk"><b>${esc(x.issue||x.ticket||'Ticket')} · ${esc(x.estado==='pendiente'?'PENDIENTE':x.estado||'')}</b><small>${esc([x.fecha,x.driver,x.accion||x.gestion].filter(Boolean).join(' · '))}</small>${x.respuesta?`<small>Respuesta: ${esc(x.respuesta)}${x.respondio?' ('+esc(x.respondio)+')':''}</small>`:''}${x.observacion?`<small>${esc(x.observacion)}</small>`:''}</div>`;
+ for(const x of aud.slice(0,2))s+=`<div class="tk"><b>Auditoría · ${esc(x.nombre||'')} · ${x.cerrado?'cerrado':'abierto'}</b><small>${esc([x.fecha,x.motivo].filter(Boolean).join(' · '))}</small>${x.comentario?`<small>${esc(x.comentario)}${x.autor?' ('+esc(x.autor)+')':''}</small>`:''}</div>`;
+ for(const x of notas.slice(0,2))s+=`<div class="tk"><b>${x.tipo==='pod_valido'?'POD válido':x.tipo==='pod_invalido'?'POD no válido':x.tipo==='pod_quitar'?'POD: se quitó la marca':'Comentario'}</b><small>${esc(x.texto||'')}${x.autor?' ('+esc(x.autor)+')':''}</small></div>`;
+ return s+'</div>';
+}
+function pintarConsulta(t){
+ const res=$('resultado');
+ if(ultima&&ultima.tracking===t&&res&&!res.querySelector('.ensenar')){res.querySelector('.consulta')?.remove();res.insertAdjacentHTML('beforeend',htmlConsulta(t));}
+ if($('d-consulta').open&&consTrk===t){$('cons-res').innerHTML=`<div class="trk">${esc(t)}</div>`+htmlConsulta(t);}
+}
+let consTrk='';
+$('b-consultar').onclick=()=>{consTrk='';$('cons-trk').value='';$('cons-res').innerHTML='<div class="det">Escanea un paquete.</div>';$('d-consulta').showModal();setTimeout(()=>$('cons-trk').focus(),60);};
+$('cons-cerrar').onclick=()=>$('d-consulta').close();
+$('cons-teclado').onclick=()=>{const i=$('cons-trk'),on=i.getAttribute('inputmode')==='none';i.setAttribute('inputmode',on?'text':'none');$('cons-teclado').setAttribute('aria-pressed',String(on));i.blur();setTimeout(()=>i.focus(),40);};
+let consTecla=null;
+$('cons-trk').addEventListener('input',()=>{clearTimeout(consTecla);const v=$('cons-trk').value;if(Fallas.limpiarTracking(v).length>=12)consTecla=setTimeout(()=>{if($('cons-trk').value===v)$('form-consulta').requestSubmit();},350);});
+$('form-consulta').onsubmit=e=>{
+ e.preventDefault();clearTimeout(consTecla);
+ const t=Fallas.limpiarTracking($('cons-trk').value);$('cons-trk').value='';
+ const i=$('cons-trk');if(i.getAttribute('inputmode')!=='none'){i.setAttribute('inputmode','none');$('cons-teclado').setAttribute('aria-pressed','false');i.blur();}
+ setTimeout(()=>i.focus({preventScroll:true}),40);
+ if(t.length<8)return;
+ consTrk=t;const r=lecturas.find(x=>x.tracking===t);
+ $('cons-res').innerHTML=`<div class="trk">${esc(t)}</div>${r?`<div class="det">Escaneado ${esc(hora(r.read_at))} · ${r.resettable?'Reset':'Caja · '+esc(nombreFalla(r))}</div>`:''}`;
+ consultar(t,true);
+};
+$('aj-portal-b').onclick=()=>{
+ if(portal.token){portal.token='';store.set('pda_portal',portal);pintarPortal();return;}
+ $('pt-url').value=portal.url||PORTAL_URL;$('pt-ciudad').value=portal.ciudad||'TCL';err('pt-err','');$('d-portal').showModal();
+};
+$('pt-no').onclick=()=>$('d-portal').close();
+$('form-portal').onsubmit=async e=>{
+ e.preventDefault();err('pt-err','');
+ const url=$('pt-url').value.trim().replace(/\/+$/,'')||PORTAL_URL;
+ try{
+  const r=await fetch(url+'/api/entrar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({correo:$('pt-correo').value,clave:$('pt-clave').value})});
+  const j=await r.json().catch(()=>({}));
+  if(!j.token)throw new Error(j.error||'No se pudo entrar al portal.');
+  portal={url,ciudad:$('pt-ciudad').value,token:j.token,nombre:j.nombre||''};store.set('pda_portal',portal);
+  $('pt-clave').value='';$('d-portal').close();pintarPortal();consultas.clear();
+ }catch(x){err('pt-err',/fetch/i.test(x.message)?'Sin conexión con el portal.':x.message);}
+};
+
+// ---------- RTS: Manual de devoluciones al Hub de Atlanta, automatizado
+const BOLSA={
+ DISP:{n:'DISP',c:'#9AA4B2',que:'Disposal y duplicados (misma bolsa). Escríbele «Duplicate» al duplicado.',lote:'DUPLICATE'},
+ RTS:{n:'RTS (BULK)',c:'#5B8CFF',que:'Devoluciones al remitente tipo BULK. Escribe en el paquete el cliente y su ID, sin notas adhesivas.'},
+ RTS_ETIQUETA:{n:'RTS con etiqueta nueva',c:'#4FD39B',que:'Imprime y pega la etiqueta nueva (termina en R). Si es de tu ciudad se vuelve a despachar; si no, va a LOD.'},
+ LOD:{n:'LOD / Missort',c:'#FFA51F',que:'Paquetes de otra ciudad (con intento fallido del driver).',lote:'WRONG_CITY'},
+ DAMAGED:{n:'Damaged',c:'#FF6B6B',que:'Dañados: Exception Scan en la PDA (59120) con 2 fotos y la decisión de CS. Denied y Hold van en bolsa aparte.',lote:'DAMAGED'},
+ ESPERA:{n:'En espera 7 días',c:'#FFD23F',que:'Los 7 días cuentan desde que entró a Atlanta (SCAN_INBOUND_PARCEL [ATL]). Escanéalos en Left on dock cada 2 días; al día 7 van a Return Scan.'},
+ REVISAR:{n:'Revisar',c:'#C084FC',que:'Falta algo (por ejemplo, el intento fallido del driver) antes de devolverlo.'},
+ DESPACHAR:{n:'Volver a despachar',c:'#0F7A4E',que:'Locales y entregables: salen otra vez a ruta.'},
+};
+let rtsDatos=[],rtsCargando=false;
+function htmlRts(t,d){
+ const r=d.rts;if(!r||!r.bolsa)return '';
+ const g=d.guardado||{},b=BOLSA[g.manual?g.bolsa:r.bolsa]||BOLSA.REVISAR;
+ let s=`<div class="rtsBox"><span class="c-t" style="opacity:.6">RTS · Paso 0</span><span class="bolsa" style="color:${b.c==='#FFD23F'?'#8A6A00':b.c}">${esc(b.n)}</span><span>${esc(r.accion||'')}</span>`;
+ for(const a of r.avisos||[])s+=`<span class="av">${esc(a)}</span>`;
+ if(r.inicio7)s+=`<span>Entró a Atlanta: <b>${esc(fechaHora(new Date(r.inicio7)))}</b> · día ${esc(r.dias7)} de 7</span>`;
+ if(r.bolsa==='ESPERA'&&r.listo)s+=`<span>Return Scan desde: <b>${esc(fCorta(new Date(r.listo).toISOString().slice(0,10)))}</b></span>`;
+ if(g.registrado)s+=`<span class="ok">✓ Registrado en Unintended Returns${g.lote_ur?' · lote '+esc(g.lote_ur):''}${g.tipo?' · '+esc(g.tipo):''}</span>`;
+ else if(r.registrar)s+=`<button data-rts-reg="${esc(t)}">Registrar en Unintended Returns</button>`;
+ return s+'</div>';
+}
+async function registrarUR(t,boton){
+ if(boton){boton.disabled=true;boton.textContent='Registrando…';}
+ try{
+  const j=await portalApi('/ciudad/'+portal.ciudad+'/rts/registrar',{tracking:t});
+  const v=consultas.get(t);if(v&&v.datos){v.datos.guardado={...(v.datos.guardado||{}),registrado:Date.now(),lote_ur:j.lote,tipo:j.tipo,cliente:j.cliente,bolsa:j.bolsa||v.datos.rts.bolsa};}
+  const msg=j.tipo==='BULK'?`BULK · escribe «${j.cliente}» en el paquete · bolsa RTS`:j.tipo==='RTS'?`RTS · etiqueta nueva ${j.nueva||''} · ${j.bolsa==='LOD'?'otra ciudad: bolsa LOD':'imprímela y pégala'}`:j.tipo==='DISP'?'DISP · bolsa DISP':j.tipo||'Registrado';
+  sonar('ok');
+  if(j.etiqueta)imprimirEtiqueta(j.etiqueta);
+  pintarConsulta(t);
+  if(boton)boton.textContent='✓ '+msg;
+  if(vista==='rts')cargarRts();
+  return j;
+ }catch(e){sonar('error');if(boton){boton.disabled=false;boton.textContent='Registrar en Unintended Returns';}alert(e.message);}
+}
+function imprimirEtiqueta(dato){
+ const src=/^data:|^https?:/.test(dato)?dato:'data:application/pdf;base64,'+dato;
+ const w=window.open('','_blank');
+ if(!w){const a=document.createElement('a');a.href=src;a.download='etiqueta_RTS.pdf';a.click();return;}
+ w.document.write(/pdf/.test(src)?`<iframe src="${src}" style="border:0;width:100%;height:100vh"></iframe>`:`<img src="${src}" style="width:100%" onload="print()">`);
+}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-rts-reg]');if(b){e.preventDefault();e.stopPropagation();registrarUR(b.dataset.rtsReg,b);}},true);
+$('rts-recargar').onclick=()=>cargarRts();
+async function cargarRts(){
+ if(rtsCargando)return;
+ if(!portal.token){$('rts-resumen').textContent='Entra al portal de managers (Ajustes) para usar RTS.';$('rts-bolsas').innerHTML='';return;}
+ rtsCargando=true;$('rts-resumen').textContent='Cargando…';
+ try{
+  const [b,ur]=await Promise.all([portalApi('/ciudad/'+portal.ciudad+'/rts/bolsas'),portalApi('/ciudad/'+portal.ciudad+'/rts/lotes-ur').catch(e=>({error:e.message}))]);
+  rtsDatos=(b.paquetes||[]).filter(p=>!p.enviado);pintarRts(ur);
+ }catch(e){$('rts-resumen').textContent=e.message;}finally{rtsCargando=false;}
+}
+function pintarRts(ur){
+ const por=new Map();for(const p of rtsDatos){const k=BOLSA[p.bolsa]?p.bolsa:'REVISAR';if(!por.has(k))por.set(k,[]);por.get(k).push(p);}
+ const orden=['DISP','RTS','RTS_ETIQUETA','LOD','DAMAGED','ESPERA','REVISAR','DESPACHAR'];
+ const alHub=rtsDatos.filter(p=>['DISP','RTS','LOD','DAMAGED'].includes(p.bolsa));
+ $('rts-resumen').textContent=`${num(alHub.length)} van al Hub en 4 bolsas · ${num((por.get('ESPERA')||[]).length)} en espera · ${num((por.get('REVISAR')||[]).length)} por revisar`;
+ const hoy=Date.now();
+ $('rts-bolsas').innerHTML=orden.filter(k=>por.has(k)).map(k=>{
+  const b=BOLSA[k],ps=por.get(k),sinReg=ps.filter(p=>!p.registrado&&p.decision?.registrar);
+  const filas=ps.slice(0,60).map(p=>{const dl=p.decision||{};const base=dl.inicio7||p.primer_fallo,dias=base?Math.floor((hoy-base)/864e5):null;
+   return `<div class="fila-p" data-cons="${esc(p.tracking)}"><div class="t"><b>${esc(p.tracking)}</b><span>${esc([p.tipo,p.cliente,k==='ESPERA'&&dias!=null?'día '+dias+' de 7':'',p.lote_dev?'lote '+p.lote_dev:'',(dl.avisos||[])[0]].filter(Boolean).join(' · '))}</span></div>${p.registrado?'<span class="pill p-verde">UR ✓</span>':dl.registrar?'<span class="pill p-amar">sin UR</span>':''}</div>`;}).join('');
+  return `<div class="bolsaRts" style="--c:${b.c}"><h3>${esc(b.n)}<span class="pill p-gris">${num(ps.length)}</span></h3><p class="que">${esc(b.que)}</p><div class="lista">${filas}</div>
+   <div class="acc">${sinReg.length?`<button class="btn btn-azul" data-rts-todos="${k}">Registrar ${num(sinReg.length)} en UR</button>`:''}${b.lote?`<button class="btn btn-suave" data-rts-lote="${k}">Lote ${esc(b.lote.replace('_',' '))}</button><button class="btn btn-suave" data-rts-cerrar="${k}">Cerrar lote</button>`:''}</div></div>`;
+ }).join('')||'<p class="vacio">Todavía no hay paquetes revisados. Escanéalos en «Escanear» o «Consultar paquete».</p>';
+ document.querySelectorAll('[data-cons]').forEach(f=>f.onclick=()=>{$('b-consultar').click();setTimeout(()=>{$('cons-trk').value=f.dataset.cons;$('form-consulta').requestSubmit();},80);});
+ document.querySelectorAll('[data-rts-todos]').forEach(x=>x.onclick=async()=>{const ps=(por.get(x.dataset.rtsTodos)||[]).filter(p=>!p.registrado&&p.decision?.registrar);if(!confirm(`Registrar ${ps.length} paquetes en Unintended Returns de SpeedX?`))return;x.disabled=true;let i=0,mal=0;for(const p of ps){x.textContent=`${++i} de ${ps.length}…`;try{await portalApi('/ciudad/'+portal.ciudad+'/rts/registrar',{tracking:p.tracking});}catch(e){mal++;}}x.textContent=mal?`Listo · ${mal} con error`:'Listo';cargarRts();});
+ document.querySelectorAll('[data-rts-lote]').forEach(x=>x.onclick=async()=>{const k=x.dataset.rtsLote,ps=(por.get(k)||[]).filter(p=>!p.lote_dev);if(!ps.length)return alert('Todos ya están en el lote.');if(!confirm(`Crear o usar el lote ${portal.ciudad}_${BOLSA[k].lote} de hoy en Devoluciones (Return Scan) y escanear ${ps.length} paquetes?`))return;x.disabled=true;x.textContent='Escaneando…';
+  try{const j=await portalApi('/ciudad/'+portal.ciudad+'/rts/lote',{tipo:BOLSA[k].lote,trackings:ps.map(p=>p.tracking)});const ok=j.resultados.filter(r=>r.ok).length,mal=j.resultados.filter(r=>!r.ok);x.textContent=`${j.lote}: ${ok} ✓`;if(mal.length)alert(`${mal.length} no entraron al lote:\n`+mal.slice(0,10).map(r=>r.tracking+': '+r.error).join('\n'));cargarRts();}
+  catch(e){x.disabled=false;x.textContent='Lote';alert(e.message);}});
+ document.querySelectorAll('[data-rts-cerrar]').forEach(x=>x.onclick=async()=>{const k=x.dataset.rtsCerrar,d=hoyEst(),lote=`${portal.ciudad}_${d.slice(5,7)}${d.slice(8,10)}_${BOLSA[k].lote}`,n=(por.get(k)||[]).filter(p=>p.lote_dev===lote).length;
+  if(!confirm(`Cerrar el lote ${lote}? Revisa que la cantidad del sistema coincida con tu conteo (${n} en el PDA). Se cierra, nunca se borra.`))return;
+  try{const j=await portalApi('/ciudad/'+portal.ciudad+'/rts/cerrar-lote',{lote});x.textContent='Cerrado'+(j.cantidad!=null?' · '+j.cantidad+' en SpeedX':'');x.disabled=true;}catch(e){alert(e.message);}});
+ // lotes BULK de Unintended Returns
+ const lotes=(ur&&ur.lotes)||[];
+ $('rts-ur').innerHTML=ur&&ur.error?`<p class="vacio">${esc(ur.error)}</p>`:lotes.map(l=>`<div class="fila-p"><div class="t"><b>${esc(l.lote)}</b><span>${esc([l.tipo,l.estado,l.cantidad!=null?l.cantidad+' paquetes':''].filter(Boolean).join(' · '))}</span></div>${/clos/i.test(l.estado||'')?'<span class="pill p-verde">Cerrado</span>':`<button class="mini" data-ur-cerrar="${esc(l.id)}">Cerrar</button>`}</div>`).join('')||'<p class="vacio">No hay lotes de hoy.</p>';
+ document.querySelectorAll('[data-ur-cerrar]').forEach(x=>x.onclick=async()=>{if(!confirm('Cerrar este lote de Unintended Returns?'))return;try{await portalApi('/ciudad/'+portal.ciudad+'/rts/cerrar-ur',{id:x.dataset.urCerrar});cargarRts();}catch(e){alert(e.message);}});
+ // checklist del camión (sección 8)
+ const CH=['Los registros del sistema coinciden con los paquetes físicos','Cada tipo va en su propia bolsa, sellada y rotulada (DISP, RTS, LOD, Damaged)','Etiquetas, cantidades y destinos de cada bolsa verificados','Los lotes de Devoluciones en POS están cerrados','El lote BULK de Unintended Returns está cerrado hoy','Los paquetes locales están programados para volver a salir'];
+ const marc=store.get('pda_rts_check_'+hoyEst(),[]);
+ $('rts-check').innerHTML=CH.map((c,i)=>`<label class="rtsCheck"><input type="checkbox" data-ck="${i}" ${marc.includes(i)?'checked':''}> ${esc(c)}</label>`).join('');
+ const listo=()=>{$('rts-camion').disabled=!(CH.every((_,i)=>store.get('pda_rts_check_'+hoyEst(),[]).includes(i))&&alHub.length);};
+ document.querySelectorAll('[data-ck]').forEach(c=>c.onchange=()=>{const m=new Set(store.get('pda_rts_check_'+hoyEst(),[]));c.checked?m.add(+c.dataset.ck):m.delete(+c.dataset.ck);store.set('pda_rts_check_'+hoyEst(),[...m]);listo();});
+ listo();
+ $('rts-camion').onclick=async()=>{if(!confirm(`Marcar ${alHub.length} paquetes de las 4 bolsas como enviados a Atlanta?`))return;try{await portalApi('/ciudad/'+portal.ciudad+'/rts/enviado',{trackings:alHub.map(p=>p.tracking)});store.del('pda_rts_check_'+hoyEst());cargarRts();}catch(e){alert(e.message);}};
 }
 
 // ---------- lecturas del día
@@ -702,15 +951,18 @@ $('b-reset').onclick=async()=>{
   try{await rpc('return_pda_mark',{p_rows:rows.map(r=>({id:r.id})),p_reset:true});await cargarLecturas(dia);}catch(e){}
  }catch(e){alert(e.message);}finally{b.disabled=false;}
 };
+// Nombre del error de cada lectura: la categoría (aprendida o de siempre); si no tiene, el mensaje de SpeedX sin números
+const errorDe=r=>r.dock_ok&&r.resettable&&!r.fail_label?'Left on dock OK':(r.fail_cat||r.fail_label)&&(r.fail_label||r.fail_cat!=='other')?nombreFalla(r):(String(r.speedx_msg||'').replace(/^speedx:\s*/i,'').replace(/[A-Z]{2,}\d{6,}/g,'').replace(/\s+/g,' ').trim().slice(0,60)||nombreFalla(r));
+const ordenError=r=>!r.resettable?0:!r.dock_ok?1:2;
 const AFX={driver_scan:'Escaneado por el driver',sin_escaneo:'SIN escaneo del driver',ya_retornado:'Ya estaba retornado',no_en_aflex:'No está en AFLEX'};
 $('b-informe').onclick=async()=>{
  const b=$('b-informe');b.disabled=true;b.textContent='Preparando…';
  try{
-  const X=await cargarExcel(),wb=new X.Workbook(),L=delDia().slice().sort((a,b)=>String(a.read_at).localeCompare(String(b.read_at)));
+  const X=await cargarExcel(),wb=new X.Workbook(),L=delDia().slice().sort((a,b)=>ordenError(a)-ordenError(b)||errorDe(a).localeCompare(errorDe(b),'es')||String(a.read_at).localeCompare(String(b.read_at)));
   let pend=[];try{pend=await rpc('return_pda_pending',{});}catch(e){}
   const C={verde:'FFD9F5E6',rojo:'FFFBE0DE',amar:'FFFFF3C4'};
-  const fila=(r,i)=>({cells:[i+1,hora(r.read_at),r.tracking,r.driver,r.area,r.route_date,AFX[r.aflex]||r.aflex,r.driver_scan_by,r.dock_ok?'Sí':'No',r.sort_code,r.speedx_msg,r.fail_cat||r.fail_label?nombreFalla(r):'',r.resettable?'Reset':'Caja',r.ctn,r.reset_at?'Sí':'',r.times],color:!r.resettable?C.rojo:amarillo(r)?C.amar:C.verde});
-  const cols=[['#',6],['Hora',9],['Tracking',28],['Driver',24],['Área',10],['Fecha de ruta',13],['AFLEX',24],['Escaneó en AFLEX',22],['Left on dock',12],['Sort code',16],['Respuesta de SpeedX',44],['Falla',24],['Destino',10],['Contenedor',30],['Exportado a reset',10],['Veces',8]];
+  const fila=(r,i)=>({cells:[i+1,hora(r.read_at),r.tracking,r.driver,r.area,r.route_date,AFX[r.aflex]||r.aflex,r.driver_scan_by,r.dock_ok?'Sí':'No',r.sort_code,r.speedx_msg,errorDe(r),r.resettable?'Reset':'Caja',r.ctn,r.reset_at?'Sí':'',r.times],color:!r.resettable?C.rojo:amarillo(r)?C.amar:C.verde});
+  const cols=[['#',6],['Hora',9],['Tracking',28],['Driver',24],['Área',10],['Fecha de ruta',13],['AFLEX',24],['Escaneó en AFLEX',22],['Left on dock',12],['Sort code',16],['Respuesta de SpeedX',44],['Error',28],['Destino',10],['Contenedor',30],['Exportado a reset',10],['Veces',8]];
   const res=wb.addWorksheet('Resumen');res.columns=[{width:38},{width:14}];
   res.addRow([`Informe del PDA · Tuscaloosa · ${dia}`]).font={bold:true,size:14};res.addRow([`Hecho por ${perfil.full_name} · ${fechaHora(new Date())}`]);res.addRow([]);
   const cuenta=f=>L.filter(f).length;
@@ -720,6 +972,18 @@ $('b-informe').onclick=async()=>{
   hoja(wb,'Recibidos',cols,L.map(fila));
   hoja(wb,'Para reset',[['Tracking',28],['Driver',24],['Left on dock',12],['Respuesta de SpeedX',44]],L.filter(enReset).map(r=>[r.tracking,r.driver,r.dock_ok?'Sí':'No',r.speedx_msg]));
   hoja(wb,'Caja por falla',[['Falla',24],['Tracking',28],['Driver',24],['Fecha de ruta',13],['Respuesta de SpeedX',44],['Hora',9]],L.filter(enCaja).sort((a,b)=>nombreFalla(a).localeCompare(nombreFalla(b))).map(r=>[nombreFalla(r),r.tracking,r.driver,r.route_date,r.speedx_msg,hora(r.read_at)]));
+  // Una pestaña por cada error del Left on dock: todos los paquetes quedan clasificados en su error
+  {const usados=new Set(['resumen','recibidos','para reset','caja por falla','sin escaneo del driver','faltan por retornar']);
+   const grupos=new Map();for(const r of L.filter(r=>!r.dock_ok||!r.resettable)){const k=errorDe(r);if(!grupos.has(k))grupos.set(k,[]);grupos.get(k).push(r);}
+   const lista=[...grupos.entries()].sort((a,b)=>b[1].length-a[1].length||a[0].localeCompare(b[0],'es'));
+   res.addRow([]);res.addRow(['Errores del Left on dock (una pestaña por error)']).font={bold:true};
+   for(const [k,rs] of lista){
+    let n=('Error '+k).replace(/[\\\/\?\*\[\]:]/g,' ').replace(/\s+/g,' ').trim().slice(0,31),base=n,i=2;
+    while(usados.has(n.toLowerCase())){const suf=' ('+(i++)+')';n=base.slice(0,31-suf.length)+suf;}
+    usados.add(n.toLowerCase());res.addRow([k,rs.length]);
+    hoja(wb,n,[['Tracking',28],['Driver',24],['Fecha de ruta',13],['Destino',10],['Respuesta de SpeedX',50],['Hora',9],['Veces',8]],
+     rs.sort((a,b)=>String(a.driver||'').localeCompare(String(b.driver||''),'es')||String(a.read_at).localeCompare(String(b.read_at))).map(r=>({cells:[r.tracking,r.driver,r.route_date,r.resettable?'Reset':'Caja',r.speedx_msg,hora(r.read_at),r.times],color:r.resettable?C.amar:C.rojo})));
+   }}
   hoja(wb,'Sin escaneo del driver',[['Tracking',28],['Driver',24],['Área',10],['Fecha de ruta',13],['AFLEX',24]],L.filter(amarillo).map(r=>({cells:[r.tracking,r.driver,r.area,r.route_date,AFX[r.aflex]],color:C.amar})));
   hoja(wb,'Faltan por retornar',[['Driver',24],['Tracking',28],['Área',10],['Fecha de ruta',13],['Estado',16],['Motivo',30],['Escaneado por el driver',22]],pend.map(p=>[p.driver,p.tracking,p.area,p.delivery_date,p.status,p.motivo,p.driver_scan?p.driver_scan_by:'']));
   await descargar(wb,`informe_pda_TCL_${dia}.xlsx`);
@@ -800,7 +1064,7 @@ function imprimirGuia(g){
 }
 
 // ---------- ajustes
-$('abrir-ajustes').onclick=()=>{$('aj-aflex').textContent=perfil?`${perfil.full_name} (${perfil.role})`:'Sin entrar';$('aj-sx').textContent=sxToken?sxUsuario||'Dentro':'Sin entrar';$('aj-sonido').checked=store.get('pda_sonido',true);pintarReglas();$('d-ajustes').showModal();};
+$('abrir-ajustes').onclick=()=>{pintarPortal();$('aj-aflex').textContent=perfil?`${perfil.full_name} (${perfil.role})`:'Sin entrar';$('aj-sx').textContent=sxToken?sxUsuario||'Dentro':'Sin entrar';$('aj-sonido').checked=store.get('pda_sonido',true);pintarReglas();$('d-ajustes').showModal();};
 $('aj-cerrar').onclick=()=>{$('d-ajustes').close();enfocar();};
 $('aj-sonido').onchange=()=>store.set('pda_sonido',$('aj-sonido').checked);
 $('aj-salir-aflex').onclick=async()=>{await db.auth.signOut();perfil=null;$('d-ajustes').close();mostrarLogin();estadoCuentas();};
